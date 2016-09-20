@@ -5,3 +5,5 @@ call tsc src/node_modules/parse/index.ts -t es6 -m commonjs
 call tsc src/node_modules/productions/index.ts -t es6 -m commonjs
 call tsc src/node_modules/slr1/index.ts -t es6 -m commonjs
 call tsc src/node_modules/utility/index.ts -t es6 -m commonjs
+call tsc src/node_modules/lex/index.ts -t es6 -m commonjs
+call tsc src/node_modules/regex/index.ts -t es6 -m commonjs

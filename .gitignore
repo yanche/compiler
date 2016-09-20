@@ -2,3 +2,7 @@
 /src/**/*.js
 *.map
 /typings
+*.log
+*.tlang.ic
+*.tlang.optimized.ic
+*.tlang.asm
