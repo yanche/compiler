@@ -3,6 +3,5 @@
 *.map
 /typings
 *.log
-*.tlang.ic
-*.tlang.optimized.ic
-*.tlang.asm
+*.ic
+*.asm
