@@ -5,7 +5,7 @@ function label & text/gdata label
 dependency chain of intermediate code:
 value inference -> fold(write) -> liveness inference -> liveness prone(write) -> branch removal(write) -> compress
 
-branch removal & compress in mips code
+branch removal & compress in mips code (mov $t0 $t0, as 2 tmp register map to the same mips register)
 
 mod
 
