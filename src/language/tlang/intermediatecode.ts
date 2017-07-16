@@ -1,5 +1,5 @@
 
-import * as utility from 'utility';
+import * as utility from '../../utility';
 import * as t from './tac';
 import * as r from './regallocate';
 import * as m from './mipscode';

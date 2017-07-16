@@ -1,9 +1,9 @@
 
 import * as assert from 'assert';
-import * as utility from 'utility';
+import * as utility from '../../../utility';
 import {createLR1Parser} from '../index';
 import * as tutil from './util';
-import * as c from 'compile';
+import * as c from '../../../compile';
 
 
 describe('LR(1) parse', function () {

@@ -1,7 +1,7 @@
 
-import * as c from 'compile';
+import * as c from '../../compile';
 import * as util from './util';
-import * as utility from 'utility';
+import * as utility from '../../utility';
 import * as tc from './tac';
 import * as i from './intermediatecode';
 import * as _ from 'lodash';

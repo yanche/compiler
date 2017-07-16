@@ -1,8 +1,8 @@
 
-import * as prod from 'productions';
-import * as utility from 'utility';
-import * as dfa from 'DFA';
-import * as nfa from 'NFA';
+import * as prod from '../../productions';
+import * as utility from '../../utility';
+import * as dfa from '../../DFA';
+import * as nfa from '../../NFA';
 import * as _ from 'lodash';
 import * as putil from './util';
 import SLR1DFA from './slr1dfa';

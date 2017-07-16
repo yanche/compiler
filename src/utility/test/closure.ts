@@ -1,7 +1,7 @@
 
 import * as assert from 'assert';
 import * as closure from '../closure';
-import {Edge} from 'utility';
+import {Edge} from '../../utility';
 
 function convToEdges(edges: Array<Array<number>>): Array<Edge> {
     let ret: Array<Edge> = [];

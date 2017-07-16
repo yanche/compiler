@@ -6,9 +6,6 @@
   "dependencies": {
     "lodash": "^4.13.1"
   },
-  "devDependencies": {
-    "typescript": "^2.1.0-dev.20160816"
-  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

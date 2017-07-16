@@ -1,6 +1,6 @@
 
 import * as assert from 'assert';
-import * as utility from 'utility';
+import * as utility from '../../../utility';
 import {createLALR1Parser} from '../index';
 
 

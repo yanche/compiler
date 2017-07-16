@@ -1,5 +1,5 @@
 
-import * as utility from 'utility';
+import * as utility from '../utility';
 import * as _ from 'lodash';
 
 //terminal symbol or non-terminal symbol, used in productions

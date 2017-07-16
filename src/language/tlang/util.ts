@@ -1,9 +1,9 @@
 
-import * as c from 'compile';
+import * as c from '../../compile';
 import * as util from './util';
 import * as a from './ast';
 import * as i from './intermediatecode';
-import * as utility from 'utility';
+import * as utility from '../../utility';
 import * as _ from 'lodash';
 
 const PRIMITIVE_TYPE_INT = 'int', PRIMITIVE_TYPE_BOOL = 'bool';

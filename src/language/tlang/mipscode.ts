@@ -1,7 +1,7 @@
 
 import * as i from './intermediatecode';
 import * as util from './util';
-import * as utility from 'utility';
+import * as utility from '../../utility';
 import * as r from './regallocate';
 
 function setupVtable(asm: MIPSAssembly, classlookup: util.ClassLookup): boolean {

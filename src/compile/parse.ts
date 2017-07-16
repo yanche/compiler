@@ -1,5 +1,5 @@
 
-import * as prod from 'productions';
+import * as prod from '../productions';
 import * as l from './lex';
 
 export abstract class ParseTreeNode {

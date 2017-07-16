@@ -1,5 +1,5 @@
 
-import * as p from 'parser';
+import * as p from '../../parser';
 
 export default p.createSLR1Parser([
     'RE -> S-RE || S-RE | RE',

@@ -1,5 +1,5 @@
 
-import * as c from 'compile';
+import * as c from '../../compile';
 import parser from './parser';
 import * as ap from './astprocess';
 

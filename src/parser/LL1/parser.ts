@@ -1,7 +1,7 @@
 
-import * as utility from 'utility';
-import * as prod from 'productions';
-import * as c from 'compile';
+import * as utility from '../../utility';
+import * as prod from '../../productions';
+import * as c from '../../compile';
 import Parser from '../parser';
 
 class LL1ParseTable {

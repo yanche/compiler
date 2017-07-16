@@ -1,5 +1,5 @@
 
-import * as p from 'parser';
+import * as p from '../../parser';
 import * as fs from 'fs';
 
 let grammar = [

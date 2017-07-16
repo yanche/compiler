@@ -1,6 +1,6 @@
 
 import * as t from '../index';
-import * as c from 'compile';
+import * as c from '../../../compile';
 
 function compileFromFile(filename: string) {
     return t.compileFromFile(filename).then((cret: c.CompileReturn) => {

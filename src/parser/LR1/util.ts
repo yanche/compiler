@@ -1,9 +1,9 @@
 
-import * as prod from 'productions';
-import * as dfa from 'DFA';
+import * as prod from '../../productions';
+import * as dfa from '../../DFA';
 import Parser from '../parser';
-import * as c from 'compile';
-import * as utility from 'utility';
+import * as c from '../../compile';
+import * as utility from '../../utility';
 
 //FOR LR parse-table
 abstract class Action { }

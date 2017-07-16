@@ -1,5 +1,5 @@
 
-import * as c from 'compile';
+import * as c from '../../../compile';
 import * as assert from 'assert';
 
 

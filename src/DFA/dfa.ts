@@ -1,5 +1,5 @@
 
-import * as utility from 'utility';
+import * as utility from '../utility';
 
 export default class DFA {
     private _statemap: Map<number, State>;

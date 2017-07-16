@@ -1,8 +1,8 @@
 
 import * as assert from 'assert';
-import * as utility from 'utility';
+import * as utility from '../../utility';
 import {createNFA} from '../index';
-import {createDFA} from 'DFA';
+import {createDFA} from '../../DFA';
 
 function tran(src: number, tgt: number, str: string) {
     return new utility.automata.Transition(src, tgt, str);

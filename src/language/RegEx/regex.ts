@@ -1,5 +1,5 @@
 
-import * as dfa from 'DFA';
+import * as dfa from '../../DFA';
 import lex from './lex';
 import parser from './parser';
 import {astToNFA} from './astprocess';

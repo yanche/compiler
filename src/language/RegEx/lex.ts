@@ -1,6 +1,6 @@
 
-import * as prod from 'productions';
-import * as c from 'compile';
+import * as prod from '../../productions';
+import * as c from '../../compile';
 
 // | * + ( ) . char [ ] -
 let chnum_a = 'a'.charCodeAt(0);

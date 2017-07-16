@@ -1,6 +1,6 @@
 
 import * as assert from 'assert';
-import * as utility from 'utility';
+import * as utility from '../../utility';
 import {createProdSet, ProdSet} from '../index';
 
 function validate(prodset: ProdSet, expected: Array<{ symbol: string, follow: Array<string> }>) {

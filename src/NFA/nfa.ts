@@ -1,6 +1,6 @@
 
-import * as utility from 'utility';
-import {createDFA, DFA} from 'DFA';
+import * as utility from '../utility';
+import {createDFA, DFA} from '../DFA';
 
 class State {
     private _id: number;

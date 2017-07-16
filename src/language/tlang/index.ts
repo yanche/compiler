@@ -2,11 +2,11 @@
 import lex from './lex';
 import pt2ast from './pt2ast';
 import parser from './parser';
-import * as c from 'compile';
+import * as c from '../../compile';
 import * as fs from 'fs';
 import semanticAnalysis from './semantic';
 import * as a from './ast';
-import * as utility from 'utility';
+import * as utility from '../../utility';
 import * as ic from './intermediatecode';
 import * as m from './mipscode';
 import * as util from './util';

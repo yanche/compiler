@@ -1,6 +1,6 @@
 
 import * as p from './parse';
-import * as prod from 'productions';
+import * as prod from '../productions';
 
 export abstract class ASTNode { }
 

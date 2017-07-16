@@ -1,8 +1,8 @@
 
-import * as c from 'compile';
+import * as c from '../../compile';
 import parser from './parser';
 import * as a from './ast';
-import * as prod from 'productions';
+import * as prod from '../../productions';
 import * as util from './util';
 
 

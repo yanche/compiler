@@ -1,6 +1,6 @@
 
-import * as prod from 'productions';
-import * as c from 'compile';
+import * as prod from '../productions';
+import * as c from '../compile';
 
 abstract class Parser {
     constructor(prodset: prod.ProdSet) {

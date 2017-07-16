@@ -1,7 +1,7 @@
 
 import * as assert from 'assert';
 import {createLL1Parser} from '../index';
-import * as c from 'compile';
+import * as c from '../../../compile';
 
 
 describe('LL(1) parse', function () {

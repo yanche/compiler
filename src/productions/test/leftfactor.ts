@@ -1,6 +1,6 @@
 
 import * as assert from 'assert';
-import * as utility from 'utility';
+import * as utility from '../../utility';
 import {createProdSet} from '../index';
 import * as prod from '../production';
 

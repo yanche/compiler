@@ -1,8 +1,8 @@
 
-import * as utility from 'utility';
-import * as c from 'compile';
+import * as utility from '../../utility';
+import * as c from '../../compile';
 import * as _ from 'lodash';
-import * as nfa from 'NFA';
+import * as nfa from '../../NFA';
 
 export class ASTNode_OR extends c.ASTNode {
     constructor(public children: Array<c.ASTNode>) { super(); }

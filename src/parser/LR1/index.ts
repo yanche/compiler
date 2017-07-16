@@ -2,7 +2,7 @@
 import LR1Parser from './lr1parser';
 import SLR1Parser from './slr1parser';
 import LALR1Parser from './lalr1parser';
-import * as prod from 'productions';
+import * as prod from '../../productions';
 
 export function createSLR1Parser(mprodarr: Iterable<string>, splitter?: string): SLR1Parser {
     return new SLR1Parser(prod.createProdSet(mprodarr, splitter));

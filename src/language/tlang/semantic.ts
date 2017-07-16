@@ -1,6 +1,6 @@
 
 import * as a from './ast';
-import * as c from 'compile';
+import * as c from '../../compile';
 import * as util from './util';
 
 export default function analysize(root: a.ASTNode_globaldefs, classlookup: util.ClassLookup, fnlookup: util.FunctionLookup): util.SemanticCheckReturn {
