@@ -9,11 +9,26 @@ export class Symbol {
 
     constructor(terminal: boolean, name: string) {
         if (name === '$') throw new Error('$ is reserved as a symbol');
+        if (!Symbol.validName(name)) throw new Error(`name is invalid as a symbol: ${name}, letters, digits, _ are allowed`);
         this._terminal = terminal;
         this._name = name;
     }
     isTerminal(): boolean { return this._terminal; }
     getName(): string { return this._name; }
+    static validName(name: string): boolean {
+        const ch0 = "0".charCodeAt(0);
+        const ch9 = "9".charCodeAt(0);
+        const cha = "a".charCodeAt(0);
+        const chz = "z".charCodeAt(0);
+        const chA = "A".charCodeAt(0);
+        const chZ = "Z".charCodeAt(0);
+        const chDash = "_".charCodeAt(0);
+        for (let i = 0; i < name.length; ++i) {
+            const ch = name.charCodeAt(i);
+            if (!((ch0 <= ch && ch <= ch9) || (cha <= ch && ch <= chz) || (chA <= ch && ch <= chZ) || chDash === ch)) return false;
+        }
+        return true;
+    }
 }
 
 //one production, includes left-hand-side (one non-terminal symbol) and right-hand-side (a list of symbols)
@@ -26,13 +41,12 @@ export class Production {
         if (lhs.isTerminal()) throw new Error('left-hand-side of production must be non-terminal');
         this._lhs = lhs;
         this._rhs = rhs || [];
-        this._literal = Production.id(this._lhs, this._rhs);
+        this._literal = Production.literal(this._lhs, this._rhs);
     }
     getLHS(): Symbol { return this._lhs; }
     getRHS(): Array<Symbol> { return this._rhs; }
     getLiteral(): string { return this._literal; }
-    print(): this { console.log(this.getLiteral()); return this; }
-    static id(lhs: Symbol | string, rhs: Array<Symbol>) {
+    static literal(lhs: Symbol | string, rhs: Array<Symbol>) {
         let lstr: string;
         if (lhs instanceof Symbol) lstr = lhs.getName();
         else lstr = lhs;
