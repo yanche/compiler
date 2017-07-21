@@ -41,12 +41,12 @@ export class Production {
         if (lhs.isTerminal()) throw new Error('left-hand-side of production must be non-terminal');
         this._lhs = lhs;
         this._rhs = rhs || [];
-        this._literal = Production.literal(this._lhs, this._rhs);
+        this._literal = Production.stringify(this._lhs, this._rhs);
     }
     getLHS(): Symbol { return this._lhs; }
     getRHS(): Array<Symbol> { return this._rhs; }
-    getLiteral(): string { return this._literal; }
-    static literal(lhs: Symbol | string, rhs: Array<Symbol>) {
+    stringify(): string { return this._literal; }
+    static stringify(lhs: Symbol | string, rhs: Array<Symbol>) {
         let lstr: string;
         if (lhs instanceof Symbol) lstr = lhs.getName();
         else lstr = lhs;
@@ -96,7 +96,7 @@ export class ProdSet {
 
         for (let prod of prods) {
             let lnum = symnummap.getNum(prod.getLHS().getName()), rhs = prod.getRHS(), prodid = prodidgen.next();
-            let prodliteral = prod.getLiteral();
+            let prodliteral = prod.stringify();
             if (prodliteralmap.has(prodliteral)) throw new Error('duplicate production is not allowed: ' + prodliteral);
             prodliteralmap.set(prodliteral, prodid);
             if (startnontnum == null) startnontnum = lnum;

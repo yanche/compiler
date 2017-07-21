@@ -189,7 +189,7 @@ export class LRParseTable {
                         strarr.push('        shift to dfa-state: ' + act.toStateNum);
                     }
                     else if (act instanceof ReduceAction) {
-                        strarr.push('        reduce using production: ' + this._prodset.getProdRef(act.prodid).prod.getLiteral());
+                        strarr.push('        reduce using production: ' + this._prodset.getProdRef(act.prodid).prod.stringify());
                     }
                 }
             }

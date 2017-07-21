@@ -22,7 +22,7 @@ export class ASTConverter<T> {
 
     toAST(root: p.ParseTreeMidNode): T {
         let handler = this._handlers[root.prodId];
-        if (handler == null) throw new Error('handler not found for prod: ' + this._prodset.getProdRef(root.prodId).prod.getLiteral());
+        if (handler == null) throw new Error('handler not found for prod: ' + this._prodset.getProdRef(root.prodId).prod.stringify());
         return handler(root);
     }
 }
