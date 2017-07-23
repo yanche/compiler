@@ -1,28 +1,33 @@
 
 import * as utility from '../utility';
-import {createDFA, DFA} from '../DFA';
+import { createDFA, DFA } from '../DFA';
 
 class State {
     private _id: number;
     private _tranmap: Map<string, Set<number>>;
+
     constructor(id: number) {
         this._id = id;
         this._tranmap = new Map<string, Set<number>>();
     }
-    addTransition(str: string, statenum: number): this {
-        if (statenum === this._id && str.length === 0) return this; //epsilon move to self, do nothing, just ignore
-        if (this._tranmap.has(str))
-            this._tranmap.get(str).add(statenum);
+
+    addTransition(sym: string, statenum: number): this {
+        if (statenum === this._id && sym.length === 0) return this; //epsilon move to self, do nothing, just ignore
+        if (this._tranmap.has(sym))
+            this._tranmap.get(sym).add(statenum);
         else
-            this._tranmap.set(str, new Set().add(statenum));
+            this._tranmap.set(sym, new Set().add(statenum));
         return this;
     }
-    getTransition(str: string): Set<number> {
-        return this._tranmap.get(str);
+
+    getTransition(sym: string): Set<number> {
+        return this._tranmap.get(sym);
     }
+
     getTransitionMap(): Map<string, Set<number>> {
         return this._tranmap;
     }
+
     getId() {
         return this._id;
     }
@@ -36,28 +41,25 @@ export default class NFA {
     private _startclosure: Set<number>;
 
     constructor(trans: Iterable<utility.automata.Transition>, starts: Iterable<number>, terminals: Iterable<number>) {
-        let statemap = new Map<number, State>(), stateset = new Set<number>(), statect = 0;
+        let statemap = new Map<number, State>();
         for (let tran of trans) {
             let state = statemap.get(tran.src);
-            if (state == null) {
+            if (!state) {
                 state = new State(tran.src);
                 statemap.set(tran.src, state);
-                ++statect;
             }
             if (!statemap.has(tran.tgt)) {
                 statemap.set(tran.tgt, new State(tran.tgt));
-                ++statect;
             }
-            state.addTransition(tran.str, tran.tgt);
-            stateset.add(tran.src);
-            stateset.add(tran.tgt);
+            state.addTransition(tran.sym, tran.tgt);
         }
-        if (statect === 0) throw new Error('zero state is not good for NFA');
+        if (statemap.size === 0) throw new Error('zero state is not good for NFA');
 
         let epsilontrans: Array<utility.Edge> = [];
-        for (let statenum of stateset) {
+        for (let item of statemap) {
+            let statenum = item[0];
             let epset = statemap.get(statenum).getTransition('');
-            if (epset == null) epsilontrans.push({ src: statenum, tgt: statenum }); //self loop, for closure calculation purpose
+            if (epset === undefined) epsilontrans.push({ src: statenum, tgt: statenum }); //self loop, for closure calculation purpose
             else {
                 for (let epstate of epset) epsilontrans.push({ src: statenum, tgt: epstate });
             }
@@ -81,22 +83,25 @@ export default class NFA {
         this._epsilonclosuremap = utility.closure.calcClosure(epsilontrans);
         this._startclosure = this.epsilonClosureOfStates(startset);
     }
+    
     epsilonClosureOfStates(statenums: Iterable<number>) {
         return utility.closure.closureOfNodes(statenums, this._epsilonclosuremap);
     }
+
     hasTerminal(statenums: Iterable<number>): boolean {
         for (let state of statenums) {
             if (this._terminalset.has(state)) return true;
         }
         return false;
     }
+
     accept(strarr: Iterable<string>): boolean {
         let curstatenums = this._startclosure;
         for (let str of strarr) {
             let mstates = new Set<number>();
             for (let state of curstatenums) {
                 let tset = this._statemap.get(state).getTransition(str);
-                if (tset == null) continue;
+                if (tset === undefined) continue;
                 for (let t of tset)
                     mstates.add(t);
             }
@@ -105,6 +110,7 @@ export default class NFA {
         }
         return this.hasTerminal(curstatenums);
     }
+
     toDFA(): {
         dfa: DFA,
         statemap: Map<number, Set<number>>;
@@ -112,6 +118,7 @@ export default class NFA {
         let dfat = this.getDFATrans();
         return { dfa: createDFA(dfat.dfaTrans, dfat.startid, dfat.terminals), statemap: dfat.statemap };
     }
+
     getDFATrans(): {
         dfaTrans: Array<utility.automata.Transition>,
         startid: number,

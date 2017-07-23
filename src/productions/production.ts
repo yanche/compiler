@@ -1,6 +1,6 @@
 
-import * as utility from '../utility';
-import * as _ from 'lodash';
+import * as utility from "../utility";
+import * as _ from "lodash";
 
 //terminal symbol or non-terminal symbol, used in productions
 export class Symbol {
@@ -8,27 +8,14 @@ export class Symbol {
     private _name: string;
 
     constructor(terminal: boolean, name: string) {
-        if (name === '$') throw new Error('$ is reserved as a symbol');
-        if (!Symbol.validName(name)) throw new Error(`name is invalid as a symbol: ${name}, letters, digits, _ are allowed`);
+        if (name === "$") throw new Error("$ is reserved as a symbol");
         this._terminal = terminal;
         this._name = name;
     }
+
     isTerminal(): boolean { return this._terminal; }
+
     getName(): string { return this._name; }
-    static validName(name: string): boolean {
-        const ch0 = "0".charCodeAt(0);
-        const ch9 = "9".charCodeAt(0);
-        const cha = "a".charCodeAt(0);
-        const chz = "z".charCodeAt(0);
-        const chA = "A".charCodeAt(0);
-        const chZ = "Z".charCodeAt(0);
-        const chDash = "_".charCodeAt(0);
-        for (let i = 0; i < name.length; ++i) {
-            const ch = name.charCodeAt(i);
-            if (!((ch0 <= ch && ch <= ch9) || (cha <= ch && ch <= chz) || (chA <= ch && ch <= chZ) || chDash === ch)) return false;
-        }
-        return true;
-    }
 }
 
 //one production, includes left-hand-side (one non-terminal symbol) and right-hand-side (a list of symbols)
@@ -38,19 +25,23 @@ export class Production {
     private _literal: string;
 
     constructor(lhs: Symbol, rhs: Array<Symbol>) {
-        if (lhs.isTerminal()) throw new Error('left-hand-side of production must be non-terminal');
+        if (lhs.isTerminal()) throw new Error("left-hand-side of production must be non-terminal");
         this._lhs = lhs;
         this._rhs = rhs || [];
         this._literal = Production.stringify(this._lhs, this._rhs);
     }
+
     getLHS(): Symbol { return this._lhs; }
+
     getRHS(): Array<Symbol> { return this._rhs; }
+
     stringify(): string { return this._literal; }
+
     static stringify(lhs: Symbol | string, rhs: Array<Symbol>) {
         let lstr: string;
         if (lhs instanceof Symbol) lstr = lhs.getName();
         else lstr = lhs;
-        return lstr + ' -> ' + rhs.map(r => r.getName()).join(' ');
+        return lstr + " -> " + rhs.map(r => r.getName()).join(" ");
     }
 }
 
@@ -62,12 +53,12 @@ export interface ProductionRef {
     prodid: number;
 }
 
-//a group of productions, will assign an integer to each symbol, '$' takes 0, then terminals, then non-terminals
+//a group of productions, will assign an integer to each symbol, "$" takes 0, then terminals, then non-terminals
 //also an integer will be assigned to each production, starts from 0
 export class ProdSet {
     private _startnontnum: number; //integer for start symbol
-    private _prodliteralmap: Map<string, number>;
-    private _nontprodmap: Array<Array<number>>; //integer of non-terminal -> array of id of productions by it as lhs
+    // private _prodliteralmap: Map<string, number>;
+    private _nontprodmap: Map<number, Array<number>>; //integer of non-terminal -> array of id of productions by it as lhs
     private _numprodmap: Array<ProductionRef>;  //production id -> production
     private _symnummap: utility.BidirectMap<string>; //integer of symbol <--> string of symbol
     private _termict: number;       //count of terminal symbols
@@ -75,15 +66,17 @@ export class ProdSet {
     private _nullableNonTerminals: Set<number>; //set of integer of non-terminal symbols which could produce epsilon
     private _firstSet: Array<Set<number>>; //integer of symbol -> first set (epsilon is not included)
     private _followSet: Array<Set<number>>; //integer of symbol -> follow set
-    static preservedNonTerminalPrefix: string = 'D__';
+    private _prodcount: number;
+
+    static preservedNonTerminalPrefix: string = "D__";
 
     constructor(prods: Iterable<Production>) {
         let termict = 0, nonterminals = new Set<string>(), symnummap = new utility.BidirectMap<string>();
-        let numprodmap = new Array<ProductionRef>(), nontprodmap = new Array<Array<number>>() //map from number of non-terminal to number its productions;
-        let prodliteralmap = new Map<string, number>(), startnontnum: number, reachedges: Array<utility.Edge> = [], prodidgen = new utility.IdGen();
+        let numprodmap = new Array<ProductionRef>(), nontprodmap = new Map<number, Array<number>>(); //map from number of non-terminal to number its productions
+        let startnontnum: number = null, reachedges: Array<utility.Edge> = [];
         //in the first scan loop, assign an integer to all symbols, terminals first then non-terminals
         //0 is the end-of-input symbol
-        symnummap.getOrCreateNum('$');
+        symnummap.getOrCreateNum("$");
         for (let prod of prods) {
             nonterminals.add(prod.getLHS().getName());
             for (let sym of prod.getRHS()) {
@@ -94,52 +87,67 @@ export class ProdSet {
         termict = symnummap.size - 1;
         for (let nont of nonterminals) symnummap.getOrCreateNum(nont);
 
+        let curprodid = 0;
         for (let prod of prods) {
-            let lnum = symnummap.getNum(prod.getLHS().getName()), rhs = prod.getRHS(), prodid = prodidgen.next();
-            let prodliteral = prod.stringify();
-            if (prodliteralmap.has(prodliteral)) throw new Error('duplicate production is not allowed: ' + prodliteral);
-            prodliteralmap.set(prodliteral, prodid);
-            if (startnontnum == null) startnontnum = lnum;
+            let lnum = symnummap.getNum(prod.getLHS().getName()), rhs = prod.getRHS();
+            if (startnontnum === null) startnontnum = lnum;
             numprodmap.push({
-                prodid: prodid, prod: prod, lnum: lnum, rnums: rhs.map(s => {
+                prodid: curprodid,
+                prod: prod,
+                lnum: lnum,
+                rnums: rhs.map(s => {
                     let rnum = symnummap.getNum(s.getName());
                     if (!s.isTerminal()) reachedges.push({ src: lnum, tgt: rnum });
                     return rnum;
                 })
             });
-            addToArrOfArr(nontprodmap, lnum - 1 - termict, prodid);
+            addToMapOfArr(nontprodmap, lnum, curprodid);
+            ++curprodid;
         }
-        if (nontprodmap.length !== nonterminals.size) throw new Error('not all non-terminals appear at LHS');
-        if (utility.closure.calcClosureOfOneNode(reachedges, startnontnum).size !== nonterminals.size) throw new Error('some non-terminals are unreachable from start symbol');
+        if (nontprodmap.size !== nonterminals.size) throw new Error("not all non-terminals appear at LHS");
+        if (utility.closure.calcClosureOfOneNode(reachedges, startnontnum).size !== nonterminals.size) throw new Error("some non-terminals are unreachable from start symbol");
 
         this._startnontnum = startnontnum;
-        this._prodliteralmap = prodliteralmap;
+        this._prodcount = curprodid;
+        // this._prodliteralmap = prodliteralmap;
         this._nontprodmap = nontprodmap;
         this._numprodmap = numprodmap;
         this._symnummap = symnummap;
         this._termict = termict;
         this._totalsymct = symnummap.size - 1;
     }
+
     getStartNonTerminal(): number { return this._startnontnum; }
-    getStartNonTerminalInStr(): string { return this.getSymInStr(this.getStartNonTerminal()); }
-    getAllSymNums(): Array<number> { return _.range(1, this._totalsymct + 1); }
+
     getNonTerminals(): Array<number> { return _.range(this._termict + 1, this._totalsymct + 1); }
-    getNonTerminalsInStr(): Array<string> { return this.getNonTerminals().map(n => this.getSymInStr(n)); }
+
+    // getNonTerminalsInStr(): Array<string> { return this.getNonTerminals().map(n => this.getSymInStr(n)); }
+
     getTerminals(): Array<number> { return _.range(1, this._termict + 1); }
-    getTerminalsInStr(): Array<string> { return this.getTerminals().map(n => this.getSymInStr(n)); }
+
+    // getTerminalsInStr(): Array<string> { return this.getTerminals().map(n => this.getSymInStr(n)); }
+
     getSymInStr(num: number): string { return this._symnummap.getT(num); }
+
     getSymNum(sym: string): number { return this._symnummap.getNum(sym); }
+
     isSymNumTerminal(num: number): boolean { return num <= this._termict; }
-    getProds(lsymnum: number): Array<number> { return this._nontprodmap[lsymnum - 1 - this._termict]; }
+
+    getProds(lsymnum: number): Array<number> { return this._nontprodmap.get(lsymnum); }
+
     //from 0 -> n-1, n is the size of productions
     getProdIds(): Array<number> { return _.range(this._numprodmap.length); }
+
     getProdRef(prodnum: number): ProductionRef { return this._numprodmap[prodnum]; }
-    getProdIdByLiteral(prodliteral: string): number { return this._prodliteralmap.get(prodliteral); }
+
+    //getProdIdByLiteral(prodliteral: string): number { return this._prodliteralmap.get(prodliteral); }
+
     //getProdSize(): number { return this._numprodmap.length; }
+
     //getAllProds(): Array<number> { return _.range(this.getProdSize()); }
-    print(): this { for (let p of this._prodliteralmap) console.log(p[0]); return this; }
+
     firstSet(): Array<Set<number>> {
-        if (this._firstSet != null) return this._firstSet;
+        if (this._firstSet) return this._firstSet;
         let nullablenont = this.nullableNonTerminals(), retmap = new Array<Set<number>>(this._totalsymct + 1);
         let edges: Array<utility.Edge> = [], nonterminals = this.getNonTerminals();
         for (let nont of nonterminals) {
@@ -154,20 +162,20 @@ export class ProdSet {
                         genepsilon = false;
                     }
                     else {
-                        edges.push({ src: nont, tgt: rnum }); //could have dup edge, it's fine
+                        edges.push({ src: nont, tgt: rnum }); //could have dup edge, it"s fine
                         genepsilon = nullablenont.has(rnum);
-                        ++loc;
                     }
+                    ++loc;
                 }
             }
         }
         mergeClosureSet(nonterminals, utility.closure.calcClosure(edges), retmap);
         for (let t of this.getTerminals()) retmap[t] = new Set<number>().add(t);
-        this._firstSet = retmap;
-        return retmap;
+        return this._firstSet = retmap;
     }
+
     followSet(): Array<Set<number>> {
-        if (this._followSet != null) return this._followSet;
+        if (this._followSet) return this._followSet;
         let retmap = new Array<Set<number>>(this._totalsymct + 1), firstSetMap = this.firstSet(), nullablenonterminals = this.nullableNonTerminals(), edges: Array<utility.Edge> = [];
         retmap[this._startnontnum] = new Set().add(0);
         for (let nont of this.getNonTerminals()) {
@@ -191,18 +199,18 @@ export class ProdSet {
                 }
             }
         }
-        let clomap = utility.closure.calcClosure(edges);
-        mergeClosureSet(this.getAllSymNums(), clomap, retmap);
-        this._followSet = retmap;
-        return retmap;
+        mergeClosureSet(_.range(1, this._totalsymct + 1), utility.closure.calcClosure(edges), retmap);
+        return this._followSet = retmap;
     }
-    nullableNonTerminalsInStr(): Array<string> {
-        return [...this.nullableNonTerminals()].map(n => this.getSymInStr(n));
-    }
+
+    // nullableNonTerminalsInStr(): Array<string> {
+    //     return [...this.nullableNonTerminals()].map(n => this.getSymInStr(n));
+    // }
+
     nullableNonTerminals(): Set<number> {
-        if (this._nullableNonTerminals != null) return this._nullableNonTerminals;
+        if (this._nullableNonTerminals) return this._nullableNonTerminals;
         let retset = new Set<number>(), queue: Array<number> = [];
-        let map = new Array<Array<{ rnums: Array<number>, next: number, lnum: number }>>(); //for symbol S becomes nullable, which other symbols may be affected
+        let map = new Map<number, Array<{ rnums: Array<number>, next: number, lnum: number }>>(); //for symbol S becomes nullable, which other symbols may be affected
         for (let nont of this.getNonTerminals()) {
             for (let prodid of this.getProds(nont)) {
                 let rnums = this.getProdRef(prodid).rnums;
@@ -214,12 +222,12 @@ export class ProdSet {
                     break;
                 }
                 if (this.isSymNumTerminal(rnums[0])) continue;
-                addToArrOfArr(map, rnums[0], { rnums: rnums, next: 1, lnum: nont });
+                addToMapOfArr(map, rnums[0], { rnums: rnums, next: 1, lnum: nont });
             }
         }
         while (queue.length > 0) {
             let lnum = queue.pop();
-            for (let ditem of (map[lnum] || [])) {
+            for (let ditem of (map.get(lnum) || [])) {
                 if (retset.has(ditem.lnum)) continue;
                 let next = ditem.next;
                 while (next < ditem.rnums.length && retset.has(ditem.rnums[next]))++next;
@@ -230,28 +238,19 @@ export class ProdSet {
                 else {
                     let symnum = ditem.rnums[next];
                     if (this.isSymNumTerminal(symnum)) continue;
-                    addToArrOfArr(map, symnum, { rnums: ditem.rnums, next: next + 1, lnum: ditem.lnum }); //now the 'able to produce nullable' depends on symbol 'symnum'
+                    addToMapOfArr(map, symnum, { rnums: ditem.rnums, next: next + 1, lnum: ditem.lnum }); //now the "able to produce nullable" depends on symbol "symnum"
                 }
             }
         }
-        this._nullableNonTerminals = retset;
-        return retset;
+        return this._nullableNonTerminals = retset;
     }
+
     leftFactoredProdSet(): ProdSet {
         let prods: Array<Production> = [], idgen = new utility.IdGen();
-        for (var nont of this.getNonTerminals()) {
+        for (let nont of this.getNonTerminals()) {
             leftFactoring(this.getSymInStr(nont), this.getProds(nont).map(p => this.getProdRef(p)).map(p => p.prod.getRHS()), 0, prods, idgen);
         }
-        return prods.length === this._prodliteralmap.size ? this : new ProdSet(prods);
-    }
-    printFollowSet(): this {
-        console.log('follow set');
-        let fset = this.followSet();
-        for (let symnum of this.getAllSymNums()) {
-            console.log(this.getSymInStr(symnum) + ':');
-            console.log([...fset[symnum]].map(symnum2 => this.getSymInStr(symnum2)).join(' '));
-        }
-        return this;
+        return prods.length === this._prodcount ? this : new ProdSet(prods);
     }
 }
 
@@ -274,6 +273,8 @@ function leftFactoring(lstr: string, rhsarr: Array<Array<Symbol>>, lfidx: number
             let goahead = false, i = 1, lfidx0 = lfidx, anchor: string;
             lfidx -= 1;
             do {
+                // any deeper left factor, we can skip this do-while loop because leftFactoring does the same thing
+                // this do-while loop is just an improvement of performance
                 lfidx += 1;
                 i = 1;
                 if (rights[0].length > lfidx + 1) {
@@ -281,16 +282,11 @@ function leftFactoring(lstr: string, rhsarr: Array<Array<Symbol>>, lfidx: number
                     while (i < rights.length && (rights[i].length > lfidx + 1) && rights[i][lfidx + 1].getName() === anchor)++i;
                 }
             } while (i === rights.length)
-            var newnont = ProdSet.preservedNonTerminalPrefix + idGen.next();
+            let newnont = ProdSet.preservedNonTerminalPrefix + idGen.next();
             prods.push(new Production(lsymbol, rights[0].slice(lfidx0, lfidx + 1).concat(new Symbol(false, newnont))));
             leftFactoring(newnont, rights, lfidx + 1, prods, idGen);
         }
     }
-}
-
-function addToArrOfArr<T>(map: Array<Array<T>>, key: number, item: T) {
-    if (map[key] == null) map[key] = [item];
-    else map[key].push(item);
 }
 
 function addToMapOfArr<K, T>(map: Map<K, Array<T>>, key: K, item: T) {
@@ -300,20 +296,20 @@ function addToMapOfArr<K, T>(map: Map<K, Array<T>>, key: K, item: T) {
 
 function addRangeToArrayOfSet<T>(map: Array<Set<T>>, key: number, item: Iterable<T>) {
     let set = map[key];
-    if (set == null) set = map[key] = new Set<T>();
+    if (!set) set = map[key] = new Set<T>();
     for (let s of item) set.add(s);
 }
 
 function mergeClosureSet(symnums: Iterable<number>, closuremap: Map<number, utility.closure.Closure>, map: Array<Set<number>>) {
     for (let symnum of symnums) {
         let closure = closuremap.get(symnum);
-        if (closure == null) continue;
+        if (!closure) continue;
         for (let num of closure.getNodes()) {
             if (num === symnum) continue;
             let symset = map[num];
-            if (symset == null) continue;
+            if (!symset) continue;
             let set = map[symnum];
-            if (set == null)
+            if (!set)
                 set = map[symnum] = new Set<number>();
             for (let s of symset) set.add(s);
         };

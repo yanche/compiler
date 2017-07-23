@@ -1,7 +1,7 @@
 
-import * as assert from 'assert';
-import * as utility from '../../utility';
-import {createProdSet, ProdSet} from '../index';
+import * as assert from "assert";
+import * as utility from "../../utility";
+import {createProdSet, ProdSet} from "../index";
 
 function validate(prodset: ProdSet, expected: Array<{ symbol: string, follow: Array<string> }>) {
     let followsets = prodset.followSet();
@@ -10,70 +10,68 @@ function validate(prodset: ProdSet, expected: Array<{ symbol: string, follow: Ar
     }));
 };
 
-describe('follow sets', function () {
-    it('simple 1', function () {
+describe("follow sets", function () {
+    it("simple 1", function () {
         let pset = createProdSet([
-            'E -> T + E | T',
-            'T -> int | int * T | ( E )'
+            "E -> T + E | T",
+            "T -> int | int * T | ( E )"
         ]);
         validate(pset, [
-            { symbol: 'E', follow: ['$', ')'] },
-            { symbol: 'T', follow: ['$', ')', '+'] },
-            { symbol: '(', follow: ['int', '('] },
-            { symbol: ')', follow: ['$', ')', '+'] },
-            { symbol: '+', follow: ['int', '('] },
-            { symbol: '*', follow: ['int', '('] },
-            { symbol: 'int', follow: ['$', ')', '+', '*'] }
+            { symbol: "E", follow: ["$", ")"] },
+            { symbol: "T", follow: ["$", ")", "+"] },
+            { symbol: "(", follow: ["int", "("] },
+            { symbol: ")", follow: ["$", ")", "+"] },
+            { symbol: "+", follow: ["int", "("] },
+            { symbol: "*", follow: ["int", "("] },
+            { symbol: "int", follow: ["$", ")", "+", "*"] }
         ]);
     });
 
-    it('simple 2', function () {
+    it("simple 2", function () {
         let pset = createProdSet([
-            'E -> '
+            "E -> "
         ]);
         validate(pset, [
-            { symbol: 'E', follow: ['$'] }
+            { symbol: "E", follow: ["$"] }
         ]);
     });
 
-    it('simple 3', function () {
+    it("simple 3", function () {
         let pset = createProdSet([
-            'T -> E | int',
-            'E -> '
+            "T -> E | int",
+            "E -> "
         ]);
         validate(pset, [
-            { symbol: 'E', follow: ['$'] },
-            { symbol: 'T', follow: ['$'] },
-            { symbol: 'int', follow: ['$'] }
+            { symbol: "E", follow: ["$"] },
+            { symbol: "T", follow: ["$"] },
+            { symbol: "int", follow: ["$"] }
         ]);
     });
 
-    it('simple 4', function () {
+    it("simple 4", function () {
         let pset = createProdSet([
-            'S -> A a | b A c | d c | b d a',
-            'A -> d'
+            "S -> A a | b A c | d c | b d a",
+            "A -> d"
         ]);
-        pset.printFollowSet();
-        // validate(pset, [
-        //     { symbol: 'E', follow: ['q', '$'] },
-        //     { symbol: 'T', follow: ['$'] },
-        //     { symbol: 'X', follow: ['$'] },
-        //     { symbol: 'A', follow: ['$'] },
-        //     { symbol: 'int', follow: ['$'] },
-        //     { symbol: 'q', follow: ['$'] },
-        //     { symbol: 'm', follow: ['q', '$'] }
-        // ]);
+        validate(pset, [
+            { symbol: "a", follow: ["$"] },
+            { symbol: "b", follow: ["d"] },
+            { symbol: "c", follow: ["$"] },
+            { symbol: "d", follow: ["a", "c"] },
+            { symbol: "S", follow: ["$"] },
+            { symbol: "A", follow: ["a", "c"] }
+        ]);
     });
 
-    // it('simple 5', function () {
+    // it("simple 5", function () {
     //     let pset = createProdSet([
-    //         'TT -> EE | inXt',
-    //         'EE -> '
+    //         "TT -> EE | inXt",
+    //         "EE -> "
     //     ]);
     //     validate(pset, [
-    //         { symbol: 'EE', follow: ['$'] },
-    //         { symbol: 'TT', follow: ['$'] },
-    //         { symbol: 'inXt', follow: ['$'] }
+    //         { symbol: "EE", follow: ["$"] },
+    //         { symbol: "TT", follow: ["$"] },
+    //         { symbol: "inXt", follow: ["$"] }
     //     ]);
     // });
 });

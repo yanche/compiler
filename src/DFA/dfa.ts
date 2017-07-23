@@ -53,7 +53,7 @@ export default class DFA {
         for (let str of strarr) {
             if (onfirstterminal && this.isTerminal(curstate)) return true;
             curstate = this._statemap.get(curstate).getTransition(str);
-            if (!curstate) return false;
+            if (curstate === undefined) return false;
         }
         return this.isTerminal(curstate);
     }
@@ -99,16 +99,20 @@ export default class DFA {
 class State {
     private _id: number;
     private _tranmap: Map<string, number>;
+
     constructor(id: number) {
         this._id = id;
         this._tranmap = new Map<string, number>();
     }
+
     getTransition(str: string): number {
         return this._tranmap.get(str);
     }
+
     getTransitionMap(): Map<string, number> {
         return this._tranmap;
     }
+
     addTransition(sym: string, state: number): this {
         if (this._tranmap.has(sym)) throw new Error(`State ${this._id} already had a transition by given string: ${sym}, to ${this._tranmap.get(sym)}`);
         this._tranmap.set(sym, state);

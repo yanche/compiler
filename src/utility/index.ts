@@ -1,5 +1,12 @@
 
-function isNonNeg(num: number, int?: boolean): boolean {
+
+import * as closure from "./closure";
+import * as automata from "./automata";
+import * as file from "./file";
+
+export {closure, automata, file};
+
+export function isNonNeg(num: number, int?: boolean): boolean {
     return num >= 0 && (!int || Math.ceil(num) === num);
 }
 
@@ -7,11 +14,13 @@ export class BidirectMap<T> {
     private _nummap: Map<T, number>;
     private _tmap: Array<T>;
     private _idgen: IdGen;
+    
     constructor() {
         this._nummap = new Map<T, number>();
         this._tmap = new Array<T>();
         this._idgen = new IdGen();
     }
+
     getOrCreateNum(input: T): number {
         if (this._nummap.has(input)) return this._nummap.get(input);
         else {
@@ -21,40 +30,40 @@ export class BidirectMap<T> {
             return num;
         }
     }
+
     getNum(input: T): number {
         return this._nummap.get(input);
     }
+
     getT(num: number): T {
         return this._tmap[num];
     }
+
     get size(): number {
         return this._nummap.size;
     }
 }
 
-class IdGen {
+export class IdGen {
     private _cur: number;
+
     constructor() {
         this._cur = 0;
     }
+
     next(): number {
         return this._cur++;
     }
+
     get cur(): number {
         return this._cur;
     }
 }
 
-interface Edge {
+export interface Edge {
     src: number;
     tgt: number;
 }
-
-import * as closure from './closure';
-import * as automata from './automata';
-import * as file from './file';
-
-export {IdGen, isNonNeg, Edge, closure, automata, file};
 
 function strictEqual(i1: any, i2: any): boolean { return i1 === i2; };
 //time cost: O(n^2), if copy array and sort first, it could be O(nlogn)

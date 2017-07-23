@@ -1,5 +1,5 @@
 
-import * as fs from 'fs';
+import * as fs from "fs";
 
 export function writeFile(filepath: string, data: any): Promise<any> {
     return new Promise((res, rej) => {
