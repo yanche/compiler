@@ -4,17 +4,17 @@ import * as l from "./lex";
 
 export abstract class ParseTreeNode {
     protected _symnum: number;
-    private _prodset: prod.ProdSet;
+    // private _prodset: prod.ProdSet;
 
     get symnum(): number { return this._symnum; }
 
-    get symstr(): string { return this._prodset.getSymInStr(this._symnum); }
+    // get symstr(): string { return this._prodset.getSymInStr(this._symnum); }
 
     abstract area(): l.Area;
 
-    constructor(sym: number, prodset: prod.ProdSet) {
+    constructor(sym: number) {
         this._symnum = sym;
-        this._prodset = prodset;
+        // this._prodset = prodset;
     }
 }
 
@@ -23,8 +23,8 @@ export class ParseTreeMidNode extends ParseTreeNode {
     private _area: l.Area;
     public prodId: number;
 
-    constructor(symnum: number, prodset: prod.ProdSet, prodid?: number, children?: Array<ParseTreeNode>) {
-        super(symnum, prodset);
+    constructor(symnum: number, prodid?: number, children?: Array<ParseTreeNode>) {
+        super(symnum);
         this._children = children;
         this.prodId = prodid;
     }
@@ -52,8 +52,8 @@ export class ParseTreeMidNode extends ParseTreeNode {
 export class ParseTreeTermNode extends ParseTreeNode {
     private _token: l.Token;
 
-    constructor(symnum: number, prodset: prod.ProdSet, token?: l.Token) {
-        super(symnum, prodset);
+    constructor(symnum: number, token?: l.Token) {
+        super(symnum);
         if (token)
             this.token = token;
     }
