@@ -6,7 +6,7 @@ export class Transition implements utility.Edge {
     tgt: number;
     sym: string;
 
-    stringify(): string {
+    toString(): string {
         return this.src + "-" + this.sym + "->" + this.tgt;
     }
 

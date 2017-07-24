@@ -58,9 +58,9 @@ export default class DFA {
         return this.isTerminal(curstate);
     }
     
-    stringify(): string {
+    toString(): string {
         let strarr = [`${this._statemap.size} states in total`, `start state: ${this._start}`, `terminal states: ${[...this._terminalset].join(",")}`];
-        for (let tran of this._trans) strarr.push(tran.stringify());
+        for (let tran of this._trans) strarr.push(tran.toString());
         return strarr.join("\r\n");
     }
 

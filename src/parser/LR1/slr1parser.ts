@@ -52,7 +52,7 @@ export default class SLR1Parser extends putil.LRParser {
     }
     isLR0Grammar(): boolean { return this._isLR0; }
     stringifyDFA(): string {
-        let strarr = ['DFA:', this._slr1dfa.stringify()];
+        let strarr = ['DFA:', this._slr1dfa.toString()];
         for (let dfanum of this._slr1dfa.getStateNums()) {
             strarr.push(this.stringify1DFA(dfanum));
         }

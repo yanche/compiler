@@ -28,16 +28,16 @@ export class Production {
         if (lhs.isTerminal()) throw new Error("left-hand-side of production must be non-terminal");
         this._lhs = lhs;
         this._rhs = rhs || [];
-        this._literal = Production.stringify(this._lhs, this._rhs);
+        this._literal = Production.toString(this._lhs, this._rhs);
     }
 
     getLHS(): Symbol { return this._lhs; }
 
     getRHS(): Array<Symbol> { return this._rhs; }
 
-    stringify(): string { return this._literal; }
+    toString(): string { return this._literal; }
 
-    static stringify(lhs: Symbol | string, rhs: Array<Symbol>) {
+    static toString(lhs: Symbol | string, rhs: Array<Symbol>) {
         let lstr: string;
         if (lhs instanceof Symbol) lstr = lhs.getName();
         else lstr = lhs;

@@ -110,7 +110,7 @@ export default class LALR1Parser extends putil.LRParser {
         }
     }
     stringifyDFA(): string {
-        let strarr = ['DFA:', this._slr1dfa.stringify()];
+        let strarr = ['DFA:', this._slr1dfa.toString()];
         for (let th of this._dfaitemmap) {
             strarr.push(this.stringify1DFA(th[0]));
         }

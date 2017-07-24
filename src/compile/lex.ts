@@ -6,7 +6,7 @@ export class Token {
 export class Posi {
     constructor(public row: number, public col: number) { }
     toString(): string {
-        return '(row:' + this.row + ',col:' + this.col + ')';
+        return `(row:${this.row},col:${this.col})`;
     }
 }
 
@@ -15,11 +15,10 @@ export class Area {
     toString(): string {
         if (this.start.row === this.end.row) {
             if (this.start.col === this.end.col) return this.start.toString();
-            else return '(row:' + this.start.row + ',col:' + this.start.col + '-' + this.end.col + ')';
+            else return `(row:${this.start.row},col:${this.start.col}-${this.end.col})`;
         }
-        else return '(row:' + this.start.row + ',col:' + this.start.col + '-row:' + this.end.row + ',col:' + this.end.col + ')';
+        else return `(row:${this.start.row},col:${this.start.col}-row:${this.end.row},col:${this.end.col})`;
     }
 }
 
-let noArea = new Area(new Posi(0, 0), new Posi(0, 0));
-export {noArea};
+export let noArea = new Area(new Posi(0, 0), new Posi(0, 0));

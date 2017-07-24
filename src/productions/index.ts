@@ -24,12 +24,12 @@ function createProduction(lstr: string, rstr: string): prod.Production {
     return new prod.Production(lsymbol, rsymbols);
 }
 
-function createProduction2(prodstr: string): prod.Production {
-    let idxarrow = prodstr.indexOf('->');
-    if (idxarrow < 0) throw new Error('production must has a -> :' + prodstr);
-    let lstr = prodstr.slice(0, idxarrow), rstr = prodstr.slice(idxarrow + 2);
-    return createProduction(lstr, rstr);
-}
+// function createProduction2(prodstr: string): prod.Production {
+//     let idxarrow = prodstr.indexOf('->');
+//     if (idxarrow < 0) throw new Error('production must has a -> :' + prodstr);
+//     let lstr = prodstr.slice(0, idxarrow), rstr = prodstr.slice(idxarrow + 2);
+//     return createProduction(lstr, rstr);
+// }
 
 function createMultipleProductions(mprodstr: string, splitter?: string): Array<prod.Production> {
     let idxarrow = mprodstr.indexOf('->');
