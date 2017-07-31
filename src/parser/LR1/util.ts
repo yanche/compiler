@@ -173,29 +173,29 @@ export abstract class LRParser extends Parser {
     //     return dfastates;
     // }
 
-    stringifyAmbCells(): string {
-        let strarr = new Array<string>();
-        for (let amb of this._ambcells) {
-            let dfastatenum = amb[0], syms = amb[1];
-            strarr.push("dfa state: " + dfastatenum);
-            let row = this._ptable.get(dfastatenum);
-            for (let symnum of syms) {
-                strarr.push("    on terminal symbol: " + this._prodset.getSymInStr(symnum));
-                for (let act of row.get(symnum)) {
-                    if (act instanceof AcceptAction) {
-                        strarr.push("        accept");
-                    }
-                    else if (act instanceof ShiftAction) {
-                        strarr.push("        shift to dfa-state: " + act.toStateNum);
-                    }
-                    else if (act instanceof ReduceAction) {
-                        strarr.push("        reduce using production: " + this._prodset.getProdRef(act.prodid).prod.toString());
-                    }
-                }
-            }
-        }
-        return strarr.join("\r\n");
-    }
+    // stringifyAmbCells(): string {
+    //     let strarr = new Array<string>();
+    //     for (let amb of this._ambcells) {
+    //         let dfastatenum = amb[0], syms = amb[1];
+    //         strarr.push("dfa state: " + dfastatenum);
+    //         let row = this._ptable.get(dfastatenum);
+    //         for (let symnum of syms) {
+    //             strarr.push("    on terminal symbol: " + this._prodset.getSymInStr(symnum));
+    //             for (let act of row.get(symnum)) {
+    //                 if (act instanceof AcceptAction) {
+    //                     strarr.push("        accept");
+    //                 }
+    //                 else if (act instanceof ShiftAction) {
+    //                     strarr.push("        shift to dfa-state: " + act.toStateNum);
+    //                 }
+    //                 else if (act instanceof ReduceAction) {
+    //                     strarr.push("        reduce using production: " + this._prodset.getProdRef(act.prodid).prod.toString());
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     return strarr.join("\r\n");
+    // }
 
     // stateCount(): number {
     //     return this._ptable.size;
@@ -217,15 +217,15 @@ export abstract class LRParser extends Parser {
 
 //PRIVATE CLASS, represent the DFA of SLR1 parser
 export class LR0DFA extends DFA {
-    private _lr0itemdef: LR0ItemsPack;
+    private _lr0itempack: LR0ItemsPack;
     private _dfaitemsmap: Map<number, Set<number>>;
     private _acceptableDFAState: number;
 
     getItemsInState(statenum: number): Array<LR0Item> {
-        return [...this._dfaitemsmap.get(statenum)].map(itemnum => this._lr0itemdef.getItem(itemnum));
+        return [...this._dfaitemsmap.get(statenum)].map(itemnum => this._lr0itempack.getItem(itemnum));
     }
 
-    get lr0ItemDef(): LR0ItemsPack { return this._lr0itemdef; }
+    get lr0ItemPack(): LR0ItemsPack { return this._lr0itempack; }
 
     get acceptableDFAState(): number { return this._acceptableDFAState; }
 
@@ -233,29 +233,29 @@ export class LR0DFA extends DFA {
         let nfatrans = new Array<utility.automata.Transition>();
 
         //number of item, is the number of NFA
-        let lr0itemdef = new LR0ItemsPack(prodset);
+        let lr0itempack = new LR0ItemsPack(prodset);
 
         for (let prodid of prodset.getProdIds()) {
-            let prod = prodset.getProdRef(prodid), itemnumarr = lr0itemdef.getItemNumsByProdId(prodid);
+            let prod = prodset.getProdRef(prodid), itemnumarr = lr0itempack.getItemNumsByProdId(prodid);
             for (let i = 0; i < prod.rnums.length; ++i) {
                 let rnum = prod.rnums[i], curitem = itemnumarr[i];
                 let rsymstr = prodset.getSymInStr(rnum);
                 nfatrans.push(new utility.automata.Transition(curitem, itemnumarr[i + 1], rsymstr));
                 if (!prodset.isSymNumTerminal(rnum)) {
                     for (let prodid2 of prodset.getProds(rnum)) {
-                        nfatrans.push(new utility.automata.Transition(curitem, lr0itemdef.getItemNumsByProdId(prodid2)[0], ''));
+                        nfatrans.push(new utility.automata.Transition(curitem, lr0itempack.getItemNumsByProdId(prodid2)[0], ''));
                     }
                 }
             }
         }
 
-        let dfat = createNFA(nfatrans, lr0itemdef.getStartItemNums(), _.range(lr0itemdef.size)).getDFATrans();
+        let dfat = createNFA(nfatrans, lr0itempack.getStartItemNums(), _.range(lr0itempack.size)).getDFATrans();
         super(dfat.dfaTrans, dfat.startid, dfat.terminals);
         this._dfaitemsmap = dfat.dfa2nfaStateMap;
-        this._lr0itemdef = lr0itemdef;
+        this._lr0itempack = lr0itempack;
         const startProds = prodset.getProds(prodset.getSymNum(ProdSet.preservedStartNont));
         if (startProds.length !== 1) throw new Error(`defensive code, only one start production from: ${ProdSet.preservedStartNont} should be`);
-        const startProdLR0Items = lr0itemdef.getItemNumsByProdId(startProds[0]);
+        const startProdLR0Items = lr0itempack.getItemNumsByProdId(startProds[0]);
         if (startProdLR0Items.length !== 2) throw new Error(`defensive code, only two start production LR0 items from: ${ProdSet.preservedStartNont} should be`);
         const startDFA = dfat.nfa2dfaStateMap.get(startProdLR0Items[1]);
         if (!startDFA || startDFA.size !== 1) throw new Error("defensive code, DFA state not found or more than 1");

@@ -22,22 +22,22 @@ import * as stm from "stream";
 
 export default class SLR1Parser extends LRParser {
     private _isLR0: boolean;
-    private _slr1dfa: LR0DFA;
+    private _lr0dfa: LR0DFA;
 
     constructor(prodset: prod.ProdSet) {
         super(prodset);
-        this._slr1dfa = new LR0DFA(prodset);
+        this._lr0dfa = new LR0DFA(prodset);
         let followsets = prodset.followSet(), startnontnum = prodset.getStartNonTerminal();
         this._isLR0 = true;
         //construct parsing table SLR(1)
-        this._startstate = this._slr1dfa.getStartState();
-        this.addAcceptAction(this._slr1dfa.acceptableDFAState, prodset.getSymNum("$"));
-        for (let dfanum of this._slr1dfa.getStateNums()) {
-            for (let tran of this._slr1dfa.getTransitionMap(dfanum)) {
+        this._startstate = this._lr0dfa.getStartState();
+        this.addAcceptAction(this._lr0dfa.acceptableDFAState, prodset.getSymNum("$"));
+        for (let dfanum of this._lr0dfa.getStateNums()) {
+            for (let tran of this._lr0dfa.getTransitionMap(dfanum)) {
                 this.addShiftAction(dfanum, prodset.getSymNum(tran[0]), tran[1]);
             }
             let hasreducemove = false;
-            let dfaitems = this._slr1dfa.getItemsInState(dfanum);
+            let dfaitems = this._lr0dfa.getItemsInState(dfanum);
             for (let item of dfaitems) {
                 //state number of NFA is the number of item
                 if (item.dot === item.prod.rnums.length && item.prod.lnum !== startnontnum) {
@@ -54,8 +54,8 @@ export default class SLR1Parser extends LRParser {
     isLR0Grammar(): boolean { return this._isLR0; }
 
     // stringifyDFA(): string {
-    //     let strarr = ["DFA:", this._slr1dfa.toString()];
-    //     for (let dfanum of this._slr1dfa.getStateNums()) {
+    //     let strarr = ["DFA:", this._lr0dfa.toString()];
+    //     for (let dfanum of this._lr0dfa.getStateNums()) {
     //         strarr.push(this.stringify1DFA(dfanum));
     //     }
     //     return strarr.join("\r\n");
@@ -63,7 +63,7 @@ export default class SLR1Parser extends LRParser {
 
     // stringify1DFA(dfastatenum: number): string {
     //     let strarr = ["DFA state " + dfastatenum + " contains items: "];
-    //     for (let item of this._slr1dfa.getItemsInState(dfastatenum)) {
+    //     for (let item of this._lr0dfa.getItemsInState(dfastatenum)) {
     //         strarr.push(itemInStr(item, this._prodset));
     //     }
     //     return strarr.join("\r\n");
