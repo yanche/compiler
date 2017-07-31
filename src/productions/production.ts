@@ -69,28 +69,52 @@ export class ProdSet {
     private _prodcount: number;
 
     static preservedNonTerminalPrefix: string = "D__";
+    static preservedStartNont: string = "D__START";
 
     constructor(prods: Iterable<Production>) {
         let termict = 0, nonterminals = new Set<string>(), symnummap = new utility.BidirectMap<string>();
         let numprodmap = new Array<ProductionRef>(), nontprodmap = new Map<number, Array<number>>(); //map from number of non-terminal to number its productions
-        let startnontnum: number = null, reachedges: Array<utility.Edge> = [];
+        let reachedges: Array<utility.Edge> = [], firstNonTSym: Symbol = null;
         //in the first scan loop, assign an integer to all symbols, terminals first then non-terminals
         //0 is the end-of-input symbol
         symnummap.getOrCreateNum("$");
         for (let prod of prods) {
+            if (firstNonTSym === null) firstNonTSym = prod.getLHS();
+            prodSymCollect(prod);
+        }
+        // new start symbol and root production
+        const initProd = new Production(new Symbol(false, ProdSet.preservedStartNont), [firstNonTSym]);
+        prodSymCollect(initProd);
+        termict = symnummap.size - 1;
+        for (let nont of nonterminals) symnummap.getOrCreateNum(nont);
+        const startnontnum = symnummap.getNum(ProdSet.preservedStartNont);
+
+        let curprodid = 0;
+        for (let prod of prods) {
+            prodProcess(prod);
+        }
+        prodProcess(initProd);
+        if (nontprodmap.size !== nonterminals.size) throw new Error("not all non-terminals appear at LHS");
+        if (utility.closure.calcClosureOfOneNode(reachedges, startnontnum).size !== nonterminals.size) throw new Error("some non-terminals are unreachable from start symbol");
+
+        this._startnontnum = startnontnum;
+        this._prodcount = curprodid;
+        // this._prodliteralmap = prodliteralmap;
+        this._nontprodmap = nontprodmap;
+        this._numprodmap = numprodmap;
+        this._symnummap = symnummap;
+        this._termict = termict;
+        this._totalsymct = symnummap.size - 1;
+
+        function prodSymCollect(prod: Production) {
             nonterminals.add(prod.getLHS().getName());
             for (let sym of prod.getRHS()) {
                 if (sym.isTerminal()) symnummap.getOrCreateNum(sym.getName());
                 else nonterminals.add(sym.getName());
             }
         }
-        termict = symnummap.size - 1;
-        for (let nont of nonterminals) symnummap.getOrCreateNum(nont);
-
-        let curprodid = 0;
-        for (let prod of prods) {
+        function prodProcess(prod: Production) {
             let lnum = symnummap.getNum(prod.getLHS().getName()), rhs = prod.getRHS();
-            if (startnontnum === null) startnontnum = lnum;
             numprodmap.push({
                 prodid: curprodid,
                 prod: prod,
@@ -104,17 +128,6 @@ export class ProdSet {
             addToMapOfArr(nontprodmap, lnum, curprodid);
             ++curprodid;
         }
-        if (nontprodmap.size !== nonterminals.size) throw new Error("not all non-terminals appear at LHS");
-        if (utility.closure.calcClosureOfOneNode(reachedges, startnontnum).size !== nonterminals.size) throw new Error("some non-terminals are unreachable from start symbol");
-
-        this._startnontnum = startnontnum;
-        this._prodcount = curprodid;
-        // this._prodliteralmap = prodliteralmap;
-        this._nontprodmap = nontprodmap;
-        this._numprodmap = numprodmap;
-        this._symnummap = symnummap;
-        this._termict = termict;
-        this._totalsymct = symnummap.size - 1;
     }
 
     getStartNonTerminal(): number { return this._startnontnum; }
@@ -248,9 +261,11 @@ export class ProdSet {
     leftFactoredProdSet(): ProdSet {
         let prods: Array<Production> = [], idgen = new utility.IdGen();
         for (let nont of this.getNonTerminals()) {
+            // start non-terminal is added programmatically
+            if (nont === this._startnontnum) continue;
             leftFactoring(this.getSymInStr(nont), this.getProds(nont).map(p => this.getProdRef(p)).map(p => p.prod.getRHS()), 0, prods, idgen);
         }
-        return prods.length === this._prodcount ? this : new ProdSet(prods);
+        return prods.length === (this._prodcount - 1) ? this : new ProdSet(prods);
     }
 }
 

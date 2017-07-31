@@ -40,9 +40,9 @@ export default class DFA {
 
     getStartState(): number { return this._start; }
 
-    // getTransitionMap(statenum: number): Map<string, number> {
-    //     return this._statemap.get(statenum).getTransitionMap();
-    // }
+    getTransitionMap(statenum: number): Map<string, number> {
+        return this._statemap.get(statenum).getTransitionMap();
+    }
 
     isTerminal(statenum: number): boolean {
         return this._terminalset.has(statenum);

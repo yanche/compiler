@@ -1,26 +1,27 @@
 
 import * as assert from "assert";
 import { createLL1Parser } from "../index";
-import * as c from "../../../compile";
+import { Token, noArea } from "../../../compile";
+import { createProdSet } from "../../../productions";
 
 
 describe("LL(1) parse", function () {
     it("simple 1", function () {
-        let ll1parser = createLL1Parser([
+        let prodset = createProdSet([
             "E -> T X",
             "X -> + E | ",
             "T -> int Y | ( E )",
             "Y -> | * T"
         ]);
+        let ll1parser = createLL1Parser(prodset);
         let parseret = ll1parser.parse([
-            new c.Token("1", ll1parser.prodset.getSymNum("int"), c.noArea),
-            new c.Token("+", ll1parser.prodset.getSymNum("+"), c.noArea),
-            new c.Token("2", ll1parser.prodset.getSymNum("int"), c.noArea),
-            new c.Token("*", ll1parser.prodset.getSymNum("*"), c.noArea),
-            new c.Token("3", ll1parser.prodset.getSymNum("int"), c.noArea),
-            new c.Token("$", ll1parser.prodset.getSymNum("$"), c.noArea)
+            new Token("1", prodset.getSymNum("int"), noArea),
+            new Token("+", prodset.getSymNum("+"), noArea),
+            new Token("2", prodset.getSymNum("int"), noArea),
+            new Token("*", prodset.getSymNum("*"), noArea),
+            new Token("3", prodset.getSymNum("int"), noArea),
+            new Token("$", prodset.getSymNum("$"), noArea)
         ]);
-        console.info(parseret.errmsg);
         assert.equal(true, parseret.accept);
     });
 });

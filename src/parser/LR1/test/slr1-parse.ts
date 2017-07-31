@@ -1,54 +1,84 @@
 
-import * as assert from 'assert';
-import * as utility from '../../../utility';
-import {createSLR1Parser} from '../index';
-import * as tutil from './util';
-import * as c from '../../../compile';
+import * as assert from "assert";
+import * as utility from "../../../utility";
+import { createSLR1Parser } from "../index";
+import * as tutil from "./util";
+import { Token, noArea } from "../../../compile";
+import { createProdSet } from "../../../productions";
 
+describe("SLR(1) parse", function () {
+    it("invalid LALR(1), valid LR(1)", function () {
+        let slr1parser = createSLR1Parser(createProdSet([
+            "S -> a E c | a F d | b F c | b E d",
+            "E -> e",
+            "F -> e"
+        ]));
+        //slr1parser.print();
+        assert.equal(false, slr1parser.isValid());
+    });
 
-describe('SLR(1) parse', function () {
-    it('simple 1', function () {
-        let slr1parser = createSLR1Parser([
-            'E -> T + E | T',
-            'T -> int | int * T | ( E )'
+    it("valid LALR(1), valid SLR(1)", function () {
+        let slr1parser = createSLR1Parser(createProdSet([
+            "E -> T + E | T",
+            "T -> int | int * T | ( E )"
+        ]));
+        //slr1parser.print();
+        assert.equal(true, slr1parser.isValid());
+    });
+
+    it("valid LALR(1), invalid SLR(1)", function () {
+        let slr1parser = createSLR1Parser(createProdSet([
+            "S -> A a | b A c | d c | b d a",
+            "A -> d"
+        ]));
+        // slr1parser.print();
+        assert.equal(false, slr1parser.isValid());
+    });
+
+    it("simple 1", function () {
+        let prodset = createProdSet([
+            "E -> T + E | T",
+            "T -> int | int * T | ( E )"
         ]);
+        let slr1parser = createSLR1Parser(prodset);
         let parseret = slr1parser.parse([
-            new c.Token('1', slr1parser.prodset.getSymNum('int'), c.noArea),
-            new c.Token('+', slr1parser.prodset.getSymNum('+'), c.noArea),
-            new c.Token('2', slr1parser.prodset.getSymNum('int'), c.noArea),
-            new c.Token('*', slr1parser.prodset.getSymNum('*'), c.noArea),
-            new c.Token('3', slr1parser.prodset.getSymNum('int'), c.noArea)
+            new Token("1", prodset.getSymNum("int"), noArea),
+            new Token("+", prodset.getSymNum("+"), noArea),
+            new Token("2", prodset.getSymNum("int"), noArea),
+            new Token("*", prodset.getSymNum("*"), noArea),
+            new Token("3", prodset.getSymNum("int"), noArea),
+            new Token("$", prodset.getSymNum("$"), noArea)
         ]);
         assert.equal(true, parseret.accept);
-        tutil.validate(parseret.root, {
-            symstr: 'E',
+        tutil.validate(prodset, parseret.root, {
+            symstr: "E",
             mid: true,
             children: [
                 {
-                    symstr: 'T',
+                    symstr: "T",
                     mid: true,
                     children: [
                         {
-                            symstr: 'int',
+                            symstr: "int",
                             mid: false,
-                            rawstr: '1'
+                            rawstr: "1"
                         }
                     ]
                 },
-                { symstr: '+', mid: false, rawstr: '+' },
+                { symstr: "+", mid: false, rawstr: "+" },
                 {
-                    symstr: 'E',
+                    symstr: "E",
                     mid: true,
                     children: [
                         {
-                            symstr: 'T',
+                            symstr: "T",
                             mid: true,
                             children: [
-                                { symstr: 'int', mid: false, rawstr: '2' },
-                                { symstr: '*', mid: false, rawstr: '*' },
+                                { symstr: "int", mid: false, rawstr: "2" },
+                                { symstr: "*", mid: false, rawstr: "*" },
                                 {
-                                    symstr: 'T', mid: true, children: [
-                                        { symstr: 'int', mid: false, rawstr: '3' }
+                                    symstr: "T", mid: true, children: [
+                                        { symstr: "int", mid: false, rawstr: "3" }
                                     ]
                                 }
                             ]

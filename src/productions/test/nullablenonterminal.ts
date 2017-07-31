@@ -1,48 +1,53 @@
 
 import * as assert from "assert";
 import * as utility from "../../utility";
-import {createProdSet} from "../index";
-import {ProdSet} from "../production";
+import { createProdSet } from "../index";
+import { ProdSet } from "../production";
+
+function validate(pset: ProdSet, symarr: string[]) {
+    let startsymnum = pset.getStartNonTerminal();
+    assert.equal(true, utility.arrayEquivalent([...pset.nullableNonTerminals()].filter(n => n !== startsymnum).map(n => pset.getSymInStr(n)), symarr));
+}
 
 describe("non terminal able to produce epsilon", function () {
     it("simple 1", function () {
-        var pset = createProdSet([
+        let pset = createProdSet([
             "E -> T + E | T",
             "T -> int | int * T | ( E )"
         ]);
-        assert.equal(0, pset.nullableNonTerminals().size);
+        validate(pset, []);
     });
 
     it("simple 2", function () {
-        var pset = createProdSet([
+        let pset = createProdSet([
             "E -> "
         ]);
-        assert.equal(true, utility.arrayEquivalent([...pset.nullableNonTerminals()].map(n => pset.getSymInStr(n)), ["E"]));
+        validate(pset, ["E"]);
     });
 
     it("simple 3", function () {
-        var pset = createProdSet([
+        let pset = createProdSet([
             "T -> E | int",
             "E -> "
         ]);
-        assert.equal(true, utility.arrayEquivalent([...pset.nullableNonTerminals()].map(n => pset.getSymInStr(n)), ["T", "E"]));
+        validate(pset, ["E", "T"]);
     });
 
     it("simple 4", function () {
-        var pset = createProdSet([
+        let pset = createProdSet([
             "A -> T",
             "T -> E X | int",
             "X -> q | ",
             "E -> | m"
         ]);
-        assert.equal(true, utility.arrayEquivalent([...pset.nullableNonTerminals()].map(n => pset.getSymInStr(n)), ["T", "E", "A", "X"]));
+        validate(pset, ["T", "E", "A", "X"]);
     });
 
     it("simple 5", function () {
-        var pset = createProdSet([
+        let pset = createProdSet([
             "TT -> EE | inXt",
             "EE -> "
         ]);
-        assert.equal(true, utility.arrayEquivalent([...pset.nullableNonTerminals()].map(n => pset.getSymInStr(n)), ["TT", "EE"]));
+        validate(pset, ["TT", "EE"]);
     });
 });

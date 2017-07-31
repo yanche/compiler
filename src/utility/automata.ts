@@ -11,8 +11,6 @@ export class Transition implements utility.Edge {
     }
 
     constructor(src: number, tgt: number, sym: string) {
-        sym = sym === " " ? sym : (sym || "").trim();
-        if (sym.length > 1) throw new Error(`symbol length must be 1 or 0: ${sym}`);
         this.src = src;
         this.tgt = tgt;
         this.sym = sym;

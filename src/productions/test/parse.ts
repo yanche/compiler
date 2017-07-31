@@ -6,7 +6,8 @@ import { ProdSet } from "../production";
 
 
 function validate(pset: ProdSet, expected: Array<{ lhs: string, rhsArr: Array<Array<{ str: string, terminal: boolean }>> }>) {
-    let allLHS = pset.getNonTerminals().map(n => pset.getSymInStr(n));
+    let startsymnum = pset.getStartNonTerminal();
+    let allLHS = pset.getNonTerminals().filter(n => n !== startsymnum).map(n => pset.getSymInStr(n));
     assert.equal(true, utility.arrayEquivalent([...allLHS], expected.map(e => e.lhs)));
     for (let i = 0; i < expected.length; ++i) {
         let item = expected[i];
@@ -28,7 +29,7 @@ describe("parse string into structured production set", function () {
             "E -> T + E | T",
             "T -> int | int * T | ( E )"
         ]);
-        assert.equal("E", pset.getSymInStr(pset.getStartNonTerminal()));
+        assert.equal(ProdSet.preservedStartNont, pset.getSymInStr(pset.getStartNonTerminal()));
         validate(pset, [
             {
                 lhs: "E",
@@ -67,7 +68,7 @@ describe("parse string into structured production set", function () {
         let pset = createProdSet([
             "E -> int + int | "
         ]);
-        assert.equal("E", pset.getSymInStr(pset.getStartNonTerminal()));
+        assert.equal(ProdSet.preservedStartNont, pset.getSymInStr(pset.getStartNonTerminal()));
         validate(pset, [
             {
                 lhs: "E",

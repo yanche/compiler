@@ -4,8 +4,11 @@ import * as utility from "../../utility";
 import {createProdSet, ProdSet} from "../index";
 
 function validate(prodset: ProdSet, expected: Array<{ symbol: string, follow: Array<string> }>) {
+    let startsymnum = prodset.getStartNonTerminal();
+    let finsymnum = prodset.getSymNum("$");
     let followsets = prodset.followSet();
-    assert.equal(true, utility.arrayEquivalent(followsets.slice(1), expected, function (f, e) {
+    let testedset = followsets.filter((x, idx) => idx !== startsymnum && idx !== finsymnum);
+    assert.equal(true, utility.arrayEquivalent(testedset, expected, function (f, e) {
         return f === followsets[prodset.getSymNum(e.symbol)] && utility.arrayEquivalent([...f], e.follow.map(x => prodset.getSymNum(x)));
     }));
 };
@@ -63,15 +66,15 @@ describe("follow sets", function () {
         ]);
     });
 
-    // it("simple 5", function () {
-    //     let pset = createProdSet([
-    //         "TT -> EE | inXt",
-    //         "EE -> "
-    //     ]);
-    //     validate(pset, [
-    //         { symbol: "EE", follow: ["$"] },
-    //         { symbol: "TT", follow: ["$"] },
-    //         { symbol: "inXt", follow: ["$"] }
-    //     ]);
-    // });
+    it("simple 5", function () {
+        let pset = createProdSet([
+            "TT -> EE | inXt",
+            "EE -> "
+        ]);
+        validate(pset, [
+            { symbol: "EE", follow: ["$"] },
+            { symbol: "TT", follow: ["$"] },
+            { symbol: "inXt", follow: ["$"] }
+        ]);
+    });
 });

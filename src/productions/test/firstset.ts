@@ -1,11 +1,14 @@
 
 import * as assert from "assert";
 import * as utility from "../../utility";
-import {createProdSet, ProdSet} from "../index";
+import { createProdSet, ProdSet } from "../index";
 
 function validate(prodset: ProdSet, expected: Array<{ symbol: string, firsts: Array<string> }>) {
+    let startsymnum = prodset.getStartNonTerminal();
+    let finsymnum = prodset.getSymNum("$");
     let firstSet = prodset.firstSet();
-    assert.equal(true, utility.arrayEquivalent(firstSet.slice(1), expected, function (f, e) {
+    let testedset = firstSet.filter((x, idx) => idx !== startsymnum && idx !== finsymnum);
+    assert.equal(true, utility.arrayEquivalent(testedset, expected, function (f, e) {
         return f === firstSet[prodset.getSymNum(e.symbol)] && utility.arrayEquivalent([...f].map(n => prodset.getSymInStr(n)), e.firsts);
     }));
 };

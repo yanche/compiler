@@ -5,7 +5,8 @@ import { createProdSet } from "../index";
 import * as prod from "../production";
 
 function validate(pset: prod.ProdSet, expected: Array<{ lhs: string, rhsArr: Array<Array<{ str: string, terminal: boolean }>> }>) {
-    let allLHS = [...pset.getNonTerminals()].map(n => pset.getSymInStr(n));
+    let startsymnum = pset.getStartNonTerminal();
+    let allLHS = [...pset.getNonTerminals()].filter(n => n != startsymnum).map(n => pset.getSymInStr(n));
     assert.equal(true, utility.arrayEquivalent([...allLHS], expected.map(e => e.lhs)));
     for (let i = 0; i < expected.length; ++i) {
         let item = expected[i];

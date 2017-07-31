@@ -1,6 +1,6 @@
 
 import * as utility from "../../utility";
-import * as prod from "../../productions";
+import { ProdSet } from "../../productions";
 import { ParseTreeNode, Token, ParseTreeMidNode, ParseTreeTermNode, ParseReturn, noArea } from "../../compile";
 import Parser from "../parser";
 
@@ -8,7 +8,7 @@ export default class LL1Parser extends Parser {
     private _table: Map<number, Map<number, Array<number>>>;
     private _valid: boolean;
 
-    constructor(prodset: prod.ProdSet) {
+    constructor(prodset: ProdSet) {
         super(prodset);
         this._table = new Map<number, Map<number, Array<number>>>();
         this._valid = true;

@@ -1,19 +1,19 @@
 
-import * as prod from '../productions';
-import * as c from '../compile';
+import { ProdSet } from '../productions';
+import { Token, ParseReturn } from '../compile';
 
 abstract class Parser {
-    protected _prodset: prod.ProdSet;
+    protected _prodset: ProdSet;
 
-    constructor(prodset: prod.ProdSet) {
+    constructor(prodset: ProdSet) {
         this._prodset = prodset;
     }
 
-    abstract parse(tokens: Array<c.Token>): c.ParseReturn;
+    abstract parse(tokens: Array<Token>): ParseReturn;
 
     abstract isValid(): boolean;
 
-    get prodset(): prod.ProdSet { return this._prodset; }
+    // get prodset(): ProdSet { return this._prodset; }
 }
 
 export default Parser;

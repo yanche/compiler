@@ -83,7 +83,7 @@ export default class NFA {
         this._epsilonclosuremap = utility.closure.calcClosure(epsilontrans);
         this._startclosure = this.epsilonClosureOfStates(startset);
     }
-    
+
     epsilonClosureOfStates(statenums: Iterable<number>) {
         return utility.closure.closureOfNodes(statenums, this._epsilonclosuremap);
     }
@@ -113,23 +113,25 @@ export default class NFA {
 
     toDFA(): {
         dfa: DFA,
-        statemap: Map<number, Set<number>>;
+        dfa2nfaStateMap: Map<number, Set<number>>;
+        nfa2dfaStateMap: Map<number, Set<number>>;
     } {
         let dfat = this.getDFATrans();
-        return { dfa: createDFA(dfat.dfaTrans, dfat.startid, dfat.terminals), statemap: dfat.statemap };
+        return { dfa: createDFA(dfat.dfaTrans, dfat.startid, dfat.terminals), dfa2nfaStateMap: dfat.dfa2nfaStateMap, nfa2dfaStateMap: dfat.nfa2dfaStateMap };
     }
 
     getDFATrans(): {
         dfaTrans: Array<utility.automata.Transition>,
         startid: number,
         terminals: Set<number>,
-        statemap: Map<number, Set<number>>
+        dfa2nfaStateMap: Map<number, Set<number>>,
+        nfa2dfaStateMap: Map<number, Set<number>>
     } {
         let dfaTrans: Array<utility.automata.Transition> = [], dfaIdGen = new utility.IdGen();
         let dfastatemap = new Map<string, number>(), startid = dfaIdGen.next(), terminals = new Set<number>();
-        let nfaidofstarts = statesId([...this._startclosure]), dfanfastatemap = new Map<number, Set<number>>();
+        let nfaidofstarts = statesId([...this._startclosure]), dfa2nfaStateMap = new Map<number, Set<number>>();
         dfastatemap.set(nfaidofstarts, startid);
-        dfanfastatemap.set(startid, this._startclosure);
+        dfa2nfaStateMap.set(startid, this._startclosure);
         if (this.hasTerminal(this._startclosure)) terminals.add(startid);
         let queue = [{ set: this._startclosure, id: nfaidofstarts, dfaid: startid }];
         while (queue.length > 0) {
@@ -153,7 +155,7 @@ export default class NFA {
                 if (!dfastatemap.has(nfastatesid)) {
                     dfaid = dfaIdGen.next();
                     dfastatemap.set(nfastatesid, dfaid);
-                    dfanfastatemap.set(dfaid, tset);
+                    dfa2nfaStateMap.set(dfaid, tset);
                     if (this.hasTerminal(tset)) terminals.add(dfaid);
                     queue.push({ set: tset, id: nfastatesid, dfaid: dfaid });
                 }
@@ -162,7 +164,20 @@ export default class NFA {
                 dfaTrans.push(new utility.automata.Transition(cur.dfaid, dfaid, str));
             }
         }
-        return { dfaTrans: dfaTrans, startid: startid, terminals: terminals, statemap: dfanfastatemap };
+        // construct the mapping from original nfa state -> owner dfa states
+        let nfa2dfaStateMap = new Map<number, Set<number>>();
+        for (let item of dfa2nfaStateMap) {
+            let dfastateid = item[0];
+            for (let nfastateid of item[1]) {
+                let dfastates = nfa2dfaStateMap.get(nfastateid);
+                if (!dfastates) {
+                    dfastates = new Set<number>();
+                    nfa2dfaStateMap.set(nfastateid, dfastates);
+                }
+                dfastates.add(dfastateid);
+            }
+        }
+        return { dfaTrans: dfaTrans, startid: startid, terminals: terminals, dfa2nfaStateMap: dfa2nfaStateMap, nfa2dfaStateMap: nfa2dfaStateMap };
     }
 }
 
