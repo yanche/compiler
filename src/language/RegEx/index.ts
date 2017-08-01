@@ -1,4 +1,4 @@
 
-import RegEx from './regex';
+import RegEx from "./regex";
 
 export default RegEx;
