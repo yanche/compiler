@@ -39,26 +39,26 @@ function getItemByProdId(lr0ItemPack: LR0ItemsPack, prodid: number, dot: number)
 }
 
 export default class LALR1Parser extends LRParser {
-    private _dfaitemmap: Map<number, Set<number>>;
-    private _ctlookaheadsym: number;
-    private _lr0dfa: LR0DFA;
+    // private _dfaitemmap: Map<number, Set<number>>;
+    // private _ctlookaheadsym: number;
+    // private _lr0dfa: LR0DFA;
 
     constructor(prodset: ProdSet) {
         super(prodset);
-        this._lr0dfa = new LR0DFA(prodset);
+        let lr0dfa = new LR0DFA(prodset);
 
         // ctlookaheadsym: the count of all possible look-ahead symbols, all terminal symbols plus $
         let dfastatemap = new Map<number, Set<number>>(), stack = new Array<StackItem>(), ctlookaheadsym = prodset.getTerminals().length + 1;
         let firsts = prodset.firstSet(), nullablenonterminals = prodset.nullableNonTerminals();
         //we're going to build a new dfa_state_map, here is initialization
-        for (let dfanum of this._lr0dfa.getStateNums()) {
+        for (let dfanum of lr0dfa.getStateNums()) {
             dfastatemap.set(dfanum, new Set<number>());
         }
-        let dfastartstate = this._lr0dfa.getStartState();
+        let dfastartstate = lr0dfa.getStartState();
         let finsymnum = prodset.getSymNum("$");
         let startnontnum = prodset.getStartNonTerminal();
         for (let prodid of prodset.getProds(startnontnum)) {
-            let lr0item = getItemByProdId(this._lr0dfa.lr0ItemPack, prodid, 0);
+            let lr0item = getItemByProdId(lr0dfa.lr0ItemPack, prodid, 0);
             tryAddIntoStack(stack, { dfastate: dfastartstate, item: lr0item, symnum: finsymnum }, dfastatemap, lr1ItemNum(lr0item.itemnum, 0, ctlookaheadsym));
         }
         while (stack.length > 0) {
@@ -66,9 +66,9 @@ export default class LALR1Parser extends LRParser {
             let rnums = todo.item.prod.rnums, dot = todo.item.dot;
             if (dot === rnums.length) continue;
             // next item by one shift action
-            let goitem = getItemByProdId(this._lr0dfa.lr0ItemPack, todo.item.prodid, dot + 1);
+            let goitem = getItemByProdId(lr0dfa.lr0ItemPack, todo.item.prodid, dot + 1);
             let dotsymnum = rnums[dot], golr1itemnum = lr1ItemNum(goitem.itemnum, todo.symnum, ctlookaheadsym);
-            let gotodfastate = this._lr0dfa.getTransitionMap(todo.dfastate).get(prodset.getSymInStr(dotsymnum));
+            let gotodfastate = lr0dfa.getTransitionMap(todo.dfastate).get(prodset.getSymInStr(dotsymnum));
             tryAddIntoStack(stack, { dfastate: gotodfastate, item: goitem, symnum: todo.symnum }, dfastatemap, golr1itemnum);
             if (prodset.isSymNumTerminal(dotsymnum)) continue;
             // produce more when encountering a non-terminal symbol
@@ -81,27 +81,27 @@ export default class LALR1Parser extends LRParser {
             }
             if (gonull) fset.add(todo.symnum);
             for (let prodid of prodset.getProds(dotsymnum)) {
-                let lr0item = getItemByProdId(this._lr0dfa.lr0ItemPack, prodid, 0);
+                let lr0item = getItemByProdId(lr0dfa.lr0ItemPack, prodid, 0);
                 for (let f of fset) {
                     tryAddIntoStack(stack, { dfastate: todo.dfastate, item: lr0item, symnum: f }, dfastatemap, lr1ItemNum(lr0item.itemnum, f, ctlookaheadsym));
                 }
             }
         }
 
-        this._dfaitemmap = dfastatemap;
-        this._ctlookaheadsym = ctlookaheadsym;
+        // this._dfaitemmap = dfastatemap;
+        // this._ctlookaheadsym = ctlookaheadsym;
         this._startstate = dfastartstate;
 
         // construct parsing table LALR(1)
-        this.addAcceptAction(this._lr0dfa.acceptableDFAState, finsymnum);
+        this.addAcceptAction(lr0dfa.acceptableDFAState, finsymnum);
         for (let dstate of dfastatemap) {
             let dfanum = dstate[0], lr1itemnums = dstate[1];
-            for (let tran of this._lr0dfa.getTransitionMap(dfanum)) {
+            for (let tran of lr0dfa.getTransitionMap(dfanum)) {
                 this.addShiftAction(dfanum, prodset.getSymNum(tran[0]), tran[1]);
             }
             for (let n of lr1itemnums) {
                 // state number of NFA is the number of item
-                let item = this._lr0dfa.lr0ItemPack.getItem(Math.floor(n / ctlookaheadsym));
+                let item = lr0dfa.lr0ItemPack.getItem(Math.floor(n / ctlookaheadsym));
                 if (item.dot === item.prod.rnums.length && item.prod.lnum !== startnontnum) {
                     this.addReduceAction(dfanum, n % ctlookaheadsym, item.prod.lnum, item.dot, item.prodid);
                 }
@@ -110,7 +110,7 @@ export default class LALR1Parser extends LRParser {
     }
 
     // stringifyDFA(): string {
-    //     let strarr = ['DFA:', this._lr0dfa.toString()];
+    //     let strarr = ['DFA:', lr0dfa.toString()];
     //     for (let th of this._dfaitemmap) {
     //         strarr.push(this.stringify1DFA(th[0]));
     //     }
@@ -127,7 +127,7 @@ export default class LALR1Parser extends LRParser {
     //         else map.set(lr0itemnum, [lasymnum]);
     //     }
     //     for (let n of map) {
-    //         strarr.push(itemInStr(this._lr0dfa.lr0ItemPack.getItem(n[0]), n[1], this._prodset));
+    //         strarr.push(itemInStr(lr0dfa.lr0ItemPack.getItem(n[0]), n[1], this._prodset));
     //     }
     //     return strarr.join('\r\n');
     // }
