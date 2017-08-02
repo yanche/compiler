@@ -1,8 +1,8 @@
 
-import * as m from './mipscode';
-import * as util from './util';
-import * as ic from './intermediatecode';
-import * as t from './tac';
+import * as m from "./mipscode";
+import * as util from "./util";
+import * as ic from "./intermediatecode";
+import * as t from "./tac";
 
 //NOTE, THIS FUNCTION WILL MODIFY INPUT (codelines)
 export function regalloc(codelines: Array<ic.CodeLine>, regvinfer: Array<ic.CodeLineRegInfoInferences>, maxtmpregnum: number): { regmap: Map<number, number>, tmpinstack: Map<number, number> } {
@@ -15,7 +15,7 @@ export function regalloc(codelines: Array<ic.CodeLine>, regvinfer: Array<ic.Code
     while (!allo.succeed) {
         let snum = allo.spill, i = 0;
         //new assigned reg for spilled reg cannot be spilled again (no good solution to this conflict yet)
-        if (snum > maxtmpregnum) throw new Error('undefined behavior, spilled reigster cannot be spilled again: ' + snum);
+        if (snum > maxtmpregnum) throw new Error("undefined behavior, spilled reigster cannot be spilled again: " + snum);
         let mloc = -4 * fpoffset++;
         stackoffsetmap.set(snum, mloc);
         rig.removeReg(snum);
@@ -51,7 +51,7 @@ export function regalloc(codelines: Array<ic.CodeLine>, regvinfer: Array<ic.Code
                 newreginfer.top_live = new Set<number>(reginfer.bottom_live).add(newreg);
                 codelines.splice(++i, 0, newcl);
                 regvinfer.splice(i, 0, newreginfer);
-                //ATTENTION, IF WE HAVE INSTRUCTION TO WRITE INTO SOME REGISTER AND BRANCH TO OTHER PC SIMUTANEOUSLY, WE NEED PROCESS THE 'BRANCH TARGET' HERE
+                //ATTENTION, IF WE HAVE INSTRUCTION TO WRITE INTO SOME REGISTER AND BRANCH TO OTHER PC SIMUTANEOUSLY, WE NEED PROCESS THE "BRANCH TARGET" HERE
                 //MIPS DOES NOT HAVE THESE INSTRUCTIONS
                 tac.replWriteReg(snum, newreg);
                 rig.addRelateRegsForOne(newreg, [...reginfer.bottom_live]);
@@ -151,12 +151,12 @@ class RIG {
                         maxnum = t[0];
                     }
                 }
-                if (maxnum === -1 || maxsize === -1) throw new Error('defensive code, impossible code path');
+                if (maxnum === -1 || maxsize === -1) throw new Error("defensive code, impossible code path");
                 removables.push(maxnum);
                 unremovable.delete(maxnum);
             }
         }
-        if (tmpmap.size !== 0) throw new Error('defensive code, impossible code path ' + tmpmap.size);
+        if (tmpmap.size !== 0) throw new Error("defensive code, impossible code path " + tmpmap.size);
         let regmap = new Map<number, number>(), i = rarr.length - 1;
         while (i >= 0) {
             let rnum = rarr[i];
@@ -189,7 +189,7 @@ class RIG {
 
 export function toMIPSReg(tmpnum: number, regmap: Map<number, number>): m.MIPSRegister {
     if (tmpnum === util.TMP_REGS_FP) return m.REGS.fp;
-    else if (!regmap.has(tmpnum)) throw new Error('undefined regnum for given temporary: ' + tmpnum);
+    else if (!regmap.has(tmpnum)) throw new Error("undefined regnum for given temporary: " + tmpnum);
     else return regnumToMIPSReg(regmap.get(tmpnum));
 };
 
@@ -204,6 +204,6 @@ export function regnumToMIPSReg(regnum: number): m.MIPSRegister {
         case 4: return m.REGS.t4;
         case 5: return m.REGS.t5;
         case 6: return m.REGS.t6;
-        default: throw new Error('invalid regnum: ' + regnum);
+        default: throw new Error("invalid regnum: " + regnum);
     }
 }

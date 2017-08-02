@@ -2,7 +2,7 @@
 import * as assert from "assert";
 import * as utility from "../../../utility";
 import { createLR1Parser } from "../index";
-import * as tutil from "./util";
+import { validate } from "./util.test";
 import { Token, noArea } from "../../../compile";
 import { createProdSetWithSplitter } from "../../../productions";
 
@@ -52,7 +52,7 @@ describe("LR(1) parse", function () {
             new Token("$", prodset.getSymNum("$"), noArea)
         ]);
         assert.equal(true, parseret.accept);
-        tutil.validate(prodset, parseret.root, {
+        validate(prodset, parseret.root, {
             symstr: "E",
             mid: true,
             children: [

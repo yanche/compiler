@@ -30,7 +30,7 @@ export interface SyntaxProcessor {
     astConverter: ASTConverter;
 }
 
-export function defineSyntaxProcessor(prodHandlers: ParseTreeHandlerItem[], parserCreator: (prodset: ProdSet) => Parser): SyntaxProcessor {
+export function defineSyntaxProcessor(prodHandlers: ParseTreeHandlerItem[], parserCreator: (prodset: ProdSet) => Parser, astConverterCreator?: (handlermap: Map<number, (node: ParseTreeMidNode) => ASTNode>) => ASTConverter): SyntaxProcessor {
     const prods = prodHandlers.map(h => h.production);
     const prodset = createProdSet(prods);
     // the first N prodId are set corresponding to the input productions
@@ -40,7 +40,7 @@ export function defineSyntaxProcessor(prodHandlers: ParseTreeHandlerItem[], pars
         handlermap.set(prodIds[idx], h.handler);
     });
     return {
-        astConverter: new ASTConverter(handlermap),
+        astConverter: astConverterCreator ? astConverterCreator(handlermap) : new ASTConverter(handlermap),
         parser: parserCreator(prodset),
         prodSet: prodset
     }

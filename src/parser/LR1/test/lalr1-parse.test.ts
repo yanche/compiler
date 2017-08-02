@@ -1,7 +1,7 @@
 
 import * as assert from "assert";
 import { createLALR1Parser } from "../index";
-import { validate } from "./util";
+import { validate } from "./util.test";
 import { Token, noArea } from "../../../compile";
 import { createProdSetWithSplitter } from "../../../productions";
 

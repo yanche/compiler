@@ -1,10 +1,10 @@
 
-import * as utility from '../../utility';
-import * as t from './tac';
-import * as r from './regallocate';
-import * as m from './mipscode';
-//import * as tc from './typecheck';
-import * as util from './util';
+import * as utility from "../../utility";
+import * as t from "./tac";
+import * as r from "./regallocate";
+import * as m from "./mipscode";
+//import * as tc from "./typecheck";
+import * as util from "./util";
 
 //FOR INTERMEDIATE CODE GENERATION AND OPTIMIZATION
 
@@ -186,7 +186,7 @@ function compress(codelines: Array<CodeLine>): Array<number> {
         let tac = cl.tac;
         if (tac instanceof t.TAC_noop) {
             if (cl.label != null) {
-                if (lastcl == null) throw new Error('defensive code, jump to noop till end of code');
+                if (lastcl == null) throw new Error("defensive code, jump to noop till end of code");
                 if (lastcl.label == null) {
                     lastcl.label = cl.label;
                     cl.label.owner = lastcl;
@@ -240,9 +240,9 @@ export function generateIntermediateCode(classlookup: util.ClassLookup, fnlookup
             let clvalueinfer = new Array<CodeLineRegInfoInferences>(cllen);
             for (let i = 0; i < cllen; ++i)
                 clvalueinfer[i] = new CodeLineRegInfoInferences(fndef.astnode.tmpRegAssigned);
-            // console.log('parameter tmp register for: ' + fndef.name);
+            // console.log("parameter tmp register for: " + fndef.name);
             // console.log(fndef.astnode.argTmpRegIdList);
-            //set the value type of arguments to 'ANY'
+            //set the value type of arguments to "ANY"
             for (let i of fndef.astnode.argTmpRegIdList)
                 clvalueinfer[0].top_val[i].type = TmpRegValueInference.TYPE_ANY;
             valueInference(codelines._arr, clvalueinfer);
@@ -311,9 +311,9 @@ export class IntermediateCode {
         return this;
     }
     toString(): string {
-        let gdata = '.data\r\n' + this._gdatapieces.map(gdata => gdata.toString()).join('\r\n\r\n');
-        let text = '.text\r\n' + this._codepieces.map(cp => cp.toString()).join('\r\n\r\n');
-        return gdata + '\r\n\r\n' + text;
+        let gdata = ".data\r\n" + this._gdatapieces.map(gdata => gdata.toString()).join("\r\n\r\n");
+        let text = ".text\r\n" + this._codepieces.map(cp => cp.toString()).join("\r\n\r\n");
+        return gdata + "\r\n\r\n" + text;
     }
     addGData(gdata: GDATA): this {
         this._gdatapieces.push(gdata);
@@ -333,11 +333,11 @@ export class IntermediateCode {
 }
 
 // function lineNum2Str(linenum: number, minlen: number): string {
-//     let linestr = linenum + ':';
+//     let linestr = linenum + ":";
 //     let arr = new Array<string>(Math.max(minlen - linestr.length, 0) + 1);
-//     for (let i = 0; i < arr.length - 1; ++i) arr[i] = ' ';
+//     for (let i = 0; i < arr.length - 1; ++i) arr[i] = " ";
 //     arr[arr.length - 1] = linestr;
-//     return arr.join('');
+//     return arr.join("");
 // }
 
 export class TmpRegValueInference {
@@ -400,15 +400,15 @@ export class TmpRegValueInference {
 }
 
 // export function fnLabel(fnsigniture: string): string {
-//     if (fnsigniture === 'main') return fnsigniture;
+//     if (fnsigniture === "main") return fnsigniture;
 //     else if (fnsigniture === tc.predefinedFn.print_int.signiture) return m.MIPS_FN_PRINT_INT;
 //     else if (fnsigniture === tc.predefinedFn.print_bool.signiture) return m.MIPS_FN_PRINT_BOOL;
 //     else if (fnsigniture === tc.predefinedFn.print_newline.signiture) return m.MIPS_FN_PRINT_NEWLINE;
-//     else return 'fnlabel_' + fnsigniture;
+//     else return "fnlabel_" + fnsigniture;
 // }
 
 // export function gdataLabel(labelname: string): string {
-//     return 'gdata_' + labelname;
+//     return "gdata_" + labelname;
 // }
 
 export class CodePiece {
@@ -459,7 +459,7 @@ export class CodePiece {
         return this;
     }
     toString(): string {
-        return this._fndef.signiture + '\r\n' + this._codelines.join('\r\n');
+        return this._fndef.signiture + "\r\n" + this._codelines.join("\r\n");
     }
     private _fndef: util.FunctionDefinition;
     private _tmpregcount: number;
@@ -499,15 +499,15 @@ export class CodeLine {
         let tac = this.tac;
         if (tac instanceof t.TAC_branch) {
             let retcl = tac.label.owner;
-            if (retcl == null) throw new Error('defensive code, label point to nothing, branchToCL is supposed to be called under label-complete mode');
+            if (retcl == null) throw new Error("defensive code, label point to nothing, branchToCL is supposed to be called under label-complete mode");
             return retcl;
         }
         else return null;
     }
     toString(): string {
-        let labelstr = '';
+        let labelstr = "";
         if (this.label != null)
-            labelstr = this.label + ' :\r\n';
+            labelstr = this.label + " :\r\n";
         return labelstr + this.tac.toString();
     }
     constructor(public tac: t.TAC, public label?: util.CodeLabel) { }
@@ -517,10 +517,10 @@ export class CodeLine {
 //global data block
 abstract class GDATA {
     toString(): string {
-        throw new Error('not implemented');
+        throw new Error("not implemented");
     }
     toMIPS(asm: m.MIPSAssembly): this {
-        throw new Error('not implemented');
+        throw new Error("not implemented");
     }
 }
 class GDATA_VTABLE extends GDATA {
@@ -533,10 +533,10 @@ class GDATA_VTABLE extends GDATA {
         this._vtable_label = classdef.getMIPSVTableLabel();
     }
     toString(): string {
-        return [this._vtable_label + ' :'].concat(this._vtable.map(fndef => fndef.signiture.toString())).join('\r\n');
+        return [this._vtable_label + " :"].concat(this._vtable.map(fndef => fndef.signiture.toString())).join("\r\n");
     }
     toMIPS(asm: m.MIPSAssembly): this {
-        //noaction, vtable & vtable-setup will be processed as a 'predefined block' of mips code generation
+        //noaction, vtable & vtable-setup will be processed as a "predefined block" of mips code generation
         return this;
     }
 }

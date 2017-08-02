@@ -1,19 +1,19 @@
 
-import * as i from './intermediatecode';
-import * as util from './util';
-import * as m from './mipscode';
-import * as r from './regallocate';
+import * as i from "./intermediatecode";
+import * as util from "./util";
+import * as m from "./mipscode";
+import * as r from "./regallocate";
 
 function reg2str(regnum: number): string {
-    return '$' + regnum;
+    return "$" + regnum;
 }
 //three-address code
 export abstract class TAC {
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
-        throw new Error('not implemented');
+        throw new Error("not implemented");
     }
     toString(): string {
-        throw new Error('not implemented');
+        throw new Error("not implemented");
     }
     inferTmpRegValue(tmpreginfers: Array<i.TmpRegValueInference>): { regnum: number, reginfo: i.TmpRegValueInference } {
         return null;
@@ -31,18 +31,18 @@ export abstract class TAC {
         return false;
     }
     replReadReg(regnum: number, newregnum: number): this {
-        throw new Error('not implemented');
+        throw new Error("not implemented");
     }
     writeReg(regnum: number): boolean {
         return false;
     }
     replWriteReg(regnum: number, newregnum: number): this {
-        throw new Error('not implemented');
+        throw new Error("not implemented");
     }
 }
 export class TAC_noop extends TAC {
     toString(): string {
-        return 'noop';
+        return "noop";
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
         return [];
@@ -50,7 +50,7 @@ export class TAC_noop extends TAC {
 }
 export class TAC_ret extends TAC {
     toString(): string {
-        return 'ret';
+        return "ret";
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
         return last ? [] : [new m.MIPS_b(retlabel)];
@@ -59,7 +59,7 @@ export class TAC_ret extends TAC {
 export class TAC_retreg extends TAC_ret {
     constructor(public reg: number) { super(); }
     toString(): string {
-        return ['ret', reg2str(this.reg)].join(' ');
+        return ["ret", reg2str(this.reg)].join(" ");
     }
     simplify(tmpreginfers: Array<i.TmpRegValueInference>): TAC {
         let info = tmpreginfers[this.reg];
@@ -75,7 +75,7 @@ export class TAC_retreg extends TAC_ret {
     }
     replReadReg(regnum: number, newregnum: number): this {
         if (this.reg === regnum) this.reg = newregnum;
-        else throw new Error('no read from reg: ' + regnum);
+        else throw new Error("no read from reg: " + regnum);
         return this;
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
@@ -89,7 +89,7 @@ export class TAC_retreg extends TAC_ret {
 export class TAC_retint extends TAC_ret {
     constructor(public num: number) { super(); }
     toString(): string {
-        return ['ret', this.num].join(' ');
+        return ["ret", this.num].join(" ");
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
         //put the return integer into register v0
@@ -103,7 +103,7 @@ export class TAC_loadint extends TAC {
     //num: interger
     constructor(public num: number, public to_reg: number) { super(); }
     toString(): string {
-        return [reg2str(this.to_reg), '=', this.num].join(' ');
+        return [reg2str(this.to_reg), "=", this.num].join(" ");
     }
     inferTmpRegValue(tmpreginfers: Array<i.TmpRegValueInference>): { regnum: number, reginfo: i.TmpRegValueInference } {
         let retinfo = new i.TmpRegValueInference();
@@ -127,7 +127,7 @@ export class TAC_loadint extends TAC {
     }
     replWriteReg(regnum: number, newregnum: number): this {
         if (this.to_reg === regnum) this.to_reg = newregnum;
-        else throw new Error('no write into reg: ' + regnum);
+        else throw new Error("no write into reg: " + regnum);
         return this;
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
@@ -137,7 +137,7 @@ export class TAC_loadint extends TAC {
 export class TAC_mov extends TAC {
     constructor(public from_reg: number, public to_reg: number) { super(); }
     toString(): string {
-        return [reg2str(this.to_reg), '=', reg2str(this.from_reg)].join(' ');
+        return [reg2str(this.to_reg), "=", reg2str(this.from_reg)].join(" ");
     }
     inferTmpRegValue(tmpreginfers: Array<i.TmpRegValueInference>): { regnum: number, reginfo: i.TmpRegValueInference } {
         let retinfo = new i.TmpRegValueInference(), finfo = tmpreginfers[this.from_reg];
@@ -152,7 +152,7 @@ export class TAC_mov extends TAC {
         if (info1.type === i.TmpRegValueInference.TYPE_CONST && info2.type === i.TmpRegValueInference.TYPE_CONST && info1.cons === info2.cons) return new TAC_noop();
         else if (info1.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG && info2.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG && info1.cons === info2.cons && info1.regnum === info2.regnum) return new TAC_noop();
         else if (info1.type === i.TmpRegValueInference.TYPE_CONST) return new TAC_loadint(info1.cons, this.to_reg);
-        else if (info1.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG) return new TAC_binary_int('*', info1.regnum, info1.cons, this.to_reg).simplify(tmpreginfers);
+        else if (info1.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG) return new TAC_binary_int("*", info1.regnum, info1.cons, this.to_reg).simplify(tmpreginfers);
         else return this;
     }
     tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
@@ -167,7 +167,7 @@ export class TAC_mov extends TAC {
     }
     replReadReg(regnum: number, newregnum: number): this {
         if (this.from_reg === regnum) this.from_reg = newregnum;
-        else throw new Error('no read from reg: ' + regnum);
+        else throw new Error("no read from reg: " + regnum);
         return this;
     }
     writeReg(regnum: number): boolean {
@@ -175,7 +175,7 @@ export class TAC_mov extends TAC {
     }
     replWriteReg(regnum: number, newregnum: number): this {
         if (this.to_reg === regnum) this.to_reg = newregnum;
-        else throw new Error('no write into reg: ' + regnum);
+        else throw new Error("no write into reg: " + regnum);
         return this;
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
@@ -186,7 +186,7 @@ export class TAC_paramint extends TAC {
     //TODO
     constructor(public num: number) { super(); }
     toString(): string {
-        return ['paramint', this.num].join(' ');
+        return ["paramint", this.num].join(" ");
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
         return [
@@ -201,7 +201,7 @@ export class TAC_paramint extends TAC {
 export class TAC_param extends TAC {
     constructor(public reg: number) { super(); }
     toString(): string {
-        return ['param', reg2str(this.reg)].join(' ');
+        return ["param", reg2str(this.reg)].join(" ");
     }
     simplify(tmpreginfers: Array<i.TmpRegValueInference>): TAC {
         let info = tmpreginfers[this.reg];
@@ -217,7 +217,7 @@ export class TAC_param extends TAC {
     }
     replReadReg(regnum: number, newregnum: number): this {
         if (this.reg === regnum) this.reg = newregnum;
-        else throw new Error('no read from reg: ' + regnum);
+        else throw new Error("no read from reg: " + regnum);
         return this;
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
@@ -233,7 +233,7 @@ export class TAC_allocateint extends TAC {
     //TODO
     constructor(public num: number, public result_reg: number) { super(); }
     toString(): string {
-        return [reg2str(this.result_reg), '=', 'allocateint', this.num].join(' ');
+        return [reg2str(this.result_reg), "=", "allocateint", this.num].join(" ");
     }
     inferTmpRegValue(tmpreginfers: Array<i.TmpRegValueInference>): { regnum: number, reginfo: i.TmpRegValueInference } {
         let retinfo = new i.TmpRegValueInference();
@@ -250,7 +250,7 @@ export class TAC_allocateint extends TAC {
         return [
             //a0 is the length of required memory (bytes)
             new m.MIPS_li(m.REGS.a0, this.num),
-            //system call code into v0, 9 represents the 'SBRK'
+            //system call code into v0, 9 represents the "SBRK"
             new m.MIPS_li(m.REGS.v0, 9),
             //get memory, result address in v0
             new m.MIPS_syscall(),
@@ -262,7 +262,7 @@ export class TAC_allocateint extends TAC {
 export class TAC_allocate extends TAC {
     constructor(public reg_bytes: number, public result_reg: number) { super(); }
     toString(): string {
-        return [reg2str(this.result_reg), '=', 'allocate', reg2str(this.reg_bytes)].join(' ');
+        return [reg2str(this.result_reg), "=", "allocate", reg2str(this.reg_bytes)].join(" ");
     }
     simplify(tmpreginfers: Array<i.TmpRegValueInference>): TAC {
         let info = tmpreginfers[this.reg_bytes];
@@ -286,7 +286,7 @@ export class TAC_allocate extends TAC {
     }
     replReadReg(regnum: number, newregnum: number): this {
         if (this.reg_bytes === regnum) this.reg_bytes = newregnum;
-        else throw new Error('no read from reg: ' + regnum);
+        else throw new Error("no read from reg: " + regnum);
         return this;
     }
     writeReg(regnum: number): boolean {
@@ -294,14 +294,14 @@ export class TAC_allocate extends TAC {
     }
     replWriteReg(regnum: number, newregnum: number): this {
         if (this.result_reg === regnum) this.result_reg = newregnum;
-        else throw new Error('no write into reg: ' + regnum);
+        else throw new Error("no write into reg: " + regnum);
         return this;
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
         return [
             //a0 is the length of required memory (bytes)
             new m.MIPS_move(m.REGS.a0, r.toMIPSReg(this.reg_bytes, regmap)),
-            //system call code into v0, 9 represents the 'SBRK'
+            //system call code into v0, 9 represents the "SBRK"
             new m.MIPS_li(m.REGS.v0, 9),
             //get memory, result address in v0
             new m.MIPS_syscall(),
@@ -313,7 +313,7 @@ export class TAC_allocate extends TAC {
 export class TAC_fncall extends TAC {
     constructor(public fn: util.FunctionDefinition, public result_reg: number) { super(); }
     toString(): string {
-        return [reg2str(this.result_reg), '=', 'call', this.fn.signiture, this.fn.argtypelist.length].join(' ');
+        return [reg2str(this.result_reg), "=", "call", this.fn.signiture, this.fn.argtypelist.length].join(" ");
     }
     inferTmpRegValue(tmpreginfers: Array<i.TmpRegValueInference>): { regnum: number, reginfo: i.TmpRegValueInference } {
         let retinfo = new i.TmpRegValueInference();
@@ -331,7 +331,7 @@ export class TAC_fncall extends TAC {
     }
     replWriteReg(regnum: number, newregnum: number): this {
         if (this.result_reg === regnum) this.result_reg = newregnum;
-        else throw new Error('no write into reg: ' + regnum);
+        else throw new Error("no write into reg: " + regnum);
         return this;
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
@@ -349,7 +349,7 @@ export class TAC_fncall extends TAC {
 export class TAC_fncall_reg extends TAC {
     constructor(public fn_reg: number, public plen: number, public result_reg: number) { super(); }
     toString(): string {
-        return [reg2str(this.result_reg), '=', 'call', reg2str(this.fn_reg), this.plen].join(' ');
+        return [reg2str(this.result_reg), "=", "call", reg2str(this.fn_reg), this.plen].join(" ");
     }
     simplify(tmpreginfers: Array<i.TmpRegValueInference>): TAC {
         let info = tmpreginfers[this.fn_reg];
@@ -372,7 +372,7 @@ export class TAC_fncall_reg extends TAC {
     }
     replReadReg(regnum: number, newregnum: number): this {
         if (this.fn_reg === regnum) this.fn_reg = newregnum;
-        else throw new Error('no read from reg: ' + regnum);
+        else throw new Error("no read from reg: " + regnum);
         return this;
     }
     writeReg(regnum: number): boolean {
@@ -380,7 +380,7 @@ export class TAC_fncall_reg extends TAC {
     }
     replWriteReg(regnum: number, newregnum: number): this {
         if (this.result_reg === regnum) this.result_reg = newregnum;
-        else throw new Error('no write into reg: ' + regnum);
+        else throw new Error("no write into reg: " + regnum);
         return this;
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
@@ -399,7 +399,7 @@ export class TAC_fncall_reg extends TAC {
 export class TAC_procedurecall extends TAC {
     constructor(public fn: util.FunctionDefinition) { super(); }
     toString(): string {
-        return ['call', this.fn.signiture, this.fn.argtypelist.length].join(' ');
+        return ["call", this.fn.signiture, this.fn.argtypelist.length].join(" ");
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
         //call the function(return address into $ra)
@@ -413,7 +413,7 @@ export class TAC_procedurecall extends TAC {
 export class TAC_procedurecall_reg extends TAC {
     constructor(public fn_reg: number, public plen: number) { super(); }
     toString(): string {
-        return ['call', reg2str(this.fn_reg), this.plen].join(' ');
+        return ["call", reg2str(this.fn_reg), this.plen].join(" ");
     }
     simplify(tmpreginfers: Array<i.TmpRegValueInference>): TAC {
         let info = tmpreginfers[this.fn_reg];
@@ -428,7 +428,7 @@ export class TAC_procedurecall_reg extends TAC {
     }
     replReadReg(regnum: number, newregnum: number): this {
         if (this.fn_reg === regnum) this.fn_reg = newregnum;
-        else throw new Error('no read from reg: ' + regnum);
+        else throw new Error("no read from reg: " + regnum);
         return this;
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
@@ -443,46 +443,46 @@ export class TAC_procedurecall_reg extends TAC {
 export class TAC_binary extends TAC {
     constructor(public op: string, public operand1_reg: number, public operand2_reg: number, public result_reg: number) { super(); }
     toString(): string {
-        return [reg2str(this.result_reg), '=', reg2str(this.operand1_reg), this.op, reg2str(this.operand2_reg)].join(' ');
+        return [reg2str(this.result_reg), "=", reg2str(this.operand1_reg), this.op, reg2str(this.operand2_reg)].join(" ");
     }
     inferTmpRegValue(tmpreginfers: Array<i.TmpRegValueInference>): { regnum: number, reginfo: i.TmpRegValueInference } {
         let retinfo = new i.TmpRegValueInference(), oinfo1 = tmpreginfers[this.operand1_reg], oinfo2 = tmpreginfers[this.operand2_reg];
 
         if (oinfo1.type === i.TmpRegValueInference.TYPE_NEVER || oinfo2.type === i.TmpRegValueInference.TYPE_NEVER)
-            throw new Error('defensive code, undefined behavior');
-        else if (this.op === '*' && ((oinfo1.type === i.TmpRegValueInference.TYPE_CONST && oinfo1.cons === 0) || (oinfo2.type === i.TmpRegValueInference.TYPE_CONST && oinfo2.cons === 0))) {
+            throw new Error("defensive code, undefined behavior");
+        else if (this.op === "*" && ((oinfo1.type === i.TmpRegValueInference.TYPE_CONST && oinfo1.cons === 0) || (oinfo2.type === i.TmpRegValueInference.TYPE_CONST && oinfo2.cons === 0))) {
             retinfo.type = i.TmpRegValueInference.TYPE_CONST;
             retinfo.cons = 0;
             //TODO: MORE
         }
-        else if ((this.op !== '/' || oinfo2.cons !== 0) && oinfo1.type === i.TmpRegValueInference.TYPE_CONST && oinfo2.type === i.TmpRegValueInference.TYPE_CONST) {
+        else if ((this.op !== "/" || oinfo2.cons !== 0) && oinfo1.type === i.TmpRegValueInference.TYPE_CONST && oinfo2.type === i.TmpRegValueInference.TYPE_CONST) {
             retinfo.type = i.TmpRegValueInference.TYPE_CONST;
             retinfo.cons = bi_op(this.op, oinfo1.cons, oinfo2.cons);
         }
-        else if (this.op === '*' && oinfo1.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG && oinfo2.type === i.TmpRegValueInference.TYPE_CONST && oinfo1.regnum !== this.result_reg) {
+        else if (this.op === "*" && oinfo1.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG && oinfo2.type === i.TmpRegValueInference.TYPE_CONST && oinfo1.regnum !== this.result_reg) {
             retinfo.type = i.TmpRegValueInference.TYPE_CONST_TIMES_REG;
             retinfo.cons = oinfo1.cons * oinfo2.cons;
             retinfo.regnum = oinfo1.regnum;
         }
-        else if (this.op === '*' && oinfo2.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG && oinfo1.type === i.TmpRegValueInference.TYPE_CONST && oinfo2.regnum !== this.result_reg) {
+        else if (this.op === "*" && oinfo2.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG && oinfo1.type === i.TmpRegValueInference.TYPE_CONST && oinfo2.regnum !== this.result_reg) {
             retinfo.type = i.TmpRegValueInference.TYPE_CONST_TIMES_REG;
             retinfo.cons = oinfo1.cons * oinfo2.cons;
             retinfo.regnum = oinfo2.regnum;
         }
-        else if ((this.op === '+' || this.op === '-') && oinfo1.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG && oinfo2.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG && oinfo1.regnum === oinfo2.regnum && oinfo1.regnum !== this.result_reg) {
-            if (this.op === '+')
+        else if ((this.op === "+" || this.op === "-") && oinfo1.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG && oinfo2.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG && oinfo1.regnum === oinfo2.regnum && oinfo1.regnum !== this.result_reg) {
+            if (this.op === "+")
                 retinfo.cons = oinfo1.cons + oinfo2.cons;
             else
                 retinfo.cons = oinfo1.cons - oinfo2.cons;
             retinfo.type = i.TmpRegValueInference.TYPE_CONST_TIMES_REG;
             retinfo.regnum = oinfo1.regnum;
         }
-        else if (this.op === '*' && oinfo1.type === i.TmpRegValueInference.TYPE_CONST && oinfo2.type === i.TmpRegValueInference.TYPE_ANY && this.result_reg !== this.operand2_reg) {
+        else if (this.op === "*" && oinfo1.type === i.TmpRegValueInference.TYPE_CONST && oinfo2.type === i.TmpRegValueInference.TYPE_ANY && this.result_reg !== this.operand2_reg) {
             retinfo.type = i.TmpRegValueInference.TYPE_CONST_TIMES_REG;
             retinfo.regnum = this.operand2_reg;
             retinfo.cons = oinfo1.cons;
         }
-        else if (this.op === '*' && oinfo2.type === i.TmpRegValueInference.TYPE_CONST && oinfo1.type === i.TmpRegValueInference.TYPE_ANY && this.result_reg !== this.operand1_reg) {
+        else if (this.op === "*" && oinfo2.type === i.TmpRegValueInference.TYPE_CONST && oinfo1.type === i.TmpRegValueInference.TYPE_ANY && this.result_reg !== this.operand1_reg) {
             retinfo.type = i.TmpRegValueInference.TYPE_CONST_TIMES_REG;
             retinfo.regnum = this.operand1_reg;
             retinfo.cons = oinfo2.cons;
@@ -497,30 +497,30 @@ export class TAC_binary extends TAC {
     }
     simplify(tmpreginfers: Array<i.TmpRegValueInference>): TAC {
         let oinfo1 = tmpreginfers[this.operand1_reg], oinfo2 = tmpreginfers[this.operand2_reg];
-        if (this.op === '*' && ((oinfo1.type === i.TmpRegValueInference.TYPE_CONST && oinfo1.cons === 0) || (oinfo2.type === i.TmpRegValueInference.TYPE_CONST && oinfo2.cons === 0))) {
+        if (this.op === "*" && ((oinfo1.type === i.TmpRegValueInference.TYPE_CONST && oinfo1.cons === 0) || (oinfo2.type === i.TmpRegValueInference.TYPE_CONST && oinfo2.cons === 0))) {
             return new TAC_loadint(0, this.result_reg);
             //TODO: MERGE WITH regInfoOutput
         }
-        else if ((this.op !== '/' || oinfo2.cons !== 0) && oinfo1.type === i.TmpRegValueInference.TYPE_CONST && oinfo2.type === i.TmpRegValueInference.TYPE_CONST) {
+        else if ((this.op !== "/" || oinfo2.cons !== 0) && oinfo1.type === i.TmpRegValueInference.TYPE_CONST && oinfo2.type === i.TmpRegValueInference.TYPE_CONST) {
             return new TAC_loadint(bi_op(this.op, oinfo1.cons, oinfo2.cons), this.result_reg).simplify(tmpreginfers);
         }
-        else if (this.op === '*' && oinfo1.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG && oinfo2.type === i.TmpRegValueInference.TYPE_CONST) {
-            return new TAC_binary_int('*', oinfo1.regnum, oinfo1.cons * oinfo2.cons, this.result_reg);
+        else if (this.op === "*" && oinfo1.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG && oinfo2.type === i.TmpRegValueInference.TYPE_CONST) {
+            return new TAC_binary_int("*", oinfo1.regnum, oinfo1.cons * oinfo2.cons, this.result_reg);
         }
-        else if (this.op === '*' && oinfo2.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG && oinfo1.type === i.TmpRegValueInference.TYPE_CONST) {
-            return new TAC_binary_int('*', oinfo2.regnum, oinfo1.cons * oinfo2.cons, this.result_reg);
+        else if (this.op === "*" && oinfo2.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG && oinfo1.type === i.TmpRegValueInference.TYPE_CONST) {
+            return new TAC_binary_int("*", oinfo2.regnum, oinfo1.cons * oinfo2.cons, this.result_reg);
         }
-        else if ((this.op === '+' || this.op === '-') && oinfo1.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG && oinfo2.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG && oinfo1.regnum === oinfo2.regnum) {
-            let opint = this.op === '+' ? (oinfo1.cons + oinfo2.cons) : (oinfo1.cons - oinfo2.cons);
-            return new TAC_binary_int('*', oinfo1.regnum, opint, this.result_reg);
+        else if ((this.op === "+" || this.op === "-") && oinfo1.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG && oinfo2.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG && oinfo1.regnum === oinfo2.regnum) {
+            let opint = this.op === "+" ? (oinfo1.cons + oinfo2.cons) : (oinfo1.cons - oinfo2.cons);
+            return new TAC_binary_int("*", oinfo1.regnum, opint, this.result_reg);
         }
-        else if (this.op === '*' && oinfo1.type === i.TmpRegValueInference.TYPE_CONST) {
+        else if (this.op === "*" && oinfo1.type === i.TmpRegValueInference.TYPE_CONST) {
             if (oinfo1.cons === 1) return new TAC_mov(this.operand2_reg, this.result_reg);
-            else return new TAC_binary_int('*', this.operand2_reg, oinfo1.cons, this.result_reg);
+            else return new TAC_binary_int("*", this.operand2_reg, oinfo1.cons, this.result_reg);
         }
-        else if (this.op === '*' && oinfo2.type === i.TmpRegValueInference.TYPE_CONST) {
+        else if (this.op === "*" && oinfo2.type === i.TmpRegValueInference.TYPE_CONST) {
             if (oinfo2.cons === 1) return new TAC_mov(this.operand1_reg, this.result_reg);
-            else return new TAC_binary_int('*', this.operand1_reg, oinfo2.cons, this.result_reg);
+            else return new TAC_binary_int("*", this.operand1_reg, oinfo2.cons, this.result_reg);
         }
         else return this;
     }
@@ -534,7 +534,7 @@ export class TAC_binary extends TAC {
         return this.operand1_reg === regnum || this.operand2_reg === regnum;
     }
     replReadReg(regnum: number, newregnum: number): this {
-        if (!this.readReg(regnum)) throw new Error('no read from reg: ' + regnum);
+        if (!this.readReg(regnum)) throw new Error("no read from reg: " + regnum);
         if (this.operand1_reg === regnum) this.operand1_reg = newregnum;
         if (this.operand2_reg === regnum) this.operand2_reg = newregnum;
         return this;
@@ -544,7 +544,7 @@ export class TAC_binary extends TAC {
     }
     replWriteReg(regnum: number, newregnum: number): this {
         if (this.result_reg === regnum) this.result_reg = newregnum;
-        else throw new Error('no write into reg: ' + regnum);
+        else throw new Error("no write into reg: " + regnum);
         return this;
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
@@ -554,19 +554,19 @@ export class TAC_binary extends TAC {
 export class TAC_binary_int extends TAC {
     constructor(public op: string, public operand_reg: number, public operand_int: number, public result_reg: number) { super(); }
     toString(): string {
-        return [reg2str(this.result_reg), '=', reg2str(this.operand_reg), this.op, this.operand_int].join(' ');
+        return [reg2str(this.result_reg), "=", reg2str(this.operand_reg), this.op, this.operand_int].join(" ");
     }
     inferTmpRegValue(tmpreginfers: Array<i.TmpRegValueInference>): { regnum: number, reginfo: i.TmpRegValueInference } {
         let retinfo = new i.TmpRegValueInference(), oinfo = tmpreginfers[this.operand_reg];
 
         if (oinfo.type === i.TmpRegValueInference.TYPE_NEVER)
-            throw new Error('defensive code, unclear behavior');
-        else if (this.op === '*' && ((oinfo.type === i.TmpRegValueInference.TYPE_CONST && oinfo.cons === 0) || this.operand_int === 0)) {
+            throw new Error("defensive code, unclear behavior");
+        else if (this.op === "*" && ((oinfo.type === i.TmpRegValueInference.TYPE_CONST && oinfo.cons === 0) || this.operand_int === 0)) {
             retinfo.type = i.TmpRegValueInference.TYPE_CONST;
             retinfo.cons = 0;
             //TODO: MORE
         }
-        else if (this.op === '*' && oinfo.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG) {
+        else if (this.op === "*" && oinfo.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG) {
             retinfo.type = i.TmpRegValueInference.TYPE_CONST_TIMES_REG;
             retinfo.cons = oinfo.cons * this.operand_int;
             retinfo.regnum = oinfo.regnum;
@@ -574,7 +574,7 @@ export class TAC_binary_int extends TAC {
         }
         else if (oinfo.type === i.TmpRegValueInference.TYPE_ANY)
             retinfo.type = i.TmpRegValueInference.TYPE_ANY;
-        else if ((this.op !== '/' || this.operand_int !== 0) && oinfo.type === i.TmpRegValueInference.TYPE_CONST) {
+        else if ((this.op !== "/" || this.operand_int !== 0) && oinfo.type === i.TmpRegValueInference.TYPE_CONST) {
             retinfo.type = i.TmpRegValueInference.TYPE_CONST;
             retinfo.cons = bi_op(this.op, oinfo.cons, this.operand_int);
         }
@@ -584,20 +584,20 @@ export class TAC_binary_int extends TAC {
     }
     simplify(tmpreginfers: Array<i.TmpRegValueInference>): TAC {
         let oinfo = tmpreginfers[this.operand_reg];
-        if (this.op === '*' && ((oinfo.type === i.TmpRegValueInference.TYPE_CONST && oinfo.cons === 0) || this.operand_int === 0)) {
+        if (this.op === "*" && ((oinfo.type === i.TmpRegValueInference.TYPE_CONST && oinfo.cons === 0) || this.operand_int === 0)) {
             return new TAC_loadint(0, this.result_reg).simplify(tmpreginfers);
             //TODO: MERGE WITH regInfoOutput
         }
-        else if (this.op === '*' && oinfo.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG) {
+        else if (this.op === "*" && oinfo.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG) {
             let cons = oinfo.cons * this.operand_int;
             if (cons === 1) return new TAC_mov(oinfo.regnum, this.result_reg).simplify(tmpreginfers);
-            else return new TAC_binary_int('*', oinfo.regnum, cons, this.result_reg);
+            else return new TAC_binary_int("*", oinfo.regnum, cons, this.result_reg);
             //TODO: MORE
         }
-        else if ((this.op !== '/' || this.operand_int !== 0) && oinfo.type === i.TmpRegValueInference.TYPE_CONST) {
+        else if ((this.op !== "/" || this.operand_int !== 0) && oinfo.type === i.TmpRegValueInference.TYPE_CONST) {
             return new TAC_loadint(bi_op(this.op, oinfo.cons, this.operand_int), this.result_reg).simplify(tmpreginfers);
         }
-        else if (this.op === '*' && this.operand_int === 1)
+        else if (this.op === "*" && this.operand_int === 1)
             return new TAC_mov(this.operand_reg, this.result_reg);
         else return this;
     }
@@ -611,7 +611,7 @@ export class TAC_binary_int extends TAC {
         return this.operand_reg === regnum;
     }
     replReadReg(regnum: number, newregnum: number): this {
-        if (this.operand_reg !== regnum) throw new Error('no read from reg: ' + regnum);
+        if (this.operand_reg !== regnum) throw new Error("no read from reg: " + regnum);
         else this.operand_reg = newregnum;
         return this;
     }
@@ -620,7 +620,7 @@ export class TAC_binary_int extends TAC {
     }
     replWriteReg(regnum: number, newregnum: number): this {
         if (this.result_reg === regnum) this.result_reg = newregnum;
-        else throw new Error('no write into reg: ' + regnum);
+        else throw new Error("no write into reg: " + regnum);
         return this;
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
@@ -630,20 +630,20 @@ export class TAC_binary_int extends TAC {
 export class TAC_unary extends TAC {
     constructor(public op: string, public operand_reg: number, public result_reg: number) { super(); }
     toString(): string {
-        return [reg2str(this.result_reg), '=', this.op, reg2str(this.operand_reg)].join(' ');
+        return [reg2str(this.result_reg), "=", this.op, reg2str(this.operand_reg)].join(" ");
     }
     inferTmpRegValue(tmpreginfers: Array<i.TmpRegValueInference>): { regnum: number, reginfo: i.TmpRegValueInference } {
         let retinfo = new i.TmpRegValueInference(), oinfo = tmpreginfers[this.operand_reg];
 
         if (oinfo.type === i.TmpRegValueInference.TYPE_NEVER)
-            throw new Error('defensive code, unclear behavior');
+            throw new Error("defensive code, unclear behavior");
         else if (oinfo.type === i.TmpRegValueInference.TYPE_ANY)
             retinfo.type = i.TmpRegValueInference.TYPE_ANY;
         else if (oinfo.type === i.TmpRegValueInference.TYPE_CONST) {
             retinfo.type = i.TmpRegValueInference.TYPE_CONST;
             retinfo.cons = unary_op(this.op, oinfo.cons);
         }
-        else if (oinfo.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG && this.op === '-') {
+        else if (oinfo.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG && this.op === "-") {
             retinfo.type = i.TmpRegValueInference.TYPE_CONST_TIMES_REG;
             retinfo.cons = -oinfo.cons;
             retinfo.regnum = oinfo.regnum;
@@ -657,8 +657,8 @@ export class TAC_unary extends TAC {
         if (oinfo.type === i.TmpRegValueInference.TYPE_CONST) {
             return new TAC_loadint(unary_op(this.op, oinfo.cons), this.result_reg).simplify(tmpreginfers);
         }
-        else if (oinfo.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG && this.op === '-') {
-            return new TAC_binary_int('*', oinfo.regnum, -oinfo.cons, this.result_reg);
+        else if (oinfo.type === i.TmpRegValueInference.TYPE_CONST_TIMES_REG && this.op === "-") {
+            return new TAC_binary_int("*", oinfo.regnum, -oinfo.cons, this.result_reg);
         }
         else return this;
     }
@@ -672,7 +672,7 @@ export class TAC_unary extends TAC {
         return this.operand_reg === regnum;
     }
     replReadReg(regnum: number, newregnum: number): this {
-        if (this.operand_reg !== regnum) throw new Error('no read from reg: ' + regnum);
+        if (this.operand_reg !== regnum) throw new Error("no read from reg: " + regnum);
         else this.operand_reg = newregnum;
         return this;
     }
@@ -681,7 +681,7 @@ export class TAC_unary extends TAC {
     }
     replWriteReg(regnum: number, newregnum: number): this {
         if (this.result_reg === regnum) this.result_reg = newregnum;
-        else throw new Error('no write into reg: ' + regnum);
+        else throw new Error("no write into reg: " + regnum);
         return this;
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
@@ -691,7 +691,7 @@ export class TAC_unary extends TAC {
 export class TAC_branch extends TAC {
     constructor(public label: util.CodeLabel) { super(); }
     toString(): string {
-        return ['branch', this.label].join(' ');
+        return ["branch", this.label].join(" ");
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
         return [new m.MIPS_b(this.label.toString())];
@@ -701,7 +701,7 @@ export class TAC_branch extends TAC {
 export class TAC_btrue extends TAC_branch {
     constructor(label: util.CodeLabel, public reg: number) { super(label); }
     toString(): string {
-        return ['branch_true', reg2str(this.reg), this.label].join(' ');
+        return ["branch_true", reg2str(this.reg), this.label].join(" ");
     }
     simplify(tmpreginfers: Array<i.TmpRegValueInference>): TAC {
         let oinfo = tmpreginfers[this.reg];
@@ -718,7 +718,7 @@ export class TAC_btrue extends TAC_branch {
         return this.reg === regnum;
     }
     replReadReg(regnum: number, newregnum: number): this {
-        if (this.reg !== regnum) throw new Error('no read from reg: ' + regnum);
+        if (this.reg !== regnum) throw new Error("no read from reg: " + regnum);
         else this.reg = newregnum;
         return this;
     }
@@ -730,7 +730,7 @@ export class TAC_btrue extends TAC_branch {
 export class TAC_bfalse extends TAC_branch {
     constructor(label: util.CodeLabel, public reg: number) { super(label); }
     toString(): string {
-        return ['branch_false', reg2str(this.reg), this.label].join(' ');
+        return ["branch_false", reg2str(this.reg), this.label].join(" ");
     }
     simplify(tmpreginfers: Array<i.TmpRegValueInference>): TAC {
         let oinfo = tmpreginfers[this.reg];
@@ -747,7 +747,7 @@ export class TAC_bfalse extends TAC_branch {
         return this.reg === regnum;
     }
     replReadReg(regnum: number, newregnum: number): this {
-        if (this.reg !== regnum) throw new Error('no read from reg: ' + regnum);
+        if (this.reg !== regnum) throw new Error("no read from reg: " + regnum);
         else this.reg = newregnum;
         return this;
     }
@@ -758,7 +758,7 @@ export class TAC_bfalse extends TAC_branch {
 export class TAC_lw extends TAC {
     constructor(public store_reg: number, public offset: number, public result_reg: number) { super(); }
     toString(): string {
-        return [reg2str(this.result_reg), '=', 'word', this.offset + '(' + reg2str(this.store_reg) + ')'].join(' ');
+        return [reg2str(this.result_reg), "=", "word", this.offset + "(" + reg2str(this.store_reg) + ")"].join(" ");
     }
     simplify(tmpreginfers: Array<i.TmpRegValueInference>): TAC {
         let oinfo = tmpreginfers[this.store_reg];
@@ -780,7 +780,7 @@ export class TAC_lw extends TAC {
         return this.store_reg === regnum;
     }
     replReadReg(regnum: number, newregnum: number): this {
-        if (this.store_reg !== regnum) throw new Error('no read from reg: ' + regnum);
+        if (this.store_reg !== regnum) throw new Error("no read from reg: " + regnum);
         else this.store_reg = newregnum;
         return this;
     }
@@ -789,7 +789,7 @@ export class TAC_lw extends TAC {
     }
     replWriteReg(regnum: number, newregnum: number): this {
         if (this.result_reg === regnum) this.result_reg = newregnum;
-        else throw new Error('no write into reg: ' + regnum);
+        else throw new Error("no write into reg: " + regnum);
         return this;
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
@@ -799,7 +799,7 @@ export class TAC_lw extends TAC {
 export class TAC_lb extends TAC {
     constructor(public store_reg: number, public offset: number, public result_reg: number) { super(); }
     toString(): string {
-        return [reg2str(this.result_reg), '=', 'byte', this.offset + '(' + reg2str(this.store_reg) + ')'].join(' ');
+        return [reg2str(this.result_reg), "=", "byte", this.offset + "(" + reg2str(this.store_reg) + ")"].join(" ");
     }
     simplify(tmpreginfers: Array<i.TmpRegValueInference>): TAC {
         let oinfo = tmpreginfers[this.store_reg];
@@ -821,7 +821,7 @@ export class TAC_lb extends TAC {
         return this.store_reg === regnum;
     }
     replReadReg(regnum: number, newregnum: number): this {
-        if (this.store_reg !== regnum) throw new Error('no read from reg: ' + regnum);
+        if (this.store_reg !== regnum) throw new Error("no read from reg: " + regnum);
         else this.store_reg = newregnum;
         return this;
     }
@@ -830,7 +830,7 @@ export class TAC_lb extends TAC {
     }
     replWriteReg(regnum: number, newregnum: number): this {
         if (this.result_reg === regnum) this.result_reg = newregnum;
-        else throw new Error('no write into reg: ' + regnum);
+        else throw new Error("no write into reg: " + regnum);
         return this;
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
@@ -840,7 +840,7 @@ export class TAC_lb extends TAC {
 export class TAC_sw extends TAC {
     constructor(public store_reg: number, public offset: number, public from_reg: number) { super(); }
     toString(): string {
-        return ['word', this.offset + '(' + reg2str(this.store_reg) + ')', '=', reg2str(this.from_reg)].join(' ');
+        return ["word", this.offset + "(" + reg2str(this.store_reg) + ")", "=", reg2str(this.from_reg)].join(" ");
     }
     simplify(tmpreginfers: Array<i.TmpRegValueInference>): TAC {
         let oinfo1 = tmpreginfers[this.store_reg], oinfo2 = tmpreginfers[this.from_reg];
@@ -857,7 +857,7 @@ export class TAC_sw extends TAC {
         return this.store_reg === regnum || this.from_reg === regnum;
     }
     replReadReg(regnum: number, newregnum: number): this {
-        if (!this.readReg(regnum)) throw new Error('no read from reg: ' + regnum);
+        if (!this.readReg(regnum)) throw new Error("no read from reg: " + regnum);
         if (this.store_reg === regnum) this.store_reg = newregnum;
         if (this.from_reg === regnum) this.from_reg = newregnum;
         return this;
@@ -869,7 +869,7 @@ export class TAC_sw extends TAC {
 export class TAC_sb extends TAC {
     constructor(public store_reg: number, public offset: number, public from_reg: number) { super(); }
     toString(): string {
-        return ['byte', this.offset + '(' + reg2str(this.store_reg) + ')', '=', reg2str(this.from_reg)].join(' ');
+        return ["byte", this.offset + "(" + reg2str(this.store_reg) + ")", "=", reg2str(this.from_reg)].join(" ");
     }
     simplify(tmpreginfers: Array<i.TmpRegValueInference>): TAC {
         let oinfo1 = tmpreginfers[this.store_reg], oinfo2 = tmpreginfers[this.from_reg];
@@ -886,7 +886,7 @@ export class TAC_sb extends TAC {
         return this.store_reg === regnum || this.from_reg === regnum;
     }
     replReadReg(regnum: number, newregnum: number): this {
-        if (!this.readReg(regnum)) throw new Error('no read from reg: ' + regnum);
+        if (!this.readReg(regnum)) throw new Error("no read from reg: " + regnum);
         if (this.store_reg === regnum) this.store_reg = newregnum;
         if (this.from_reg === regnum) this.from_reg = newregnum;
         return this;
@@ -898,7 +898,7 @@ export class TAC_sb extends TAC {
 export class TAC_la extends TAC {
     constructor(public to_reg: number, public label: string) { super(); }
     toString(): string {
-        return [reg2str(this.to_reg), '=', this.label].join(' ');
+        return [reg2str(this.to_reg), "=", this.label].join(" ");
     }
     inferTmpRegValue(tmpreginfers: Array<i.TmpRegValueInference>): { regnum: number, reginfo: i.TmpRegValueInference } {
         let retinfo = new i.TmpRegValueInference();
@@ -916,7 +916,7 @@ export class TAC_la extends TAC {
     }
     replWriteReg(regnum: number, newregnum: number): this {
         if (this.to_reg === regnum) this.to_reg = newregnum;
-        else throw new Error('no write into reg: ' + regnum);
+        else throw new Error("no write into reg: " + regnum);
         return this;
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
@@ -928,33 +928,33 @@ export class TAC_la extends TAC {
 
 function bi_op(op: string, num1: number, num2: number): number {
     switch (op) {
-        case '||': return num1 === 0 && num2 === 0 ? 0 : 1;
-        case '&&': return num1 === 0 || num2 === 0 ? 0 : 1;
-        case '==': return num1 === num2 ? 1 : 0;
-        case '!=': return num1 !== num2 ? 1 : 0;
-        case '>=': return num1 >= num2 ? 1 : 0;
-        case '<=': return num1 <= num2 ? 1 : 0;
-        case '>': return num1 > num2 ? 1 : 0;
-        case '<': return num1 < num2 ? 1 : 0;
-        case '&': return num1 & num2;
-        case '|': return num1 | num2;
-        case '^': return num1 ^ num2;
-        case '+': return num1 + num2;
-        case '-': return num1 - num2;
-        case '*': return num1 * num2;
-        case '/': return Math.floor(num1 / num2);
-        case '>>': return num1 >> num2;
-        case '>>>': return num1 >>> num2;
-        case '<<': return num1 << num2;
-        default: throw new Error('unknown op: ' + op);
+        case "||": return num1 === 0 && num2 === 0 ? 0 : 1;
+        case "&&": return num1 === 0 || num2 === 0 ? 0 : 1;
+        case "==": return num1 === num2 ? 1 : 0;
+        case "!=": return num1 !== num2 ? 1 : 0;
+        case ">=": return num1 >= num2 ? 1 : 0;
+        case "<=": return num1 <= num2 ? 1 : 0;
+        case ">": return num1 > num2 ? 1 : 0;
+        case "<": return num1 < num2 ? 1 : 0;
+        case "&": return num1 & num2;
+        case "|": return num1 | num2;
+        case "^": return num1 ^ num2;
+        case "+": return num1 + num2;
+        case "-": return num1 - num2;
+        case "*": return num1 * num2;
+        case "/": return Math.floor(num1 / num2);
+        case ">>": return num1 >> num2;
+        case ">>>": return num1 >>> num2;
+        case "<<": return num1 << num2;
+        default: throw new Error("unknown op: " + op);
     }
 }
 function unary_op(op: string, num: number): number {
     switch (op) {
-        case '~': return ~num;
-        case '!': return num === 0 ? 1 : 0;
-        case '-': return -num;
-        default: throw new Error('unknown op: ' + op);
+        case "~": return ~num;
+        case "!": return num === 0 ? 1 : 0;
+        case "-": return -num;
+        default: throw new Error("unknown op: " + op);
     }
 }
 //deadignore: true for a=b+c
@@ -967,32 +967,32 @@ function tmpRegLiveness_assign(tmpregbottomlive: Set<number>, rhs_reg: Array<num
 }
 function binaryMIPS(op: string, desreg: m.MIPSRegister, srcreg1: m.MIPSRegister, srcreg2: m.MIPSRegister | number): m.MIPSInstruction {
     switch (op) {
-        case '|':
-        case '||': return new m.MIPS_or(desreg, srcreg1, srcreg2);
-        case '&':
-        case '&&': return new m.MIPS_and(desreg, srcreg1, srcreg2);
-        case '==': return new m.MIPS_seq(desreg, srcreg1, srcreg2);
-        case '!=': return new m.MIPS_sne(desreg, srcreg1, srcreg2);
-        case '>=': return new m.MIPS_sge(desreg, srcreg1, srcreg2);
-        case '<=': return new m.MIPS_sle(desreg, srcreg1, srcreg2);
-        case '>': return new m.MIPS_sgt(desreg, srcreg1, srcreg2);
-        case '<': return new m.MIPS_slt(desreg, srcreg1, srcreg2);
-        case '^': return new m.MIPS_xor(desreg, srcreg1, srcreg2);
-        case '+': return new m.MIPS_add(desreg, srcreg1, srcreg2);
-        case '-': return new m.MIPS_sub(desreg, srcreg1, srcreg2);
-        case '/': return new m.MIPS_div(desreg, srcreg1, srcreg2);
-        case '*': return new m.MIPS_mulo(desreg, srcreg1, srcreg2);
-        case '>>': return new m.MIPS_sra(desreg, srcreg1, srcreg2);
-        case '>>>': return new m.MIPS_srl(desreg, srcreg1, srcreg2);
-        case '<<': return new m.MIPS_sll(desreg, srcreg1, srcreg2);
-        default: throw new Error('unknown op: ' + op);
+        case "|":
+        case "||": return new m.MIPS_or(desreg, srcreg1, srcreg2);
+        case "&":
+        case "&&": return new m.MIPS_and(desreg, srcreg1, srcreg2);
+        case "==": return new m.MIPS_seq(desreg, srcreg1, srcreg2);
+        case "!=": return new m.MIPS_sne(desreg, srcreg1, srcreg2);
+        case ">=": return new m.MIPS_sge(desreg, srcreg1, srcreg2);
+        case "<=": return new m.MIPS_sle(desreg, srcreg1, srcreg2);
+        case ">": return new m.MIPS_sgt(desreg, srcreg1, srcreg2);
+        case "<": return new m.MIPS_slt(desreg, srcreg1, srcreg2);
+        case "^": return new m.MIPS_xor(desreg, srcreg1, srcreg2);
+        case "+": return new m.MIPS_add(desreg, srcreg1, srcreg2);
+        case "-": return new m.MIPS_sub(desreg, srcreg1, srcreg2);
+        case "/": return new m.MIPS_div(desreg, srcreg1, srcreg2);
+        case "*": return new m.MIPS_mulo(desreg, srcreg1, srcreg2);
+        case ">>": return new m.MIPS_sra(desreg, srcreg1, srcreg2);
+        case ">>>": return new m.MIPS_srl(desreg, srcreg1, srcreg2);
+        case "<<": return new m.MIPS_sll(desreg, srcreg1, srcreg2);
+        default: throw new Error("unknown op: " + op);
     }
 }
 function unaryMIPS(op: string, desreg: m.MIPSRegister, srcreg: m.MIPSRegister): m.MIPSInstruction {
     switch (op) {
-        case '~': return new m.MIPS_not(desreg, srcreg);
-        case '!': return new m.MIPS_seq(desreg, srcreg, m.REGS.zero);
-        case '-': return new m.MIPS_mulo(desreg, srcreg, -1);
-        default: throw new Error('unknown op: ' + op);
+        case "~": return new m.MIPS_not(desreg, srcreg);
+        case "!": return new m.MIPS_seq(desreg, srcreg, m.REGS.zero);
+        case "-": return new m.MIPS_mulo(desreg, srcreg, -1);
+        default: throw new Error("unknown op: " + op);
     }
 }

@@ -1,24 +1,23 @@
 
-import lex from './lex';
-import pt2ast from './pt2ast';
-import parser from './parser';
-import * as c from '../../compile';
-import * as fs from 'fs';
-import semanticAnalysis from './semantic';
-import * as a from './ast';
-import * as utility from '../../utility';
-import * as ic from './intermediatecode';
-import * as m from './mipscode';
-import * as util from './util';
+import lex from "./lex";
+import { astConverter, parser, prodSet } from "./syntax";
+import * as c from "../../compile";
+import * as fs from "fs";
+import semanticAnalysis from "./semantic";
+import * as a from "./ast";
+import * as utility from "../../utility";
+import * as ic from "./intermediatecode";
+import * as m from "./mipscode";
+import * as util from "./util";
 
 
 function compile(input: string, optimizedicpath: string, icregallocpath: string, mipspath: string): Promise<c.CompileReturn> {
     return Promise.resolve().then(() => {
-        let lexret = lex(input, parser.prodset);
+        let lexret = lex(input, prodSet);
         if (!lexret.accept) return new c.CompileReturn(false, lexret.errmsg, lexret.errcode);
         let parseret = parser.parse(lexret.tokens);
         if (!parseret.accept) return new c.CompileReturn(false, parseret.errmsg, parseret.errcode);
-        let ast = <a.ASTNode_globaldefs>pt2ast.toAST(parseret.root);
+        let ast = <a.ASTNode_globaldefs>astConverter.toAST(parseret.root);
         let classlookup = new util.ClassLookup();
         let fnlookup = new util.FunctionLookup();
         let tret = semanticAnalysis(ast, classlookup, fnlookup);
@@ -35,9 +34,9 @@ function compile(input: string, optimizedicpath: string, icregallocpath: string,
         //     .then(() => utility.file.writeFile(optimizedicpath, code.optimzie().toString()))
         //     .then(() => utility.file.writeFile(mipspath, code.toMIPS(classlookup).toString()))
         //     .then(() => new c.CompileReturn(true));
-    }).catch((err: Error) => new c.CompileReturn(false, 'failed to write intermediate code into given file: \n' + err.stack, 0));
+    }).catch((err: Error) => new c.CompileReturn(false, "failed to write intermediate code into given file: \n" + err.stack, 0));
 }
 
 export function compileFromFile(srcfilepath: string): Promise<c.CompileReturn> {
-    return utility.file.readFile(srcfilepath).then((data: Buffer) => compile(data.toString('utf8'), srcfilepath + '.optimized.ic', srcfilepath + '.optimized.regallocated.ic', srcfilepath + '.asm'));
+    return utility.file.readFile(srcfilepath).then((data: Buffer) => compile(data.toString("utf8"), srcfilepath + ".optimized.ic", srcfilepath + ".optimized.regallocated.ic", srcfilepath + ".asm"));
 }
