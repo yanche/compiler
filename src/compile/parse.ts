@@ -1,6 +1,8 @@
 
 import * as prod from "../productions";
-import * as l from "./lex";
+import { Area, Token, noArea } from "./lex";
+import { ProdSet } from '../productions';
+import { ParseReturn } from './ret';
 
 export abstract class ParseTreeNode {
     protected _symnum: number;
@@ -10,7 +12,7 @@ export abstract class ParseTreeNode {
 
     // get symstr(): string { return this._prodset.getSymInStr(this._symnum); }
 
-    abstract area(): l.Area;
+    abstract area(): Area;
 
     constructor(sym: number) {
         this._symnum = sym;
@@ -20,7 +22,7 @@ export abstract class ParseTreeNode {
 
 export class ParseTreeMidNode extends ParseTreeNode {
     private _children: Array<ParseTreeNode>;
-    private _area: l.Area;
+    private _area: Area;
     public prodId: number;
 
     constructor(symnum: number, prodid?: number, children?: Array<ParseTreeNode>) {
@@ -38,36 +40,50 @@ export class ParseTreeMidNode extends ParseTreeNode {
         this._children = c;
     }
 
-    area(): l.Area {
+    area(): Area {
         if (this._area) return this._area;
         else {
-            let area: l.Area = null;
-            if (this._children.length === 0) area = l.noArea;
-            else area = new l.Area(this._children[0].area().start, this._children[this._children.length - 1].area().end);
+            let area: Area = null;
+            if (this._children.length === 0) area = noArea;
+            else area = new Area(this._children[0].area().start, this._children[this._children.length - 1].area().end);
             return this._area = area;
         }
     }
 }
 
 export class ParseTreeTermNode extends ParseTreeNode {
-    private _token: l.Token;
+    private _token: Token;
 
-    constructor(symnum: number, token?: l.Token) {
+    constructor(symnum: number, token?: Token) {
         super(symnum);
         if (token)
             this.token = token;
     }
 
-    get token(): l.Token {
+    get token(): Token {
         return this._token;
     }
 
-    set token(t: l.Token) {
+    set token(t: Token) {
         if (this._symnum !== t.symnum) throw new Error(`symbol does not match: ${this._symnum}, ${t.symnum}`);
         this._token = t;
     }
 
-    area(): l.Area {
+    area(): Area {
         return this._token.area;
     }
+}
+
+export abstract class Parser {
+    protected _prodset: ProdSet;
+
+    constructor(prodset: ProdSet) {
+        this._prodset = prodset;
+    }
+
+    abstract parse(tokens: Array<Token>): ParseReturn;
+
+    abstract isValid(): boolean;
+
+    // get prodset(): ProdSet { return this._prodset; }
 }

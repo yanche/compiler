@@ -3,12 +3,12 @@ import * as assert from "assert";
 import { createLALR1Parser } from "../index";
 import { validate } from "./util";
 import { Token, noArea } from "../../../compile";
-import { createProdSet } from "../../../productions";
+import { createProdSetWithSplitter } from "../../../productions";
 
 
 describe("LALR(1) parse", function () {
     it("invalid LALR(1), valid LR(1)", function () {
-        let lalr1parser = createLALR1Parser(createProdSet([
+        let lalr1parser = createLALR1Parser(createProdSetWithSplitter([
             "S -> a E c | a F d | b F c | b E d",
             "E -> e",
             "F -> e"
@@ -18,7 +18,7 @@ describe("LALR(1) parse", function () {
     });
 
     it("valid LALR(1), valid SLR(1)", function () {
-        let lalr1parser = createLALR1Parser(createProdSet([
+        let lalr1parser = createLALR1Parser(createProdSetWithSplitter([
             "E -> T + E | T",
             "T -> int | int * T | ( E )"
         ]));
@@ -27,7 +27,7 @@ describe("LALR(1) parse", function () {
     });
 
     it("valid LALR(1), invalid SLR(1)", function () {
-        let lalr1parser = createLALR1Parser(createProdSet([
+        let lalr1parser = createLALR1Parser(createProdSetWithSplitter([
             "S -> A a | b A c | d c | b d a",
             "A -> d"
         ]));
@@ -37,7 +37,7 @@ describe("LALR(1) parse", function () {
     });
 
     it("simple 1", function () {
-        let prodset = createProdSet([
+        let prodset = createProdSetWithSplitter([
             "E -> T + E | T",
             "T -> int | int * T | ( E )"
         ])

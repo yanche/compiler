@@ -1,7 +1,7 @@
 
 import * as assert from "assert";
 import * as utility from "../../utility";
-import { createProdSet } from "../index";
+import { createProdSetWithSplitter } from "../index";
 import * as prod from "../production";
 
 function validate(pset: prod.ProdSet, expected: Array<{ lhs: string, rhsArr: Array<Array<{ str: string, terminal: boolean }>> }>) {
@@ -25,7 +25,7 @@ function validate(pset: prod.ProdSet, expected: Array<{ lhs: string, rhsArr: Arr
 
 describe("production set left factoring", function () {
     it("simple 1", function () {
-        let pset = createProdSet([
+        let pset = createProdSetWithSplitter([
             "E -> T + E | T",
             "T -> int | int * T | ( E )"
         ]);
@@ -78,14 +78,14 @@ describe("production set left factoring", function () {
     });
 
     it("simple 2: no need left factoring, return self", function () {
-        let pset = createProdSet([
+        let pset = createProdSetWithSplitter([
             "E -> int + int | "
         ]);
         assert.equal(pset.leftFactoredProdSet(), pset);
     });
 
     it("simple 3: 2 left factor for one non-terminal", function () {
-        let pset = createProdSet([
+        let pset = createProdSetWithSplitter([
             "E -> T + E | T | Q | Q * m | w",
             "T -> int | int * T | ( E )",
             "Q -> u"
@@ -172,7 +172,7 @@ describe("production set left factoring", function () {
 
 
     it("simple 4: 2 layer of left factoring", function () {
-        let pset = createProdSet([
+        let pset = createProdSetWithSplitter([
             "E -> int + q | int + m | int +"
         ]);
         validate(pset.leftFactoredProdSet(), [
@@ -202,7 +202,7 @@ describe("production set left factoring", function () {
 
 
     it("simple 5: 2 layer of left factoring-2", function () {
-        let pset = createProdSet([
+        let pset = createProdSetWithSplitter([
             "E -> int + q | int + m | int * w"
         ]);
         validate(pset.leftFactoredProdSet(), [
@@ -242,7 +242,7 @@ describe("production set left factoring", function () {
 
 
     it("simple 6: 2 layer of left factoring-3", function () {
-        let pset = createProdSet([
+        let pset = createProdSetWithSplitter([
             "E -> int + q | int + m | int"
         ]);
         validate(pset.leftFactoredProdSet(), [

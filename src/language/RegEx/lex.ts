@@ -1,6 +1,6 @@
 
 import { ProdSet } from "../../productions";
-import { Token, Area, LexReturn, Posi } from "../../compile";
+import { Token, Area, LexReturn, Posi, noArea } from "../../compile";
 
 // | * + ( ) . char [ ] -
 let chnum_a = "a".charCodeAt(0);
@@ -43,5 +43,6 @@ export default function lex(input: string, prodset: ProdSet): LexReturn {
         }
         ++i;
     }
+    tokens.push(new Token("", prodset.getSymNum("$"), noArea));
     return new LexReturn(true, tokens);
 }

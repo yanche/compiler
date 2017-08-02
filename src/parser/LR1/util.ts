@@ -1,8 +1,7 @@
 
 import { ProdSet, ProductionRef } from "../../productions";
 import { DFA } from "../../DFA";
-import Parser from "../parser";
-import { ParseReturn, ParseTreeMidNode, ParseTreeTermNode, ParseTreeNode, Token } from "../../compile";
+import { ParseReturn, ParseTreeMidNode, ParseTreeTermNode, ParseTreeNode, Token, Parser } from "../../compile";
 import * as utility from "../../utility";
 import { createNFA } from '../../NFA';
 import * as _ from 'lodash';

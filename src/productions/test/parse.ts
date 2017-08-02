@@ -1,7 +1,7 @@
 
 import * as assert from "assert";
 import * as utility from "../../utility";
-import { createProdSet } from "../index";
+import { createProdSetWithSplitter } from "../index";
 import { ProdSet } from "../production";
 
 
@@ -25,7 +25,7 @@ function validate(pset: ProdSet, expected: Array<{ lhs: string, rhsArr: Array<Ar
 
 describe("parse string into structured production set", function () {
     it("simple 1", function () {
-        let pset = createProdSet([
+        let pset = createProdSetWithSplitter([
             "E -> T + E | T",
             "T -> int | int * T | ( E )"
         ]);
@@ -65,7 +65,7 @@ describe("parse string into structured production set", function () {
     });
 
     it("simple 2", function () {
-        let pset = createProdSet([
+        let pset = createProdSetWithSplitter([
             "E -> int + int | "
         ]);
         assert.equal(ProdSet.preservedStartNont, pset.getSymInStr(pset.getStartNonTerminal()));
@@ -86,7 +86,7 @@ describe("parse string into structured production set", function () {
 
     it("not all non-terminal appears at LHS", function () {
         assert.throws(function () {
-            return createProdSet([
+            return createProdSetWithSplitter([
                 "E -> T | int"
             ]);
         }, Error);

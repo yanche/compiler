@@ -1,8 +1,7 @@
 
 import * as utility from "../../utility";
 import { ProdSet } from "../../productions";
-import { ParseTreeNode, Token, ParseTreeMidNode, ParseTreeTermNode, ParseReturn, noArea } from "../../compile";
-import Parser from "../parser";
+import { ParseTreeNode, Token, ParseTreeMidNode, ParseTreeTermNode, ParseReturn, noArea, Parser } from "../../compile";
 
 export default class LL1Parser extends Parser {
     private _table: Map<number, Map<number, Array<number>>>;

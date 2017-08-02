@@ -2,12 +2,12 @@
 import * as assert from "assert";
 import { createLL1Parser } from "../index";
 import { Token, noArea } from "../../../compile";
-import { createProdSet } from "../../../productions";
+import { createProdSetWithSplitter } from "../../../productions";
 
 
 describe("LL(1) parse", function () {
     it("simple 1", function () {
-        let prodset = createProdSet([
+        let prodset = createProdSetWithSplitter([
             "E -> T X",
             "X -> + E | ",
             "T -> int Y | ( E )",

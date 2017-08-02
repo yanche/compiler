@@ -1,7 +1,7 @@
 
 import * as assert from "assert";
 import * as utility from "../../utility";
-import { createProdSet } from "../index";
+import { createProdSetWithSplitter } from "../index";
 import { ProdSet } from "../production";
 
 function validate(pset: ProdSet, symarr: string[]) {
@@ -11,7 +11,7 @@ function validate(pset: ProdSet, symarr: string[]) {
 
 describe("non terminal able to produce epsilon", function () {
     it("simple 1", function () {
-        let pset = createProdSet([
+        let pset = createProdSetWithSplitter([
             "E -> T + E | T",
             "T -> int | int * T | ( E )"
         ]);
@@ -19,14 +19,14 @@ describe("non terminal able to produce epsilon", function () {
     });
 
     it("simple 2", function () {
-        let pset = createProdSet([
+        let pset = createProdSetWithSplitter([
             "E -> "
         ]);
         validate(pset, ["E"]);
     });
 
     it("simple 3", function () {
-        let pset = createProdSet([
+        let pset = createProdSetWithSplitter([
             "T -> E | int",
             "E -> "
         ]);
@@ -34,7 +34,7 @@ describe("non terminal able to produce epsilon", function () {
     });
 
     it("simple 4", function () {
-        let pset = createProdSet([
+        let pset = createProdSetWithSplitter([
             "A -> T",
             "T -> E X | int",
             "X -> q | ",
@@ -44,7 +44,7 @@ describe("non terminal able to produce epsilon", function () {
     });
 
     it("simple 5", function () {
-        let pset = createProdSet([
+        let pset = createProdSetWithSplitter([
             "TT -> EE | inXt",
             "EE -> "
         ]);

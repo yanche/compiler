@@ -1,7 +1,7 @@
 
 import * as assert from "assert";
 import * as utility from "../../utility";
-import {createProdSet, ProdSet} from "../index";
+import {createProdSetWithSplitter, ProdSet} from "../index";
 
 function validate(prodset: ProdSet, expected: Array<{ symbol: string, follow: Array<string> }>) {
     let startsymnum = prodset.getStartNonTerminal();
@@ -15,7 +15,7 @@ function validate(prodset: ProdSet, expected: Array<{ symbol: string, follow: Ar
 
 describe("follow sets", function () {
     it("simple 1", function () {
-        let pset = createProdSet([
+        let pset = createProdSetWithSplitter([
             "E -> T + E | T",
             "T -> int | int * T | ( E )"
         ]);
@@ -31,7 +31,7 @@ describe("follow sets", function () {
     });
 
     it("simple 2", function () {
-        let pset = createProdSet([
+        let pset = createProdSetWithSplitter([
             "E -> "
         ]);
         validate(pset, [
@@ -40,7 +40,7 @@ describe("follow sets", function () {
     });
 
     it("simple 3", function () {
-        let pset = createProdSet([
+        let pset = createProdSetWithSplitter([
             "T -> E | int",
             "E -> "
         ]);
@@ -52,7 +52,7 @@ describe("follow sets", function () {
     });
 
     it("simple 4", function () {
-        let pset = createProdSet([
+        let pset = createProdSetWithSplitter([
             "S -> A a | b A c | d c | b d a",
             "A -> d"
         ]);
@@ -67,7 +67,7 @@ describe("follow sets", function () {
     });
 
     it("simple 5", function () {
-        let pset = createProdSet([
+        let pset = createProdSetWithSplitter([
             "TT -> EE | inXt",
             "EE -> "
         ]);

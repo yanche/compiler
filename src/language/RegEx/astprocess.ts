@@ -1,9 +1,9 @@
 
 import { automata, IdGen } from "../../utility";
+import { ASTNode } from "../../compile";
 import { flatten } from "lodash";
 import { createNFA, NFA } from "../../NFA";
 
-export abstract class ASTNode { }
 export class ASTNode_OR extends ASTNode {
     constructor(public children: Array<ASTNode>) { super(); }
 }
@@ -27,7 +27,7 @@ export class ASTNode_Single extends ASTNode {
 }
 
 function process_OR(node: ASTNode_OR, idgen: IdGen, start: number, terminal: number): Array<automata.Transition> {
-    return _.flatten(node.children.map(c => processAST(c, idgen, start, terminal)));
+    return flatten(node.children.map(c => processAST(c, idgen, start, terminal)));
 }
 function process_CONCAT(node: ASTNode_Concat, idgen: IdGen, start: number, terminal: number): Array<automata.Transition> {
     let transarr = new Array<Array<automata.Transition>>(), len = node.children.length, children = node.children, prevend = start;
@@ -36,7 +36,7 @@ function process_CONCAT(node: ASTNode_Concat, idgen: IdGen, start: number, termi
         transarr.push(processAST(children[i], idgen, prevend, t));
         prevend = t;
     }
-    return _.flatten(transarr);
+    return flatten(transarr);
 }
 function process_RStar(node: ASTNode_RStar, idgen: IdGen, start: number, terminal: number): Array<automata.Transition> {
     return processAST(node.child, idgen, start, terminal).concat(new automata.Transition(start, terminal, ""), new automata.Transition(terminal, start, ""));
