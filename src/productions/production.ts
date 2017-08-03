@@ -1,6 +1,5 @@
 
-import * as utility from "../utility";
-import * as _ from "lodash";
+import { closure, Edge, IdGen, range, BidirectMap } from "../utility";
 
 //terminal symbol or non-terminal symbol, used in productions
 export class Symbol {
@@ -60,7 +59,7 @@ export class ProdSet {
     // private _prodliteralmap: Map<string, number>;
     private _nontprodmap: Map<number, Array<number>>; //integer of non-terminal -> array of id of productions by it as lhs
     private _numprodmap: Array<ProductionRef>;  //production id -> production
-    private _symnummap: utility.BidirectMap<string>; //integer of symbol <--> string of symbol
+    private _symnummap: BidirectMap<string>; //integer of symbol <--> string of symbol
     private _termict: number;       //count of terminal symbols
     private _totalsymct: number;    //count of total symbols
     private _nullableNonTerminals: Set<number>; //set of integer of non-terminal symbols which could produce epsilon
@@ -72,9 +71,9 @@ export class ProdSet {
     static preservedStartNont: string = "D__START";
 
     constructor(prods: Iterable<Production>) {
-        let termict = 0, nonterminals = new Set<string>(), symnummap = new utility.BidirectMap<string>();
+        let termict = 0, nonterminals = new Set<string>(), symnummap = new BidirectMap<string>();
         let numprodmap = new Array<ProductionRef>(), nontprodmap = new Map<number, Array<number>>(); //map from number of non-terminal to number its productions
-        let reachedges: Array<utility.Edge> = [], firstNonTSym: Symbol = null;
+        let reachedges: Array<Edge> = [], firstNonTSym: Symbol = null;
         //in the first scan loop, assign an integer to all symbols, terminals first then non-terminals
         //0 is the end-of-input symbol
         symnummap.getOrCreateNum("$");
@@ -95,7 +94,7 @@ export class ProdSet {
         }
         prodProcess(initProd);
         if (nontprodmap.size !== nonterminals.size) throw new Error("not all non-terminals appear at LHS");
-        if (utility.closure.calcClosureOfOneNode(reachedges, startnontnum).size !== nonterminals.size) throw new Error("some non-terminals are unreachable from start symbol");
+        if (closure.calcClosureOfOneNode(reachedges, startnontnum).size !== nonterminals.size) throw new Error("some non-terminals are unreachable from start symbol");
 
         this._startnontnum = startnontnum;
         this._prodcount = curprodid;
@@ -132,11 +131,11 @@ export class ProdSet {
 
     getStartNonTerminal(): number { return this._startnontnum; }
 
-    getNonTerminals(): Array<number> { return _.range(this._termict + 1, this._totalsymct + 1); }
+    getNonTerminals(): Array<number> { return range(this._termict + 1, this._totalsymct + 1); }
 
     // getNonTerminalsInStr(): Array<string> { return this.getNonTerminals().map(n => this.getSymInStr(n)); }
 
-    getTerminals(): Array<number> { return _.range(1, this._termict + 1); }
+    getTerminals(): Array<number> { return range(1, this._termict + 1); }
 
     // getTerminalsInStr(): Array<string> { return this.getTerminals().map(n => this.getSymInStr(n)); }
 
@@ -149,7 +148,7 @@ export class ProdSet {
     getProds(lsymnum: number): Array<number> { return this._nontprodmap.get(lsymnum); }
 
     //from 0 -> n-1, n is the size of productions
-    getProdIds(): Array<number> { return _.range(this._numprodmap.length); }
+    getProdIds(): Array<number> { return range(this._numprodmap.length); }
 
     getProdRef(prodnum: number): ProductionRef { return this._numprodmap[prodnum]; }
 
@@ -157,12 +156,12 @@ export class ProdSet {
 
     //getProdSize(): number { return this._numprodmap.length; }
 
-    //getAllProds(): Array<number> { return _.range(this.getProdSize()); }
+    //getAllProds(): Array<number> { return range(this.getProdSize()); }
 
     firstSet(): Array<Set<number>> {
         if (this._firstSet) return this._firstSet;
         let nullablenont = this.nullableNonTerminals(), retmap = new Array<Set<number>>(this._totalsymct + 1);
-        let edges: Array<utility.Edge> = [], nonterminals = this.getNonTerminals();
+        let edges: Array<Edge> = [], nonterminals = this.getNonTerminals();
         for (let nont of nonterminals) {
             retmap[nont] = new Set<number>();
             for (let prodid of this.getProds(nont)) {
@@ -182,14 +181,14 @@ export class ProdSet {
                 }
             }
         }
-        mergeClosureSet(nonterminals, utility.closure.calcClosure(edges), retmap);
+        mergeClosureSet(nonterminals, closure.calcClosure(edges), retmap);
         for (let t of this.getTerminals()) retmap[t] = new Set<number>().add(t);
         return this._firstSet = retmap;
     }
 
     followSet(): Array<Set<number>> {
         if (this._followSet) return this._followSet;
-        let retmap = new Array<Set<number>>(this._totalsymct + 1), firstSetMap = this.firstSet(), nullablenonterminals = this.nullableNonTerminals(), edges: Array<utility.Edge> = [];
+        let retmap = new Array<Set<number>>(this._totalsymct + 1), firstSetMap = this.firstSet(), nullablenonterminals = this.nullableNonTerminals(), edges: Array<Edge> = [];
         retmap[this._startnontnum] = new Set().add(0);
         for (let nont of this.getNonTerminals()) {
             if (retmap[nont] == null) retmap[nont] = new Set<number>();
@@ -212,7 +211,7 @@ export class ProdSet {
                 }
             }
         }
-        mergeClosureSet(_.range(1, this._totalsymct + 1), utility.closure.calcClosure(edges), retmap);
+        mergeClosureSet(range(1, this._totalsymct + 1), closure.calcClosure(edges), retmap);
         return this._followSet = retmap;
     }
 
@@ -259,7 +258,7 @@ export class ProdSet {
     }
 
     leftFactoredProdSet(): ProdSet {
-        let prods: Array<Production> = [], idgen = new utility.IdGen();
+        let prods: Array<Production> = [], idgen = new IdGen();
         for (let nont of this.getNonTerminals()) {
             // start non-terminal is added programmatically
             if (nont === this._startnontnum) continue;
@@ -269,7 +268,7 @@ export class ProdSet {
     }
 }
 
-function leftFactoring(lstr: string, rhsarr: Array<Array<Symbol>>, lfidx: number, prods: Array<Production>, idGen: utility.IdGen) {
+function leftFactoring(lstr: string, rhsarr: Array<Array<Symbol>>, lfidx: number, prods: Array<Production>, idGen: IdGen) {
     var lfmap = new Map<string, Array<Array<Symbol>>>(), gonull = false, lfset = new Set<string>();
     for (let rsymarr of rhsarr) {
         if (rsymarr.length === lfidx) gonull = true;
@@ -315,7 +314,7 @@ function addRangeToArrayOfSet<T>(map: Array<Set<T>>, key: number, item: Iterable
     for (let s of item) set.add(s);
 }
 
-function mergeClosureSet(symnums: Iterable<number>, closuremap: Map<number, utility.closure.Closure>, map: Array<Set<number>>) {
+function mergeClosureSet(symnums: Iterable<number>, closuremap: Map<number, closure.Closure>, map: Array<Set<number>>) {
     for (let symnum of symnums) {
         let closure = closuremap.get(symnum);
         if (!closure) continue;

@@ -4,7 +4,7 @@ import * as closure from "./closure";
 import * as automata from "./automata";
 import * as file from "./file";
 
-export {closure, automata, file};
+export { closure, automata, file };
 
 export function isNonNeg(num: number, int?: boolean): boolean {
     return num >= 0 && (!int || Math.ceil(num) === num);
@@ -14,7 +14,7 @@ export class BidirectMap<T> {
     private _nummap: Map<T, number>;
     private _tmap: Array<T>;
     private _idgen: IdGen;
-    
+
     constructor() {
         this._nummap = new Map<T, number>();
         this._tmap = new Array<T>();
@@ -84,3 +84,25 @@ export function arrayEquivalent<T1, T2>(arr1: Array<T1>, arr2: Array<T2>, compar
     }
     return true;
 };
+
+// [start, end), step is 1
+export function range(start: number, end?: number): Array<number> {
+    if (end === undefined) {
+        end = start;
+        start = 0;
+    }
+    let ct = Math.max(0, end - start);
+    let ret = new Array<number>(ct);
+    for (let i = 0; i < ct; ++i) {
+        ret[i] = start + i;
+    }
+    return ret;
+}
+
+export function flatten<T>(arr: Array<T | Array<T>>): Array<T> {
+    return Array.prototype.concat.apply([], arr);
+}
+
+export function startsWith(strbase: string, strpart: string): boolean {
+    return strbase.slice(0, strpart.length) === strpart;
+}

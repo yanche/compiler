@@ -1,10 +1,9 @@
 
 import { Area, Token, ASTNode as ASTNodeBase } from "../../compile";
 import * as util from "./util";
-import { IdGen } from "../../utility";
+import { IdGen, range } from "../../utility";
 import * as tc from "./tac";
 import { CodeLineCollector } from "./intermediatecode";
-import { range } from "lodash";
 
 function typeAnalysisExprList(exprlist: Array<ASTNode_expr>, parr: Array<util.Type>, classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
     let len = exprlist.length;

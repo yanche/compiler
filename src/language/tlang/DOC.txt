@@ -1,4 +1,8 @@
 
+generated .asm file should be run by SPIM
+download the software from here: https://sourceforge.net/projects/spimsimulator/files/
+
+
 MIPS reference:
 https://en.wikibooks.org/wiki/MIPS_Assembly
 https://en.wikibooks.org/wiki/MIPS_Assembly/Pseudoinstructions

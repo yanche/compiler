@@ -1,6 +1,6 @@
 
 import { Production, ProdSet, Symbol } from "./production";
-import * as _ from "lodash";
+import { startsWith } from "../utility";
 
 let chA = "A".charCodeAt(0);
 let chZ = "Z".charCodeAt(0);
@@ -15,10 +15,10 @@ function createProduction(lstr: string, rstr: string): Production {
     if (lstr.length === 0) throw new Error("left-hand-side is empty");
     if (lstr.indexOf(" ") >= 0) throw new Error("left-hand-side contains more than one symbol: " + lstr);
     if (!strAsNonTerminal(lstr)) throw new Error("left-hand-side is not a non-terminal symbol: " + lstr);
-    if (_.startsWith(lstr, ProdSet.preservedNonTerminalPrefix)) throw new Error("non-terminal cannot start with preserved prefix: " + lstr);
+    if (startsWith(lstr, ProdSet.preservedNonTerminalPrefix)) throw new Error("non-terminal cannot start with preserved prefix: " + lstr);
     let lsymbol = new Symbol(false, lstr);
     let rsymbols = rstr.split(" ").filter(str => str.length > 0).map(str => {
-        if (_.startsWith(str, ProdSet.preservedNonTerminalPrefix)) throw new Error("non-terminal cannot start with preserved prefix: " + str);
+        if (startsWith(str, ProdSet.preservedNonTerminalPrefix)) throw new Error("non-terminal cannot start with preserved prefix: " + str);
         return new Symbol(!strAsNonTerminal(str), str);
     });
     return new Production(lsymbol, rsymbols);

@@ -1,7 +1,6 @@
 
-import { automata, IdGen } from "../../utility";
+import { automata, IdGen, flatten } from "../../utility";
 import { ASTNode } from "../../compile";
-import { flatten } from "lodash";
 import { createNFA, NFA } from "../../NFA";
 
 export class ASTNode_OR extends ASTNode {

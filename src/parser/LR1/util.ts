@@ -2,9 +2,8 @@
 import { ProdSet, ProductionRef } from "../../productions";
 import { DFA } from "../../DFA";
 import { ParseReturn, ParseTreeMidNode, ParseTreeTermNode, ParseTreeNode, Token, Parser } from "../../compile";
-import * as utility from "../../utility";
+import { IdGen, range, automata } from "../../utility";
 import { createNFA } from '../../NFA';
-import * as _ from 'lodash';
 
 //FOR LR parse-table
 abstract class Action { }
@@ -38,7 +37,7 @@ export class LR0ItemsPack {
 
     constructor(prodset: ProdSet) {
         let prodids = prodset.getProdIds(), startnontnum = prodset.getStartNonTerminal(), proditemsmap = new Array<Array<number>>(prodids.length);
-        let itemidgen = new utility.IdGen(), numitemmap = new Array<LR0Item>();
+        let itemidgen = new IdGen(), numitemmap = new Array<LR0Item>();
 
         //prodid from 0 -> prodsize - 1
         //build the item num mapping
@@ -229,7 +228,7 @@ export class LR0DFA extends DFA {
     get acceptableDFAState(): number { return this._acceptableDFAState; }
 
     constructor(prodset: ProdSet) {
-        let nfatrans = new Array<utility.automata.Transition>();
+        let nfatrans = new Array<automata.Transition>();
 
         //number of item, is the number of NFA
         let lr0itempack = new LR0ItemsPack(prodset);
@@ -239,16 +238,16 @@ export class LR0DFA extends DFA {
             for (let i = 0; i < prod.rnums.length; ++i) {
                 let rnum = prod.rnums[i], curitem = itemnumarr[i];
                 let rsymstr = prodset.getSymInStr(rnum);
-                nfatrans.push(new utility.automata.Transition(curitem, itemnumarr[i + 1], rsymstr));
+                nfatrans.push(new automata.Transition(curitem, itemnumarr[i + 1], rsymstr));
                 if (!prodset.isSymNumTerminal(rnum)) {
                     for (let prodid2 of prodset.getProds(rnum)) {
-                        nfatrans.push(new utility.automata.Transition(curitem, lr0itempack.getItemNumsByProdId(prodid2)[0], ''));
+                        nfatrans.push(new automata.Transition(curitem, lr0itempack.getItemNumsByProdId(prodid2)[0], ''));
                     }
                 }
             }
         }
 
-        let dfat = createNFA(nfatrans, lr0itempack.getStartItemNums(), _.range(lr0itempack.size)).getDFATrans();
+        let dfat = createNFA(nfatrans, lr0itempack.getStartItemNums(), range(lr0itempack.size)).getDFATrans();
         super(dfat.dfaTrans, dfat.startid, dfat.terminals);
         this._dfaitemsmap = dfat.dfa2nfaStateMap;
         this._lr0itempack = lr0itempack;

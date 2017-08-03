@@ -3,8 +3,7 @@ import * as c from "../../compile";
 import * as util from "./util";
 import * as a from "./ast";
 import * as i from "./intermediatecode";
-import * as utility from "../../utility";
-import * as _ from "lodash";
+import { IdGen, flatten } from "../../utility";
 
 const PRIMITIVE_TYPE_INT = "int", PRIMITIVE_TYPE_BOOL = "bool";
 const SPECIAL_TYPE_NULL = "null", SPECIAL_TYPE_VOID = "void";
@@ -49,7 +48,7 @@ export function fnApplicable(fndef: FunctionDefinition, fnname: string, paramete
 export class FunctionLookup {
     //key1: class name, key2: function name
     private _map: Map<string, Map<string, Array<FunctionDefinition>>>;
-    private _seqid: utility.IdGen;
+    private _seqid: IdGen;
     mainfnmipslabel: string;
 
     private _getFnArrOrEmpty(fnname: string, classname: string): Array<FunctionDefinition> {
@@ -103,11 +102,11 @@ export class FunctionLookup {
         let m1 = this._map.get(classname || "");
         if (m1 != null)
             for (let x of m1) ret.push(x[1]);
-        return _.flatten(ret);
+        return flatten(ret);
     }
     constructor() {
         this._map = new Map<string, Map<string, Array<FunctionDefinition>>>();
-        this._seqid = new utility.IdGen();
+        this._seqid = new IdGen();
     }
 }
 
@@ -121,7 +120,7 @@ export class FunctionDefinition {
         this.astnode = null;
         this._seqid = null;
     }
-    setSeqId(idgen: utility.IdGen): this {
+    setSeqId(idgen: IdGen): this {
         this._seqid = idgen.next();
         return this;
     }
@@ -378,4 +377,4 @@ let predefinedFn = {
 }
 
 const TMP_REGS_FP = -1;
-export {predefinedFn, TMP_REGS_FP};
+export { predefinedFn, TMP_REGS_FP };

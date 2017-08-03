@@ -1,7 +1,6 @@
 {
   "name": "compiler",
   "dependencies": {
-    "lodash": "registry:npm/lodash#4.0.0+20161015015725"
   },
   "globalDependencies": {
     "mocha": "registry:dt/mocha#2.2.5+20170311011848",
