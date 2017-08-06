@@ -45,6 +45,6 @@ void main() {
 	arr[7] = 99;
 	arr[8] = 2;
 	arr[9] = 0;
-	mergeSort(arr ,9);
+	mergeSort(arr, 10);
 	printarr(arr, 0, 9);
 }
