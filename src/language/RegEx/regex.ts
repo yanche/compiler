@@ -16,9 +16,9 @@ export default class RegEx {
 
     constructor(pattern: string) {
         let lexret = lex(pattern, prodSet);
-        if (!lexret.accept) throw new Error("lex analyzer not accept: " + lexret.errmsg);
+        if (!lexret.accept) throw new Error(lexret.error.toString());
         let parseret = parser.parse(lexret.tokens);
-        if (!parseret.accept) throw new Error("syntax analyzer not accept: " + parseret.errmsg);
+        if (!parseret.accept) throw new Error(parseret.error.toString());
         this._dfa = astToNFA(astConverter.toAST(parseret.root)).toDFA().dfa;
         this._pattern = pattern;
     }

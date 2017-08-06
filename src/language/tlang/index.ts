@@ -13,14 +13,14 @@ import { ClassLookup, FunctionLookup } from "./util";
 function compile(input: string, optimizedicpath: string, icregallocpath: string, mipspath: string): Promise<CompileReturn> {
     return Promise.resolve().then(() => {
         let lexret = lex(input, prodSet);
-        if (!lexret.accept) return new CompileReturn(false, lexret.errmsg, lexret.errcode);
+        if (!lexret.accept) return new CompileReturn(false, lexret.error);
         let parseret = parser.parse(lexret.tokens);
-        if (!parseret.accept) return new CompileReturn(false, parseret.errmsg, parseret.errcode);
+        if (!parseret.accept) return new CompileReturn(false, parseret.error);
         let ast = <ASTNode_globaldefs>astConverter.toAST(parseret.root);
         let classlookup = new ClassLookup();
         let fnlookup = new FunctionLookup();
         let tret = semanticAnalysis(ast, classlookup, fnlookup);
-        if (!tret.accept) return new CompileReturn(false, tret.errmsg, tret.errcode);
+        if (!tret.accept) return new CompileReturn(false, tret.error);
         // let mret = ast.completenesscheck(true);
         // if (!mret.accept) return new CompileReturn(false, mret.errmsg, mret.errcode);
         let code = generateIntermediateCode(classlookup, fnlookup);
@@ -33,7 +33,7 @@ function compile(input: string, optimizedicpath: string, icregallocpath: string,
         //     .then(() => file.writeFile(optimizedicpath, code.optimzie().toString()))
         //     .then(() => file.writeFile(mipspath, code.toMIPS(classlookup).toString()))
         //     .then(() => new CompileReturn(true));
-    }).catch((err: Error) => new CompileReturn(false, "failed to write intermediate code into given file: \n" + err.stack, 0));
+    });
 }
 
 export function compileFromFile(srcfilepath: string): Promise<CompileReturn> {

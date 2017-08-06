@@ -4,6 +4,7 @@ import * as util from "./util";
 import * as a from "./ast";
 import * as i from "./intermediatecode";
 import { IdGen, flatten } from "../../utility";
+import { ErrorCode } from "./error";
 
 const PRIMITIVE_TYPE_INT = "int", PRIMITIVE_TYPE_BOOL = "bool";
 const SPECIAL_TYPE_NULL = "null", SPECIAL_TYPE_VOID = "void";
@@ -17,6 +18,7 @@ export function assignable(fromtype: Type, totype: Type, classlookup: ClassLooku
     let classdef = classlookup.getClass(fromtype.basetype);
     return classdef != null && classdef.hasAncestor(totype.basetype);
 }
+
 export function isReferenceType(type: Type, classlookup: ClassLookup): boolean {
     return type.depth !== 0 || classlookup.hasClass(type.basetype);
 }
@@ -25,9 +27,11 @@ let primitives = [PRIMITIVE_TYPE_INT, PRIMITIVE_TYPE_BOOL];
 export function isType(name: string, classlookup: ClassLookup): boolean {
     return isPrimitive(name) || classlookup.hasClass(name);
 }
+
 export function isFnRet(name: string, classlookup: ClassLookup): boolean {
     return name === SPECIAL_TYPE_VOID || isType(name, classlookup);
 }
+
 export function isPrimitive(name: string): boolean { return primitives.some(p => p == name); }
 
 export function fnApplicable(fndef: FunctionDefinition, fnname: string, parametertypelist: Array<Type>, classlookup: ClassLookup): { match: boolean, perfect: boolean } {
@@ -176,22 +180,28 @@ export class ClassDefinition {
     vmethodTable: Array<FunctionDefinition>;
     byteLength: number;
     noConstructor: boolean;
+
     setParent(parent: ClassDefinition): this {
         this._parentclass = parent;
         return this;
     }
+
     getParent(): ClassDefinition {
         return this._parentclass;
     }
+
     hasOwnField(name: string): boolean { return this._fields.has(name); }
+
     addField(name: string, type: Type, area: c.Area): this {
         if (this.hasOwnField(name)) throw new Error("field exists: " + name);
         this._fields.set(name, new Field(name, type, area));
         return this;
     }
+
     getOwnFields(): Array<Field> {
         return [...this._fields].map(x => x[1]);
     }
+
     //hasField(name: string): boolean { return this.getField(name) != null; }
     getField(name: string): Field {
         for (let f of this.fieldSpace) {
@@ -199,14 +209,17 @@ export class ClassDefinition {
         }
         return null;
     }
+
     hasAncestor(classname: string): boolean {
-        if (this._parentclass == null) return false;
+        if (!this._parentclass) return false;
         else if (this._parentclass.name === classname) return true;
         else return this._parentclass.hasAncestor(classname);
     }
+
     getMIPSVTableLabel(): string {
         return `vtable_${this.name}`;
     }
+
     constructor(public name: string, public area: c.Area) {
         this._fields = new Map<string, Field>();
         this._parentclass = null;
@@ -223,19 +236,23 @@ export class ClassLookup {
     hasClass(classname: string): boolean {
         return this._map.has(classname);
     }
+
     addClass(classname: string, area: c.Area): this {
-        if (this._map.has(classname)) throw new Error("class exists: " + classname);
+        if (this._map.has(classname)) throw new Error(`class exists: ${classname}`);
         this._map.set(classname, new ClassDefinition(classname, area));
         return this;
     }
+
     getClass(classname: string): ClassDefinition {
         return this._map.get(classname);
     }
+
     getAllClasses(): Array<string> {
         let ret = new Array<string>();
         for (let m of this._map) ret.push(m[0]);
         return ret;
     }
+
     constructor() {
         this._map = new Map<string, ClassDefinition>();
     }
@@ -283,8 +300,8 @@ export class SemanticCheckReturn extends c.SemanticCheckReturn {
     private _type: Type;
     private _returns: boolean;
 
-    constructor(accept: boolean, errmsg?: string, errcode?: number) {
-        super(accept, errmsg, errcode);
+    constructor(accept: boolean, error?: c.SemanticError) {
+        super(accept, error);
         this._type = null;
         this._returns = false;
     }
@@ -378,3 +395,7 @@ let predefinedFn = {
 
 const TMP_REGS_FP = -1;
 export { predefinedFn, TMP_REGS_FP };
+
+export function createInvalidTypeReturn(typeBaseName: string, area: c.Area): SemanticCheckReturn {
+    return new SemanticCheckReturn(false, new c.SemanticError(`invalid type: ${typeBaseName}, at ${area}`, ErrorCode.TYPE_NOTFOUND));
+}

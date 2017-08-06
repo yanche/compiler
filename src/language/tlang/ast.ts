@@ -1,9 +1,15 @@
 
-import { Area, Token, ASTNode as ASTNodeBase } from "../../compile";
+import { Area, Token, ASTNode as ASTNodeBase, SemanticError } from "../../compile";
 import * as util from "./util";
 import { IdGen, range } from "../../utility";
 import * as tc from "./tac";
 import { CodeLineCollector } from "./intermediatecode";
+import { ErrorCode } from "./error";
+import createInvalidTypeReturn = util.createInvalidTypeReturn;
+
+function createTypeAssignMismatchReturn(rtype: util.Type, ltype: util.Type, area: Area): util.SemanticCheckReturn {
+    return new util.SemanticCheckReturn(false, new SemanticError(`cannot assign type of ${rtype} to ${ltype}, at ${area}`, ErrorCode.TYPE_ASSIGN_MISMATCH));
+}
 
 function typeAnalysisExprList(exprlist: Array<ASTNode_expr>, parr: Array<util.Type>, classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
     let len = exprlist.length;
@@ -36,7 +42,7 @@ export class ASTNode_functiondef extends ASTNode {
         let cret = this.statementlist.codepathAnalysis(false);
         if (!cret.accept) return cret;
         if (cret.returns || this.returntype.type.isVoid()) return new util.SemanticCheckReturn(true);
-        else return new util.SemanticCheckReturn(false, "function/method/constructor does not return a value, at " + this.name.area);
+        else return new util.SemanticCheckReturn(false, new SemanticError(`function/method/constructor does not return a value, at ${this.name.area}`, ErrorCode.NOT_ALWAYS_RETURN));
     }
     makeSymbolTable(classname: string, classlookup: util.ClassLookup): util.SemanticCheckReturn {
         let symboltable = new util.SymbolFrame(null);
@@ -149,7 +155,7 @@ export class ASTNode_statementlist extends ASTNode_statement {
         }
         if (i === len) return new util.SemanticCheckReturn(true);
         else if (i === len - 1) return new util.SemanticCheckReturn(true).setReturns();
-        else return new util.SemanticCheckReturn(false, "unreachable code deteched after all code path returns, at " + new Area(this.children[i + 1].area.start, this.area.end), 0);
+        else return new util.SemanticCheckReturn(false, new SemanticError(`unreachable code deteched after all code path returns, at ${new Area(this.children[i + 1].area.start, this.area.end)}`, ErrorCode.UNREACHABLE_PATH));
     }
     makeSymbolTable(symboltable: util.SymbolFrame, classlookup: util.ClassLookup, tmpRegIdGen: IdGen): util.SemanticCheckReturn {
         this._symboltable = symboltable;
@@ -168,10 +174,10 @@ export class ASTNode_vardeclare extends ASTNode_statement {
     constructor(public type: ASTNode_type, public name: Token) { super(); }
     makeSymbolTable(symboltable: util.SymbolFrame, classlookup: util.ClassLookup, tmpRegIdGen: IdGen): util.SemanticCheckReturn {
         this._symboltable = symboltable;
-        if (this.name.rawstr === "this") return new util.SemanticCheckReturn(false, `cannot use "this" as a variable name: at ${this.name.area}`, 0);
-        if (symboltable.hasOnTop(this.name.rawstr)) return new util.SemanticCheckReturn(false, "duplicate variable declaration: " + this.name.rawstr + " at " + this.name.area, 0);
+        if (this.name.rawstr === "this") return new util.SemanticCheckReturn(false, new SemanticError(`cannot use "this" as a variable name: at ${this.name.area}`, ErrorCode.THIS_AS_VARNAME));
+        if (symboltable.hasOnTop(this.name.rawstr)) return new util.SemanticCheckReturn(false, new SemanticError(`duplicate variable declaration: ${this.name.rawstr} at ${this.name.area}`, ErrorCode.DUP_VARIABLE));
         let type = this.type.type;
-        if (!util.isType(type.basetype, classlookup)) return new util.SemanticCheckReturn(false, "invalid type: " + type.basetype + " at " + this.type.area, 0);
+        if (!util.isType(type.basetype, classlookup)) return createInvalidTypeReturn(type.basetype, this.type.area);
         symboltable.add(this.name.rawstr, new util.SymbolAttrs(type, tmpRegIdGen.next()));
         return new util.SemanticCheckReturn(true);
     }
@@ -182,7 +188,7 @@ export class ASTNode_if extends ASTNode_statement {
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
         let cretcond = this.cond.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cretcond.accept) return cretcond;
-        if (!cretcond.type.isBool()) return new util.SemanticCheckReturn(false, "expression of condition does not return bool at " + this.cond.area, 0);
+        if (!cretcond.type.isBool()) return new util.SemanticCheckReturn(false, new SemanticError(`expression of condition does not return bool at ${this.cond.area}`, ErrorCode.COND_TAKES_BOOL));
         let cret = this.thenstat.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cret.accept) return cret;
         return this.elsestat.typeAnalysis(classlookup, fnlookup, ctx);
@@ -221,7 +227,7 @@ export class ASTNode_while extends ASTNode_statement {
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
         let cretcond = this.cond.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cretcond.accept) return cretcond;
-        if (!cretcond.type.isBool()) return new util.SemanticCheckReturn(false, "expression of condition does not return bool at " + this.cond.area, 0);
+        if (!cretcond.type.isBool()) return new util.SemanticCheckReturn(false, new SemanticError(`expression of condition does not return bool at ${this.cond.area}`, ErrorCode.COND_TAKES_BOOL));
         return this.bodystmt.typeAnalysis(classlookup, fnlookup, ctx);
     }
     codepathAnalysis(inloop: boolean): util.SemanticCheckReturn {
@@ -281,7 +287,7 @@ export class ASTNode_for extends ASTNode_statement {
         if (!cret.accept) return cret;
         cret = this.cond.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cret.accept) return cret;
-        if (!cret.type.isBool()) return new util.SemanticCheckReturn(false, "expression of condition does not return bool at " + this.cond.area, 0);
+        if (!cret.type.isBool()) return new util.SemanticCheckReturn(false, new SemanticError(`expression of condition does not return bool at ${this.cond.area}`, ErrorCode.COND_TAKES_BOOL));
         cret = this.endstmt.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cret.accept) return cret;
         return this.bodystmt.typeAnalysis(classlookup, fnlookup, ctx);
@@ -289,7 +295,7 @@ export class ASTNode_for extends ASTNode_statement {
     codepathAnalysis(inloop: boolean): util.SemanticCheckReturn {
         let mret = this.initstmt.codepathAnalysis(inloop);
         if (!mret.accept) return mret;
-        if (mret.returns) return new util.SemanticCheckReturn(false, "unreachable code deteched after init-block of for-statement, at " + this.area);
+        if (mret.returns) return new util.SemanticCheckReturn(false, new SemanticError(`unreachable code deteched after init-block of for-statement, at ${this.area}`, ErrorCode.UNREACHABLE_PATH));
         //even if this.bodystmt returns, while statement does not return
         mret = this.bodystmt.codepathAnalysis(true);
         if (!mret.accept) return mret;
@@ -332,11 +338,11 @@ export class ASTNode_return extends ASTNode_statement {
     constructor(public retexp: ASTNode_expr) { super(); }
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
         let returntype = ctx.rettype;
-        if (returntype.isVoid()) return new util.SemanticCheckReturn(false, "function declares to return void, cannot return at " + this.area, 0);
+        if (returntype.isVoid()) return new util.SemanticCheckReturn(false, new SemanticError(`function declares to return void, cannot return at ${this.area}`, ErrorCode.FN_RETURN_MISMATCH));
         let cret = this.retexp.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cret.accept) return cret;
         if (util.assignable(cret.type, returntype, classlookup)) return new util.SemanticCheckReturn(true);
-        else return new util.SemanticCheckReturn(false, "type mismatch, cannot assign value of type " + cret.type + " to " + returntype + ", at " + this.retexp.area, 0);
+        else return createTypeAssignMismatchReturn(cret.type, returntype, this.retexp.area);
     }
     codepathAnalysis(inloop: boolean): util.SemanticCheckReturn {
         return new util.SemanticCheckReturn(true).setReturns();
@@ -353,7 +359,7 @@ export class ASTNode_return extends ASTNode_statement {
 export class ASTNode_returnvoid extends ASTNode_statement {
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
         let returntype = ctx.rettype;
-        if (!returntype.isVoid()) return new util.SemanticCheckReturn(false, "function declares to return " + returntype + ", not void, " + this.area, 0);
+        if (!returntype.isVoid()) return new util.SemanticCheckReturn(false, new SemanticError(`function declares to return ${returntype}, not void, ${this.area}`, ErrorCode.FN_RETURN_MISMATCH));
         return new util.SemanticCheckReturn(true);
     }
     codepathAnalysis(inloop: boolean): util.SemanticCheckReturn {
@@ -370,7 +376,7 @@ export class ASTNode_break extends ASTNode_statement {
     }
     codepathAnalysis(inloop: boolean): util.SemanticCheckReturn {
         if (inloop) return new util.SemanticCheckReturn(true);
-        else return new util.SemanticCheckReturn(false, "cannot use break statement out of a loop, at " + this.area);
+        else return new util.SemanticCheckReturn(false, new SemanticError(`cannot use break statement out of a loop, at ${this.area}`, ErrorCode.BREAK_OUTSIDE_LOOP));
     }
 }
 
@@ -380,7 +386,7 @@ export class ASTNode_continue extends ASTNode_statement {
     }
     codepathAnalysis(inloop: boolean): util.SemanticCheckReturn {
         if (inloop) return new util.SemanticCheckReturn(true);
-        else return new util.SemanticCheckReturn(false, "cannot use continue statement out of a loop, at " + this.area);
+        else return new util.SemanticCheckReturn(false, new SemanticError(`cannot use continue statement out of a loop, at ${this.area}`, ErrorCode.CONTINUE_OUTSIDE_LOOP));
     }
 }
 
@@ -390,17 +396,17 @@ export class ASTNode_vardefine extends ASTNode_statement {
         let cret = this.expr.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cret.accept) return cret;
         let type = this._symboltable.find(this.name.rawstr).type;
-        if (!util.assignable(cret.type, type, classlookup)) return new util.SemanticCheckReturn(false, "type mismatch, cannot assign value of type " + cret.type + " to " + type + ", at " + this.expr.area, 0);
+        if (!util.assignable(cret.type, type, classlookup)) return createTypeAssignMismatchReturn(cret.type, type, this.expr.area);
         return new util.SemanticCheckReturn(true);
     }
     makeSymbolTable(symboltable: util.SymbolFrame, classlookup: util.ClassLookup, tmpRegIdGen: IdGen): util.SemanticCheckReturn {
         this._symboltable = symboltable;
         let cret = this.expr.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
         if (!cret.accept) return cret;
-        if (this.name.rawstr === "this") return new util.SemanticCheckReturn(false, `cannot use "this" as a variable name: at ${this.name.area}`, 0);
-        if (symboltable.hasOnTop(this.name.rawstr)) return new util.SemanticCheckReturn(false, "variable exists: " + this.name.rawstr + " at " + this.name.area, 0);
+        if (this.name.rawstr === "this") return new util.SemanticCheckReturn(false, new SemanticError(`cannot use "this" as a variable name: at ${this.name.area}`, ErrorCode.THIS_AS_VARNAME));
+        if (symboltable.hasOnTop(this.name.rawstr)) return new util.SemanticCheckReturn(false, new SemanticError(`variable exists: ${this.name.rawstr} at ${this.name.area}`, ErrorCode.DUP_VARIABLE));
         let type = this.type.type;
-        if (!util.isType(type.basetype, classlookup)) return new util.SemanticCheckReturn(false, "invalid type: " + type.basetype + " at " + this.type.area, 0);
+        if (!util.isType(type.basetype, classlookup)) return createInvalidTypeReturn(type.basetype, this.type.area);
         symboltable.add(this.name.rawstr, new util.SymbolAttrs(type, tmpRegIdGen.next()));
         return new util.SemanticCheckReturn(true);
     }
@@ -428,7 +434,7 @@ export class ASTNode_assignment extends ASTNode_expr {
         if (!cret.accept) return cret;
         let cretexpr = this.expr.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cretexpr.accept) return cretexpr;
-        if (!util.assignable(cretexpr.type, cret.type, classlookup)) return new util.SemanticCheckReturn(false, "type mismatch, cannot assign value of type " + cretexpr.type + " to " + cret.type + ", at " + this.expr.area, 0);
+        if (!util.assignable(cretexpr.type, cret.type, classlookup)) return createTypeAssignMismatchReturn(cretexpr.type, cret.type, this.expr.area);
         return new util.SemanticCheckReturn(true).setType(cretexpr.type);
     }
     makeSymbolTable(symboltable: util.SymbolFrame, classlookup: util.ClassLookup, tmpRegIdGen: IdGen): util.SemanticCheckReturn {
@@ -464,8 +470,8 @@ export class ASTNode_opexpr extends ASTNode_expr {
         switch (this.op.rawstr) {
             case "||":
             case "&&":
-                if (!cret1.type.isBool()) return new util.SemanticCheckReturn(false, "not a boolean, " + cret1.type + ", at " + this.expr1.area, 0);
-                if (!cret2.type.isBool()) return new util.SemanticCheckReturn(false, "not a boolean, " + cret2.type + ", at " + this.expr2.area, 0);
+                if (!cret1.type.isBool()) return new util.SemanticCheckReturn(false, new SemanticError(`not a boolean, ${cret1.type}, at ${this.expr1.area}`, ErrorCode.NOT_BOOL_FOR_BOOL_OP));
+                if (!cret2.type.isBool()) return new util.SemanticCheckReturn(false, new SemanticError(`not a boolean, ${cret2.type}, at ${this.expr2.area}`, ErrorCode.NOT_BOOL_FOR_BOOL_OP));
                 return new util.SemanticCheckReturn(true).setType(booltype);
             case "==":
             case "!=":
@@ -475,13 +481,13 @@ export class ASTNode_opexpr extends ASTNode_expr {
                 }
                 else if (!cret1.type.equals2(cret2.type)) ret = false;
                 if (ret) return new util.SemanticCheckReturn(true).setType(booltype);
-                else return new util.SemanticCheckReturn(false, "cannot compare between " + cret1.type + " and " + cret2.type + " at " + this.area, 0);
+                else return new util.SemanticCheckReturn(false, new SemanticError(`cannot compare between ${cret1.type} and ${cret2.type} at ${this.area}`, ErrorCode.CANNOT_COMPARE_VAR));
             case ">=":
             case "<=":
             case ">":
             case "<":
-                if (!cret1.type.isInt()) return new util.SemanticCheckReturn(false, "not an integer " + cret1.type + ", at " + this.expr1.area, 0);
-                if (!cret2.type.isInt()) return new util.SemanticCheckReturn(false, "not an integer " + cret2.type + ", at " + this.expr2.area, 0);
+                if (!cret1.type.isInt()) return new util.SemanticCheckReturn(false, new SemanticError(`not an integer ${cret1.type}, at ${this.expr1.area}`, ErrorCode.NOT_INT_FOR_INT_OP));
+                if (!cret2.type.isInt()) return new util.SemanticCheckReturn(false, new SemanticError(`not an integer ${cret2.type}, at ${this.expr2.area}`, ErrorCode.NOT_INT_FOR_INT_OP));
                 return new util.SemanticCheckReturn(true).setType(booltype);
             case "&":
             case "|":
@@ -493,8 +499,8 @@ export class ASTNode_opexpr extends ASTNode_expr {
             case ">>":
             case ">>>":
             case "<<":
-                if (!cret1.type.isInt()) return new util.SemanticCheckReturn(false, "not an integer " + cret1.type + ", at " + this.expr1.area, 0);
-                if (!cret2.type.isInt()) return new util.SemanticCheckReturn(false, "not an integer " + cret2.type + ", at " + this.expr2.area, 0);
+                if (!cret1.type.isInt()) return new util.SemanticCheckReturn(false, new SemanticError(`not an integer ${cret1.type}, at ${this.expr1.area}`, ErrorCode.NOT_INT_FOR_INT_OP));
+                if (!cret2.type.isInt()) return new util.SemanticCheckReturn(false, new SemanticError(`not an integer ${cret2.type}, at ${this.expr2.area}`, ErrorCode.NOT_INT_FOR_INT_OP));
                 return new util.SemanticCheckReturn(true).setType(inttype);
             default:
                 throw new Error("unknown op " + this.op.rawstr + " at " + this.op.area);
@@ -528,12 +534,12 @@ export class ASTNode_fncall extends ASTNode_expr {
             candidates = fnlookup.getApplicableFn(fn.name.rawstr, parr, classlookup);
         }
         else {
-            if (ctx.baseclass == null) return new util.SemanticCheckReturn(false, "not in a constructor, cannot call super at " + fn.area, 0);
+            if (ctx.baseclass == null) return new util.SemanticCheckReturn(false, new SemanticError(`not in a constructor, cannot call super at ${fn.area}`, ErrorCode.SUPER_OUTSIDE_CONSTRUCTOR));
             if (ctx.baseclass.noConstructor && plen === 0) return new util.SemanticCheckReturn(true).setType(util.Type.void); //here this._fndef will stay null
             candidates = fnlookup.getApplicableMethod(util.ClassLookup.constructorFnName, ctx.baseclass.name, [new util.Type(ctx.baseclass.name, 0)].concat(parr), classlookup);
         }
-        if (candidates.length === 0) return new util.SemanticCheckReturn(false, "no function/constructor with given parameter is applicable, at " + fn.area, 0);
-        if (candidates.length > 1) return new util.SemanticCheckReturn(false, "ambiguous functions/constructor with given parameter are applicable, at " + fn.area, 0);
+        if (candidates.length === 0) return new util.SemanticCheckReturn(false, new SemanticError(`no function/constructor with given parameter is applicable, at ${fn.area}`, ErrorCode.FN_NOTFOUND));
+        if (candidates.length > 1) return new util.SemanticCheckReturn(false, new SemanticError(`ambiguous functions/constructor with given parameter are applicable, at ${fn.area}`, ErrorCode.FN_AMBIGUOUS));
         this._fndef = candidates[0];
         return new util.SemanticCheckReturn(true).setType(candidates[0].rettype);
     }
@@ -575,9 +581,9 @@ export class ASTNode_methodcall extends ASTNode_expr {
         if (!cret.accept) return cret;
         cret = this.obj.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cret.accept) return cret;
-        if (cret.type.depth !== 0) return new util.SemanticCheckReturn(false, "array of " + cret.type + " has no method at " + this.obj.area, 0);
+        if (cret.type.depth !== 0) return new util.SemanticCheckReturn(false, new SemanticError(`array of ${cret.type} has no method at ${this.obj.area}`, ErrorCode.ARRAY_NO_METHOD));
         let classdef = classlookup.getClass(cret.type.basetype);
-        if (classdef == null) return new util.SemanticCheckReturn(false, "variable not an instance of class, type " + cret.type + " at " + this.obj.area, 0);
+        if (classdef == null) return new util.SemanticCheckReturn(false, new SemanticError(`variable not an instance of class, type ${cret.type} at ${this.obj.area}`, ErrorCode.PRIMITIVE_NO_METHOD));
         parr = [new util.Type(classdef.name, 0)].concat(parr);
         let candidates = new Array<{ seq: number, fndef: util.FunctionDefinition }>();
         for (let i = 0; i < classdef.vmethodTable.length; ++i) {
@@ -591,8 +597,8 @@ export class ASTNode_methodcall extends ASTNode_expr {
                 else candidates.push({ seq: i, fndef: fndef });
             }
         }
-        if (candidates.length === 0) return new util.SemanticCheckReturn(false, "no method with given parameter is applicable, at " + this.method.area, 0);
-        if (candidates.length > 1) return new util.SemanticCheckReturn(false, "ambiguous method with given parameter are applicable, at " + this.method.area, 0);
+        if (candidates.length === 0) return new util.SemanticCheckReturn(false, new SemanticError(`no method with given parameter is applicable, at ${this.method.area}`, ErrorCode.METHOD_NOTFOUND));
+        if (candidates.length > 1) return new util.SemanticCheckReturn(false, new SemanticError(`ambiguous method with given parameter are applicable, at ${this.method.area}`, ErrorCode.METHOD_AMBIGUOUS));
         this._vtable_seq = candidates[0].seq;
         return new util.SemanticCheckReturn(true).setType(candidates[0].fndef.rettype);
     }
@@ -647,7 +653,7 @@ export abstract class ASTNode_leftval extends ASTNode_expr {
 export class ASTNode_varref extends ASTNode_leftval {
     constructor(public token: Token) { super(); }
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
-        if (!this._symboltable.has(this.token.rawstr)) return new util.SemanticCheckReturn(false, "variable not found: " + this.token.rawstr + " at " + this.token.area, 0);
+        if (!this._symboltable.has(this.token.rawstr)) return new util.SemanticCheckReturn(false, new SemanticError(`variable not found: ${this.token.rawstr} at ${this.token.area}`, ErrorCode.VAR_NOTFOUND));
         else return new util.SemanticCheckReturn(true).setType(this._symboltable.find(this.token.rawstr).type);
     }
     //for read
@@ -666,10 +672,10 @@ export class ASTNode_arrderef extends ASTNode_leftval {
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
         let cret1 = this.expr.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cret1.accept) return cret1;
-        if (cret1.type.depth === 0) return new util.SemanticCheckReturn(false, "type " + cret1.type + " is not an array at " + this.expr.area, 0);
+        if (cret1.type.depth === 0) return new util.SemanticCheckReturn(false, new SemanticError(`type ${cret1.type} is not an array at ${this.expr.area}`, ErrorCode.NOT_AN_ARRAY));
         let cret2 = this.indexexpr.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cret2.accept) return cret2;
-        if (!cret2.type.isInt()) return new util.SemanticCheckReturn(false, "not an integer: " + cret2.type + " at " + this.indexexpr.area, 0);
+        if (!cret2.type.isInt()) return new util.SemanticCheckReturn(false, new SemanticError(`not an integer: ${cret2.type} at ${this.indexexpr.area}`, ErrorCode.NOT_INT_FOR_INT_OP));
         let rettype = new util.Type(cret1.type.basetype, cret1.type.depth - 1);
         this._itemisbyte = rettype.isBool();
         return new util.SemanticCheckReturn(true).setType(rettype);
@@ -708,11 +714,11 @@ export class ASTNode_fieldref extends ASTNode_leftval {
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
         let cret1 = this.expr.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cret1.accept) return cret1;
-        if (cret1.type.depth !== 0) return new util.SemanticCheckReturn(false, "type " + cret1.type + " is an array at " + this.expr.area, 0);
+        if (cret1.type.depth !== 0) return new util.SemanticCheckReturn(false, new SemanticError(`type ${cret1.type} is an array at ${this.expr.area}`, ErrorCode.NOT_A_CLASS));
         let classdef = classlookup.getClass(cret1.type.basetype);
-        if (classdef == null) return new util.SemanticCheckReturn(false, "type " + cret1.type + " is not a class at " + this.expr.area, 0);
+        if (classdef == null) return new util.SemanticCheckReturn(false, new SemanticError(`type ${cret1.type} is not a class at ${this.expr.area}`, ErrorCode.NOT_A_CLASS));
         let field = classdef.getField(this.token.rawstr);
-        if (field == null) return new util.SemanticCheckReturn(false, "class " + cret1.type + " has no field " + this.token.rawstr + " at " + this.expr.area, 0);
+        if (field == null) return new util.SemanticCheckReturn(false, new SemanticError(`class ${cret1.type} has no field ${this.token.rawstr} at ${this.expr.area}`, ErrorCode.FIELD_NOTFOUND));
         this._fieldisbyte = field.type.isBool();
         this._fieldoffset = field.offset;
         return new util.SemanticCheckReturn(true).setType(field.type);
@@ -790,17 +796,17 @@ export class ASTNode_newinstance extends ASTNode_expr {
         let cret = typeAnalysisExprList(this.parameters.children, parr, classlookup, fnlookup, ctx);
         if (!cret.accept) return cret;
         let classdef = classlookup.getClass(this.classname.rawstr);
-        if (classdef == null) return new util.SemanticCheckReturn(false, "class not found: " + this.classname.rawstr + ", at: " + this.classname.area, 0);
+        if (classdef == null) return new util.SemanticCheckReturn(false, new SemanticError(`class not found: ${this.classname.rawstr}, at: ${this.classname.area}`, ErrorCode.CLASS_NOTFOUND));
         let rettype = new util.Type(this.classname.rawstr, 0);
         this._classdef = classdef;
         if (classdef.noConstructor) {
             if (plen === 0) return new util.SemanticCheckReturn(true).setType(rettype);
-            else return new util.SemanticCheckReturn(false, "no constructor with given parameter is applicable, at " + this.classname.area, 0);
+            else return new util.SemanticCheckReturn(false, new SemanticError(`no constructor with given parameter is applicable, at ${this.classname.area}`, ErrorCode.FN_NOTFOUND));
         }
         else {
             let candidates = fnlookup.getApplicableMethod(util.ClassLookup.constructorFnName, this.classname.rawstr, [rettype].concat(parr), classlookup);
-            if (candidates.length === 0) return new util.SemanticCheckReturn(false, "no constructor with given parameter is applicable, at " + this.classname.area, 0);
-            if (candidates.length > 1) return new util.SemanticCheckReturn(false, "ambiguous constructor with given parameter are applicable, at " + this.classname.area, 0);
+            if (candidates.length === 0) return new util.SemanticCheckReturn(false, new SemanticError(`no constructor with given parameter is applicable, at ${this.classname.area}`, ErrorCode.FN_NOTFOUND));
+            if (candidates.length > 1) return new util.SemanticCheckReturn(false, new SemanticError(`ambiguous constructor with given parameter are applicable, at ${this.classname.area}`, ErrorCode.FN_AMBIGUOUS));
             else {
                 this._constructfndef = candidates[0];
                 return new util.SemanticCheckReturn(true).setType(rettype);
@@ -841,12 +847,12 @@ export class ASTNode_newarray extends ASTNode_expr {
     private _itembyte: boolean;
     constructor(public type: ASTNode_type, public exprlist: ASTNode_exprlist) { super(); }
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
-        if (this.type.depth === 0) return new util.SemanticCheckReturn(false, "not an array: " + this.type + ", at " + this.exprlist.area, 0);
-        if (!util.isType(this.type.basetype.rawstr, classlookup)) return new util.SemanticCheckReturn(false, "not a valid type at " + this.type.basetype.area, 0);
-        if (this.exprlist.children.length !== 1) return new util.SemanticCheckReturn(false, "only one parameter can be passed to array initialization at " + this.exprlist.area, 0);
+        if (this.type.depth === 0) return new util.SemanticCheckReturn(false, new SemanticError(`not an array: ${this.type}, at ${this.exprlist.area}`, ErrorCode.NOT_AN_ARRAY));
+        if (!util.isType(this.type.basetype.rawstr, classlookup)) return new util.SemanticCheckReturn(false, new SemanticError(`not a valid type at ${this.type.basetype.area}`, ErrorCode.TYPE_NOTFOUND));
+        if (this.exprlist.children.length !== 1) return new util.SemanticCheckReturn(false, new SemanticError(`only one parameter can be passed to array initialization at ${this.exprlist.area}`, ErrorCode.ARRAY_CONSTRUCTOR_PARAMS));
         let cretexpr = this.exprlist.children[0].typeAnalysis(classlookup, fnlookup, ctx);
         if (!cretexpr.accept) return cretexpr;
-        if (!cretexpr.type.isInt()) return new util.SemanticCheckReturn(false, "expression returns " + cretexpr.type + ", not int at " + this.exprlist.children[0].area);
+        if (!cretexpr.type.isInt()) return new util.SemanticCheckReturn(false, new SemanticError(`expression returns ${cretexpr.type}, not int at ${this.exprlist.children[0].area}`, ErrorCode.NOT_INT_FOR_INT_OP));
         this._itembyte = new util.Type(this.type.basetype.rawstr, this.type.depth - 1).isBool();
         return new util.SemanticCheckReturn(true).setType(this.type.type);
     }
@@ -875,10 +881,10 @@ export class ASTNode_unaryopexpr extends ASTNode_expr {
         switch (this.token.rawstr) {
             case "~":
             case "-":
-                if (!cretexpr.type.isInt()) return new util.SemanticCheckReturn(false, "expression returns " + cretexpr.type + ", not int at " + this.expr.area);
+                if (!cretexpr.type.isInt()) return new util.SemanticCheckReturn(false, new SemanticError(`expression returns ${cretexpr.type}, not int at ${this.expr.area}`, ErrorCode.NOT_INT_FOR_INT_OP));
                 else return new util.SemanticCheckReturn(true).setType(cretexpr.type);
             case "!":
-                if (!cretexpr.type.isBool()) return new util.SemanticCheckReturn(false, "expression returns " + cretexpr.type + ", not bool at " + this.expr.area);
+                if (!cretexpr.type.isBool()) return new util.SemanticCheckReturn(false, new SemanticError(`expression returns ${cretexpr.type}, not bool at ${this.expr.area}`, ErrorCode.NOT_BOOL_FOR_BOOL_OP));
                 else return new util.SemanticCheckReturn(true).setType(cretexpr.type);
             default:
                 throw new Error("unknown op " + this.token.rawstr + " at " + this.token.area);

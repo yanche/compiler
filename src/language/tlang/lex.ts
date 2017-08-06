@@ -1,6 +1,6 @@
 
 import { ProdSet } from "../../productions";
-import { LexReturn, Token, noArea, Posi, Area } from "../../compile";
+import { LexReturn, Token, noArea, Posi, Area, InvalidTokenError } from "../../compile";
 
 
 let tripples = [">>>"];
@@ -113,7 +113,7 @@ export default function lex(input: string, prodset: ProdSet): LexReturn {
             else
                 tokens.push(new Token(idstr, keywords.some(c => c === idstr) ? prodset.getSymNum(idstr) : prodset.getSymNum("id"), areaWithColNext(posi, idstr.length)));
         }
-        else return new LexReturn(false, null, "unrecognized character at row: " + posi.row + ", col: " + posi.col, 0);
+        else return new LexReturn(false, null, new InvalidTokenError(ch, posi));
 
         ++i;
         ++col;

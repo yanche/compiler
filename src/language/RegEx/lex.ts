@@ -1,6 +1,6 @@
 
 import { ProdSet } from "../../productions";
-import { Token, Area, LexReturn, Posi, noArea } from "../../compile";
+import { Token, Area, LexReturn, Posi, noArea, InvalidTokenError } from "../../compile";
 
 // | * + ( ) . char [ ] -
 let chnum_a = "a".charCodeAt(0);
@@ -37,7 +37,7 @@ export default function lex(input: string, prodset: ProdSet): LexReturn {
                     else if (chnum >= chnum_0 && chnum <= chnum_9)
                         symnum = prodset.getSymNum("digit");
                     else
-                        return new LexReturn(false, null, "invalid token in given pattern: " + ch, 0);
+                        return new LexReturn(false, null, new InvalidTokenError(ch, new Posi(1, i + 1)));
             }
             tokens.push(new Token(ch, symnum, new Area(new Posi(1, i + 1), new Posi(1, i + 2))));
         }

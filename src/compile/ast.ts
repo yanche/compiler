@@ -45,4 +45,3 @@ export function defineSyntaxProcessor(prodHandlers: ParseTreeHandlerItem[], pars
         prodSet: prodset
     }
 }
-

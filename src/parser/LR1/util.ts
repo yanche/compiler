@@ -4,6 +4,7 @@ import { DFA } from "../../DFA";
 import { ParseReturn, ParseTreeMidNode, ParseTreeTermNode, ParseTreeNode, Token, Parser } from "../../compile";
 import { IdGen, range, automata } from "../../utility";
 import { createNFA } from '../../NFA';
+import { NeedMoreTokensError, TooManyTokensError, NotAcceptableError } from "../error";
 
 //FOR LR parse-table
 abstract class Action { }
@@ -133,7 +134,7 @@ export abstract class LRParser extends Parser {
         while (i < len) {
             let token = tokens[i], stackitem = stack[stacktop];
             let acts = this._ptable.get(stackitem.state).get(token.symnum);
-            if (!acts || acts.length === 0) return new ParseReturn(false, null, `input not acceptable: ${this._prodset.getSymInStr(token.symnum)} at ${token.area}`, 1);
+            if (!acts || acts.length === 0) return new ParseReturn(false, null, new NotAcceptableError(`input not acceptable: ${this._prodset.getSymInStr(token.symnum)} at ${token.area}`));
             let act = acts[0];
             if (act instanceof ShiftAction) {
                 stack[++stacktop] = { tnode: new ParseTreeTermNode(token.symnum, token), state: act.toStateNum };
@@ -150,8 +151,8 @@ export abstract class LRParser extends Parser {
                 else throw new Error("impossible code path"); //reserved code path, should be no possible here
             }
             else if (act instanceof AcceptAction) {
-                if (i !== len - 1) return new ParseReturn(false, null, `input not acceptable, reach to the end of parsing before consume all tokens, last token: ${token.area.toString()}`, 2);
-                else if (stacktop !== 1) return new ParseReturn(false, null, `input not acceptable, reach to the end of parsing before constructing a complete parse tree, ${stacktop}`, 3);
+                if (i !== len - 1) return new ParseReturn(false, null, new TooManyTokensError());
+                else if (stacktop !== 1) return new ParseReturn(false, null, new NeedMoreTokensError());
                 else return new ParseReturn(true, <ParseTreeMidNode>stackitem.tnode);
             }
             else throw new Error("impossible code path, 2"); //reserved code path, should be no possible here
