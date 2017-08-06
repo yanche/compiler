@@ -113,11 +113,11 @@ export default function lex(input: string, prodset: ProdSet): LexReturn {
             else
                 tokens.push(new Token(idstr, keywords.some(c => c === idstr) ? prodset.getSymNum(idstr) : prodset.getSymNum("id"), areaWithColNext(posi, idstr.length)));
         }
-        else return new LexReturn(false, null, new InvalidTokenError(ch, posi));
+        else return new LexReturn(null, new InvalidTokenError(ch, posi));
 
         ++i;
         ++col;
     }
     tokens.push(new Token("", prodset.getSymNum("$"), noArea));
-    return new LexReturn(true, tokens);
+    return new LexReturn(tokens);
 }

@@ -134,7 +134,7 @@ export abstract class LRParser extends Parser {
         while (i < len) {
             let token = tokens[i], stackitem = stack[stacktop];
             let acts = this._ptable.get(stackitem.state).get(token.symnum);
-            if (!acts || acts.length === 0) return new ParseReturn(false, null, new NotAcceptableError(`input not acceptable: ${this._prodset.getSymInStr(token.symnum)} at ${token.area}`));
+            if (!acts || acts.length === 0) return new ParseReturn(null, new NotAcceptableError(`input not acceptable: ${this._prodset.getSymInStr(token.symnum)} at ${token.area}`));
             let act = acts[0];
             if (act instanceof ShiftAction) {
                 stack[++stacktop] = { tnode: new ParseTreeTermNode(token.symnum, token), state: act.toStateNum };
@@ -151,9 +151,9 @@ export abstract class LRParser extends Parser {
                 else throw new Error("impossible code path"); //reserved code path, should be no possible here
             }
             else if (act instanceof AcceptAction) {
-                if (i !== len - 1) return new ParseReturn(false, null, new TooManyTokensError());
-                else if (stacktop !== 1) return new ParseReturn(false, null, new NeedMoreTokensError());
-                else return new ParseReturn(true, <ParseTreeMidNode>stackitem.tnode);
+                if (i !== len - 1) return new ParseReturn(null, new TooManyTokensError());
+                else if (stacktop !== 1) return new ParseReturn(null, new NeedMoreTokensError());
+                else return new ParseReturn(<ParseTreeMidNode>stackitem.tnode);
             }
             else throw new Error("impossible code path, 2"); //reserved code path, should be no possible here
         }

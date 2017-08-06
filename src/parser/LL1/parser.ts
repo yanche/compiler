@@ -53,7 +53,7 @@ export default class LL1Parser extends Parser {
             }
             else if (node instanceof ParseTreeMidNode) {
                 let prods = this._table.get(stacktop.symnum).get(token.symnum) || [];
-                if (prods.length === 0) return new ParseReturn(false, null, new NotAcceptableError(`no production is found for: ${this._prodset.getSymInStr(node.symnum)}, ${this._prodset.getSymInStr(token.symnum)}`));
+                if (prods.length === 0) return new ParseReturn(null, new NotAcceptableError(`no production is found for: ${this._prodset.getSymInStr(node.symnum)}, ${this._prodset.getSymInStr(token.symnum)}`));
                 if (prods.length > 1) throw new Error(`defensive code, more than 1 productions are found for: ${node.symnum}, ${token.symnum}`);
                 let prodid = prods[0];
                 let newstackitems = this._prodset.getProdRef(prodid).rnums.map(sym => {
@@ -65,9 +65,9 @@ export default class LL1Parser extends Parser {
             }
             else throw new Error("node neither a termnode nor a midnode");
         }
-        if (stack.length !== 0) return new ParseReturn(false, null, new NeedMoreTokensError());
-        else if (i === tokens.length - 1) return new ParseReturn(true, root);
-        else return new ParseReturn(false, null, new TooManyTokensError());
+        if (stack.length !== 0) return new ParseReturn(null, new NeedMoreTokensError());
+        else if (i === tokens.length - 1) return new ParseReturn(root);
+        else return new ParseReturn(null, new TooManyTokensError());
     }
 
     private _add(ntsym: number, tsym: number, prodnum: number): this {

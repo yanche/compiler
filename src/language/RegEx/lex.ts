@@ -37,12 +37,12 @@ export default function lex(input: string, prodset: ProdSet): LexReturn {
                     else if (chnum >= chnum_0 && chnum <= chnum_9)
                         symnum = prodset.getSymNum("digit");
                     else
-                        return new LexReturn(false, null, new InvalidTokenError(ch, new Posi(1, i + 1)));
+                        return new LexReturn(null, new InvalidTokenError(ch, new Posi(1, i + 1)));
             }
             tokens.push(new Token(ch, symnum, new Area(new Posi(1, i + 1), new Posi(1, i + 2))));
         }
         ++i;
     }
     tokens.push(new Token("", prodset.getSymNum("$"), noArea));
-    return new LexReturn(true, tokens);
+    return new LexReturn(tokens);
 }

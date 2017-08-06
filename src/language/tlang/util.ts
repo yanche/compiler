@@ -300,8 +300,8 @@ export class SemanticCheckReturn extends c.SemanticCheckReturn {
     private _type: Type;
     private _returns: boolean;
 
-    constructor(accept: boolean, error?: c.SemanticError) {
-        super(accept, error);
+    constructor(error?: c.SemanticError) {
+        super(error);
         this._type = null;
         this._returns = false;
     }
@@ -397,5 +397,5 @@ const TMP_REGS_FP = -1;
 export { predefinedFn, TMP_REGS_FP };
 
 export function createInvalidTypeReturn(typeBaseName: string, area: c.Area): SemanticCheckReturn {
-    return new SemanticCheckReturn(false, new c.SemanticError(`invalid type: ${typeBaseName}, at ${area}`, ErrorCode.TYPE_NOTFOUND));
+    return new SemanticCheckReturn(new c.SemanticError(`invalid type: ${typeBaseName}, at ${area}`, ErrorCode.TYPE_NOTFOUND));
 }
