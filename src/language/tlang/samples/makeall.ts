@@ -18,6 +18,7 @@ function compileFromFile(filename: string) {
 Promise.all([
     compileFromFile('./qsort.tlang'),
     compileFromFile('./methodoverride.tlang'),
-    compileFromFile('./test.tlang')
+    compileFromFile('./test.tlang'),
+    compileFromFile('./mergesort.tlang')
 ])
     .then(() => console.log('done'));

@@ -1,42 +1,41 @@
 
 import lex from "./lex";
 import { astConverter, parser, prodSet } from "./syntax";
-import * as c from "../../compile";
-import * as fs from "fs";
+import { CompileReturn } from "../../compile";
 import semanticAnalysis from "./semantic";
-import * as a from "./ast";
-import * as utility from "../../utility";
-import * as ic from "./intermediatecode";
-import * as m from "./mipscode";
-import * as util from "./util";
+import { ASTNode_globaldefs } from "./ast";
+import { file } from "../../utility";
+import { generateIntermediateCode } from "./intermediatecode";
+import { generateMIPSCode } from "./mipscode";
+import { ClassLookup, FunctionLookup } from "./util";
 
 
-function compile(input: string, optimizedicpath: string, icregallocpath: string, mipspath: string): Promise<c.CompileReturn> {
+function compile(input: string, optimizedicpath: string, icregallocpath: string, mipspath: string): Promise<CompileReturn> {
     return Promise.resolve().then(() => {
         let lexret = lex(input, prodSet);
-        if (!lexret.accept) return new c.CompileReturn(false, lexret.errmsg, lexret.errcode);
+        if (!lexret.accept) return new CompileReturn(false, lexret.errmsg, lexret.errcode);
         let parseret = parser.parse(lexret.tokens);
-        if (!parseret.accept) return new c.CompileReturn(false, parseret.errmsg, parseret.errcode);
-        let ast = <a.ASTNode_globaldefs>astConverter.toAST(parseret.root);
-        let classlookup = new util.ClassLookup();
-        let fnlookup = new util.FunctionLookup();
+        if (!parseret.accept) return new CompileReturn(false, parseret.errmsg, parseret.errcode);
+        let ast = <ASTNode_globaldefs>astConverter.toAST(parseret.root);
+        let classlookup = new ClassLookup();
+        let fnlookup = new FunctionLookup();
         let tret = semanticAnalysis(ast, classlookup, fnlookup);
-        if (!tret.accept) return new c.CompileReturn(false, tret.errmsg, tret.errcode);
+        if (!tret.accept) return new CompileReturn(false, tret.errmsg, tret.errcode);
         // let mret = ast.completenesscheck(true);
-        // if (!mret.accept) return new c.CompileReturn(false, mret.errmsg, mret.errcode);
-        let code = ic.generateIntermediateCode(classlookup, fnlookup);
+        // if (!mret.accept) return new CompileReturn(false, mret.errmsg, mret.errcode);
+        let code = generateIntermediateCode(classlookup, fnlookup);
         let iccode = code.toString();
-        let mips = m.generateMIPSCode(code, classlookup, fnlookup.mainfnmipslabel);
+        let mips = generateMIPSCode(code, classlookup, fnlookup.mainfnmipslabel);
         let mipscode = mips.toString();
         let icafterregallo = code.toString();
-        return Promise.all([utility.file.writeFile(optimizedicpath, iccode), utility.file.writeFile(icregallocpath, icafterregallo), utility.file.writeFile(mipspath, mipscode)]).then(x => new c.CompileReturn(true))
-        // return utility.file.writeFile(icpath, code.toString())
-        //     .then(() => utility.file.writeFile(optimizedicpath, code.optimzie().toString()))
-        //     .then(() => utility.file.writeFile(mipspath, code.toMIPS(classlookup).toString()))
-        //     .then(() => new c.CompileReturn(true));
-    }).catch((err: Error) => new c.CompileReturn(false, "failed to write intermediate code into given file: \n" + err.stack, 0));
+        return Promise.all([file.writeFile(optimizedicpath, iccode), file.writeFile(icregallocpath, icafterregallo), file.writeFile(mipspath, mipscode)]).then(x => new CompileReturn(true))
+        // return file.writeFile(icpath, code.toString())
+        //     .then(() => file.writeFile(optimizedicpath, code.optimzie().toString()))
+        //     .then(() => file.writeFile(mipspath, code.toMIPS(classlookup).toString()))
+        //     .then(() => new CompileReturn(true));
+    }).catch((err: Error) => new CompileReturn(false, "failed to write intermediate code into given file: \n" + err.stack, 0));
 }
 
-export function compileFromFile(srcfilepath: string): Promise<c.CompileReturn> {
-    return utility.file.readFile(srcfilepath).then((data: Buffer) => compile(data.toString("utf8"), srcfilepath + ".optimized.ic", srcfilepath + ".optimized.regallocated.ic", srcfilepath + ".asm"));
+export function compileFromFile(srcfilepath: string): Promise<CompileReturn> {
+    return file.readFile(srcfilepath).then((data: Buffer) => compile(data.toString("utf8"), srcfilepath + ".optimized.ic", srcfilepath + ".optimized.regallocated.ic", srcfilepath + ".asm"));
 }

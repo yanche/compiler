@@ -1,0 +1,50 @@
+void mergeSort([int] nums, int N) {
+	helper(nums, 0, N - 1);
+}
+
+void helper([int] nums, int s, int e) {
+	if(s >= e) return;
+	int mid = (s + e) / 2;
+	helper(nums, s, mid);
+	helper(nums, mid + 1, e);
+	[int] sorted = new [int](e - s + 1);
+	int i = s;
+	int j = mid + 1;
+	int k = 0;
+	while(i <= mid || j <= e) {
+		if(j > e || (i <= mid && nums[i] <= nums[j])) {
+			sorted[k] = nums[i];
+			i=i+1;
+		}
+		else {
+			sorted[k] = nums[j];
+			j=j+1;
+		}
+		k = k+ 1;
+	}
+	for(i = 0; i < e - s + 1; i =i+1) nums[i + s]=sorted[i];
+}
+
+void printarr([int] arr, int s, int e) {
+	while(s <= e) {
+		print_int(arr[s]);
+		print_newline();
+		s=s+1;
+	}
+}
+
+void main() {
+	[int] arr = new [int](10);
+	arr[0] = 5;
+	arr[1] = 1;
+	arr[2] = 2;
+	arr[3] = 7;
+	arr[4] = -5;
+	arr[5] = 30;
+	arr[6] = 21;
+	arr[7] = 99;
+	arr[8] = 2;
+	arr[9] = 0;
+	mergeSort(arr ,9);
+	printarr(arr, 0, 9);
+}
