@@ -104,7 +104,7 @@ function buildVTableAndFieldOnClass(classdef: ClassDefinition, fnlookup: Functio
     if (colormap.get(classdef.name) === 2) return new SemanticCheckReturn(); //work finished
     colormap.set(classdef.name, 1);
     let parentclass = classdef.getParent(), parentvtable: Array<FunctionDefinition> = null, parentfieldspace: Array<Field> = null, parentclassbytelength: number = null;
-    if (parentclass != null) {
+    if (parentclass) {
         //generate parent vtable
         let cret = buildVTableAndFieldOnClass(parentclass, fnlookup, colormap, classlookup);
         if (!cret.accept) return cret;
@@ -168,8 +168,8 @@ function buildVTableAndField(classlookup: ClassLookup, fnlookup: FunctionLookup)
     for (let m of classes) { colormap.set(m, 0); }//color: 0->unvisited, 1->working on, 2->work finish
     let len = classes.length, i = 0;
     while (true) {
-        while (i < len && colormap.get(classes[i]) != 0)++i;
-        if (i == len) return new SemanticCheckReturn();
+        while (i < len && colormap.get(classes[i]) !== 0)++i;
+        if (i === len) return new SemanticCheckReturn();
         let cret = buildVTableAndFieldOnClass(classlookup.getClass(classes[i]), fnlookup, colormap, classlookup);
         if (!cret.accept) return cret;
     }

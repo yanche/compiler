@@ -61,15 +61,19 @@ export class FunctionLookup {
         let m2 = m1.get(fnname);
         return m2 || [];
     }
+
     hasFn(fnname: string, argtypelist: Array<Type>): boolean {
         return this.hasMethod(fnname, "", argtypelist);
     }
+
     hasMethod(methodname: string, classname: string, argtypelist: Array<Type>): boolean {
         return this._getFnArrOrEmpty(methodname, classname).some(fndef => fndef.signiture.equals(methodname, classname, argtypelist));
     }
+
     addFn(fnname: string, rettype: Type, argtypelist: Array<Type>, area: c.Area): FunctionDefinition {
         return this.addMethod(fnname, "", rettype, argtypelist, area);
     }
+
     addMethod(methodname: string, classname: string, rettype: Type, argtypelist: Array<Type>, area: c.Area): FunctionDefinition {
         if (this.hasMethod(methodname, classname, argtypelist)) throw new Error("function/method exists: " + FunctionSigniture.toString(methodname, classname, argtypelist));
         let m1 = this._map.get(classname);
@@ -82,10 +86,11 @@ export class FunctionLookup {
             m2 = new Array<FunctionDefinition>();
             m1.set(methodname, m2);
         }
-        let fndef = new FunctionDefinition(methodname, classname, rettype, argtypelist, area).setSeqId(this._seqid);
+        let fndef = new FunctionDefinition(methodname, classname, rettype, argtypelist, area, this._seqid);
         m2.push(fndef);
         return fndef;
     }
+
     getApplicableMethod(fnname: string, classname: string, parametertypelist: Array<Type>, classlookup: ClassLookup): Array<FunctionDefinition> {
         let fnlist = this._map.get(classname).get(fnname);
         let candidates = new Array<FunctionDefinition>();
@@ -98,9 +103,11 @@ export class FunctionLookup {
         }
         return candidates;
     }
+
     getApplicableFn(fnname: string, parametertypelist: Array<Type>, classlookup: ClassLookup): Array<FunctionDefinition> {
         return this.getApplicableMethod(fnname, "", parametertypelist, classlookup);
     }
+
     findMethods(classname: string): Array<FunctionDefinition> {
         let ret = new Array<Array<FunctionDefinition>>();
         let m1 = this._map.get(classname || "");
@@ -108,6 +115,7 @@ export class FunctionLookup {
             for (let x of m1) ret.push(x[1]);
         return flatten(ret);
     }
+
     constructor() {
         this._map = new Map<string, Map<string, Array<FunctionDefinition>>>();
         this._seqid = new IdGen();
@@ -119,21 +127,20 @@ export class FunctionDefinition {
     astnode: a.ASTNode_functiondef;
     private _seqid: number;
 
-    constructor(public name: string, public classname: string, public rettype: Type, public argtypelist: Array<Type>, public area: c.Area) {
+    constructor(public name: string, public classname: string, public rettype: Type, public argtypelist: Array<Type>, public area: c.Area, seqIdGen: IdGen) {
         this.signiture = new FunctionSigniture(name, classname, argtypelist);
         this.astnode = null;
-        this._seqid = null;
+        this._seqid = seqIdGen.next();
     }
-    setSeqId(idgen: IdGen): this {
-        this._seqid = idgen.next();
-        return this;
-    }
+
     getMIPSLabel(): string {
         return `fnlabel_${this._seqid}`;
     }
+
     getMIPSLabel_return(): string {
         return `fnlabel_${this._seqid}_return`;
     }
+
     //NOTE: this method do not test on class inheritence relationship
     overridedBy(fndef: FunctionDefinition): boolean {
         //ignore the type match for "this" pointer
@@ -313,32 +320,42 @@ export class SemanticCheckReturn extends c.SemanticCheckReturn {
 
 export class Type {
     constructor(public basetype: string, public depth: number) { };
+
     toString(): string {
         return Type.toString(this.basetype, this.depth);
     }
+
     equals2(type: Type): boolean {
         return this.basetype === type.basetype && this.depth === type.depth;
     }
+
     equals(basetype: string, depth: number): boolean {
         return this.basetype === basetype && this.depth === depth;
     }
+
     isBool(): boolean {
         return this.equals(PRIMITIVE_TYPE_BOOL, 0);
     }
+
     isInt(): boolean {
         return this.equals(PRIMITIVE_TYPE_INT, 0);
     }
+
     isVoid(): boolean {
         return this.equals(SPECIAL_TYPE_VOID, 0);
     }
+
     isNull(): boolean {
         return this.equals(SPECIAL_TYPE_NULL, 0);
     }
+
     static void = new Type(SPECIAL_TYPE_VOID, 0);
     static null = new Type(SPECIAL_TYPE_NULL, 0);
+
     static toString(basetype: string, depth: number): string {
         return depth === 0 ? basetype : ["[", Type.toString(basetype, depth - 1), "]"].join("");
     }
+    
     static intType(depth: number): Type {
         return new Type(PRIMITIVE_TYPE_INT, depth);
     }
