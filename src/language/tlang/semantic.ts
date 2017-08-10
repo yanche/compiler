@@ -12,9 +12,9 @@ export default function analysize(root: ASTNode_globaldefs, classlookup: ClassLo
     classlookup.getClass(rootClassName).setParent(null);
 
     //predefined functions
-    predefinedFn.print_int.mipslabel = fnlookup.addFn(predefinedFn.print_int.name, predefinedFn.print_int.rettype, predefinedFn.print_int.argtypelist, noArea).getMIPSLabel();
-    predefinedFn.print_bool.mipslabel = fnlookup.addFn(predefinedFn.print_bool.name, predefinedFn.print_bool.rettype, predefinedFn.print_bool.argtypelist, noArea).getMIPSLabel();
-    predefinedFn.print_newline.mipslabel = fnlookup.addFn(predefinedFn.print_newline.name, predefinedFn.print_newline.rettype, predefinedFn.print_newline.argtypelist, noArea).getMIPSLabel();
+    predefinedFn.print_int.mipslabel = fnlookup.addPredefinedFn(predefinedFn.print_int.name, predefinedFn.print_int.rettype, predefinedFn.print_int.argtypelist).getMIPSLabel();
+    predefinedFn.print_bool.mipslabel = fnlookup.addPredefinedFn(predefinedFn.print_bool.name, predefinedFn.print_bool.rettype, predefinedFn.print_bool.argtypelist).getMIPSLabel();
+    predefinedFn.print_newline.mipslabel = fnlookup.addPredefinedFn(predefinedFn.print_newline.name, predefinedFn.print_newline.rettype, predefinedFn.print_newline.argtypelist).getMIPSLabel();
 
     //first loop, collect all classes
     for (let node of root.children) {
@@ -82,10 +82,10 @@ export default function analysize(root: ASTNode_globaldefs, classlookup: ClassLo
     for (let classname of classlookup.getAllClasses().concat(null)) {
         let classdef = classlookup.getClass(classname);
         for (let fndef of fnlookup.findMethods(classname)) {
-            if (fndef.astnode == null) continue;
+            if (fndef.predefined) continue;
             let cret = fndef.astnode.makeSymbolTable(classname, classlookup);
             if (!cret.accept) return cret;
-            cret = fndef.astnode.typeAnalysis(classlookup, fnlookup, new SemContext(fndef.rettype, (classdef == null || fndef.name !== ClassLookup.constructorFnName) ? null : classdef.getParent(), classdef));
+            cret = fndef.astnode.typeAnalysis(classlookup, fnlookup, new SemContext(fndef.rettype, (!classdef || fndef.name !== ClassLookup.constructorFnName) ? null : classdef.getParent(), classdef));
             if (!cret.accept) return cret;
             cret = fndef.astnode.codepathAnalysis();
             if (!cret.accept) return cret;

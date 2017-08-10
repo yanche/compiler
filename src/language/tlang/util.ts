@@ -1,5 +1,5 @@
 
-import * as c from "../../compile";
+import { noArea, Area, SemanticCheckReturn as BaseSemanticCheckReturn, SemanticError } from "../../compile";
 import * as util from "./util";
 import * as a from "./ast";
 import * as i from "./intermediatecode";
@@ -70,23 +70,31 @@ export class FunctionLookup {
         return this._getFnArrOrEmpty(methodname, classname).some(fndef => fndef.signiture.equals(methodname, classname, argtypelist));
     }
 
-    addFn(fnname: string, rettype: Type, argtypelist: Array<Type>, area: c.Area): FunctionDefinition {
-        return this.addMethod(fnname, "", rettype, argtypelist, area);
+    addPredefinedFn(fnname: string, rettype: Type, argtypelist: Array<Type>): FunctionDefinition {
+        return this._addFn(fnname, "", rettype, argtypelist, noArea, true);
     }
 
-    addMethod(methodname: string, classname: string, rettype: Type, argtypelist: Array<Type>, area: c.Area): FunctionDefinition {
-        if (this.hasMethod(methodname, classname, argtypelist)) throw new Error("function/method exists: " + FunctionSigniture.toString(methodname, classname, argtypelist));
+    addFn(fnname: string, rettype: Type, argtypelist: Array<Type>, area: Area): FunctionDefinition {
+        return this._addFn(fnname, "", rettype, argtypelist, area, false);
+    }
+
+    addMethod(fnname: string, classname: string, rettype: Type, argtypelist: Array<Type>, area: Area): FunctionDefinition {
+        return this._addFn(fnname, classname, rettype, argtypelist, area, false);
+    }
+
+    private _addFn(fnname: string, classname: string, rettype: Type, argtypelist: Array<Type>, area: Area, predefined: boolean): FunctionDefinition {
+        if (this.hasMethod(fnname, classname, argtypelist)) throw new Error("function/method exists: " + FunctionSigniture.toString(fnname, classname, argtypelist));
         let m1 = this._map.get(classname);
         if (m1 == null) {
             m1 = new Map<string, Array<FunctionDefinition>>();
             this._map.set(classname, m1);
         }
-        let m2 = m1.get(methodname);
+        let m2 = m1.get(fnname);
         if (m2 == null) {
             m2 = new Array<FunctionDefinition>();
-            m1.set(methodname, m2);
+            m1.set(fnname, m2);
         }
-        let fndef = new FunctionDefinition(methodname, classname, rettype, argtypelist, area, this._seqid);
+        let fndef = new FunctionDefinition(fnname, classname, rettype, argtypelist, area, this._seqid, predefined);
         m2.push(fndef);
         return fndef;
     }
@@ -111,7 +119,7 @@ export class FunctionLookup {
     findMethods(classname: string): Array<FunctionDefinition> {
         let ret = new Array<Array<FunctionDefinition>>();
         let m1 = this._map.get(classname || "");
-        if (m1 != null)
+        if (m1)
             for (let x of m1) ret.push(x[1]);
         return flatten(ret);
     }
@@ -125,12 +133,19 @@ export class FunctionLookup {
 export class FunctionDefinition {
     signiture: FunctionSigniture;
     astnode: a.ASTNode_functiondef;
+
+    private _predefined: boolean;
     private _seqid: number;
 
-    constructor(public name: string, public classname: string, public rettype: Type, public argtypelist: Array<Type>, public area: c.Area, seqIdGen: IdGen) {
+    constructor(public name: string, public classname: string, public rettype: Type, public argtypelist: Array<Type>, public area: Area, seqIdGen: IdGen, predefined: boolean) {
         this.signiture = new FunctionSigniture(name, classname, argtypelist);
         this.astnode = null;
         this._seqid = seqIdGen.next();
+        this._predefined = predefined;
+    }
+
+    get predefined(): boolean {
+        return this._predefined;
     }
 
     getMIPSLabel(): string {
@@ -175,7 +190,7 @@ export class FunctionSigniture {
 export class Field {
     //by byte
     offset: number;
-    constructor(public name: string, public type: Type, public area: c.Area) { }
+    constructor(public name: string, public type: Type, public area: Area) { }
 }
 
 export class ClassDefinition {
@@ -199,7 +214,7 @@ export class ClassDefinition {
 
     hasOwnField(name: string): boolean { return this._fields.has(name); }
 
-    addField(name: string, type: Type, area: c.Area): this {
+    addField(name: string, type: Type, area: Area): this {
         if (this.hasOwnField(name)) throw new Error("field exists: " + name);
         this._fields.set(name, new Field(name, type, area));
         return this;
@@ -227,7 +242,7 @@ export class ClassDefinition {
         return `vtable_${this.name}`;
     }
 
-    constructor(public name: string, public area: c.Area) {
+    constructor(public name: string, public area: Area) {
         this._fields = new Map<string, Field>();
         this._parentclass = null;
         this.vmethodTable = null;
@@ -244,7 +259,7 @@ export class ClassLookup {
         return this._map.has(classname);
     }
 
-    addClass(classname: string, area: c.Area): this {
+    addClass(classname: string, area: Area): this {
         if (this._map.has(classname)) throw new Error(`class exists: ${classname}`);
         this._map.set(classname, new ClassDefinition(classname, area));
         return this;
@@ -275,19 +290,24 @@ export class SymbolFrame {
         else if (this._parent == null) return null;
         else return this._parent.find(varname);
     }
+
     add(varname: string, symattrs: SymbolAttrs): this {
-        if (symattrs == null) throw new Error("null symbol-attributes is not allowed");
+        if (!symattrs) throw new Error("null symbol-attributes is not allowed");
         if (this._map.has(varname)) throw new Error("variable " + varname + " exists");
         this._map.set(varname, symattrs);
         return this;
     }
+
     has(varname: string): boolean {
         return this.find(varname) != null;
     }
+
     hasOnTop(varname: string): boolean {
         return this._map.has(varname);
     }
+
     newFrame(): SymbolFrame { return new SymbolFrame(this); }
+    
     constructor(parent: SymbolFrame) {
         this._map = new Map<string, SymbolAttrs>();
         this._parent = parent;
@@ -297,17 +317,23 @@ export class SymbolFrame {
 export class SymbolAttrs {
     //used in intermediate code generation
     private _tmpregid: number;
-    constructor(public type: Type, tmpregid: number) {
+    private _declaredArea: Area;
+
+    constructor(public type: Type, tmpregid: number, declaredArea: Area) {
         this._tmpregid = tmpregid;
+        this._declaredArea = declaredArea;
     }
+
+    get declaredArea(): Area { return this._declaredArea; }
+
     get tmpRegId(): number { return this._tmpregid; }
 }
 
-export class SemanticCheckReturn extends c.SemanticCheckReturn {
+export class SemanticCheckReturn extends BaseSemanticCheckReturn {
     private _type: Type;
     private _returns: boolean;
 
-    constructor(error?: c.SemanticError) {
+    constructor(error?: SemanticError) {
         super(error);
         this._type = null;
         this._returns = false;
@@ -355,7 +381,7 @@ export class Type {
     static toString(basetype: string, depth: number): string {
         return depth === 0 ? basetype : ["[", Type.toString(basetype, depth - 1), "]"].join("");
     }
-    
+
     static intType(depth: number): Type {
         return new Type(PRIMITIVE_TYPE_INT, depth);
     }
@@ -413,6 +439,6 @@ let predefinedFn = {
 const TMP_REGS_FP = -1;
 export { predefinedFn, TMP_REGS_FP };
 
-export function createInvalidTypeReturn(typeBaseName: string, area: c.Area): SemanticCheckReturn {
-    return new SemanticCheckReturn(new c.SemanticError(`invalid type: ${typeBaseName}, at ${area}`, ErrorCode.TYPE_NOTFOUND));
+export function createInvalidTypeReturn(typeBaseName: string, area: Area): SemanticCheckReturn {
+    return new SemanticCheckReturn(new SemanticError(`invalid type: ${typeBaseName}, at ${area}`, ErrorCode.TYPE_NOTFOUND));
 }
