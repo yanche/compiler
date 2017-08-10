@@ -1,0 +1,22 @@
+
+class Base {
+    constructor(int a) {
+
+    }
+
+    void say(int a) {
+
+    }
+}
+
+class Derived : Base {
+
+    void say(bool a) {
+
+    }
+}
+
+void main() {
+    Derived b = new Derived();
+    b.say(true);
+}

@@ -136,14 +136,14 @@ let processor = defineSyntaxProcessor([
     {
         production: "CLASS-BODY -> CLASS-BODY-ITEM CLASS-BODY",
         handler: node => {
-            let left = <a.ASTNode_vardeclare | a.ASTNode_functiondef>childToAST(node, 0), right = <a.ASTNode_classbody>childToAST(node, 1);
+            let left = <a.ASTNode_vardeclare | a.ASTNode_functiondef | a.ASTNode_constructordef>childToAST(node, 0), right = <a.ASTNode_classbody>childToAST(node, 1);
             return new a.ASTNode_classbody([left].concat(right.children));
         }
     },
     {
         production: "CLASS-BODY -> CLASS-BODY-ITEM",
         handler: node => {
-            return new a.ASTNode_classbody([<a.ASTNode_vardeclare | a.ASTNode_functiondef>childToAST(node, 0)]);
+            return new a.ASTNode_classbody([<a.ASTNode_vardeclare | a.ASTNode_functiondef | a.ASTNode_constructordef>childToAST(node, 0)]);
         }
     },
     {
@@ -158,7 +158,7 @@ let processor = defineSyntaxProcessor([
         production: "CLASS-BODY-ITEM -> constructor FUNCTION-DEFINITION-MAIN",
         handler: node => {
             let right = <a.ASTNode_functiondef_main>childToAST(node, 1);
-            return new a.ASTNode_functiondef(new a.ASTNode_type(new Token(util.Type.void.basetype, null, noArea), 0), childToken(node, 0), right.argumentlist, right.statementlist);
+            return new a.ASTNode_constructordef(right.argumentlist, right.statementlist);
         }
     },
     {

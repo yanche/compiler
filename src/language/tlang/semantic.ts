@@ -1,5 +1,5 @@
 
-import { ASTNode_globaldefs, ASTNode_classdef, ASTNode_vardeclare, ASTNode_argumentlist } from "./ast";
+import { ASTNode_globaldefs, ASTNode_classdef, ASTNode_vardeclare, ASTNode_argumentlist, ASTNode_constructordef, ASTNode_functiondef } from "./ast";
 import { noArea, SemanticError, Area } from "../../compile";
 import { predefinedFn, ClassLookup, FunctionLookup, SemanticCheckReturn, isType, isFnRet, Type, FunctionDefinition, ClassDefinition, Field, SemContext, createInvalidTypeReturn } from "./util";
 import { ErrorCode } from "./error";
@@ -12,9 +12,9 @@ export default function analysize(root: ASTNode_globaldefs, classlookup: ClassLo
     classlookup.getClass(rootClassName).setParent(null);
 
     //predefined functions
-    predefinedFn.print_int.mipslabel = fnlookup.addPredefinedFn(predefinedFn.print_int.name, predefinedFn.print_int.rettype, predefinedFn.print_int.argtypelist).getMIPSLabel();
-    predefinedFn.print_bool.mipslabel = fnlookup.addPredefinedFn(predefinedFn.print_bool.name, predefinedFn.print_bool.rettype, predefinedFn.print_bool.argtypelist).getMIPSLabel();
-    predefinedFn.print_newline.mipslabel = fnlookup.addPredefinedFn(predefinedFn.print_newline.name, predefinedFn.print_newline.rettype, predefinedFn.print_newline.argtypelist).getMIPSLabel();
+    predefinedFn.print_int.mipslabel = fnlookup.addFn(predefinedFn.print_int.name, predefinedFn.print_int.rettype, predefinedFn.print_int.argtypelist, noArea, true).getMIPSLabel();
+    predefinedFn.print_bool.mipslabel = fnlookup.addFn(predefinedFn.print_bool.name, predefinedFn.print_bool.rettype, predefinedFn.print_bool.argtypelist, noArea, true).getMIPSLabel();
+    predefinedFn.print_newline.mipslabel = fnlookup.addFn(predefinedFn.print_newline.name, predefinedFn.print_newline.rettype, predefinedFn.print_newline.argtypelist, noArea, true).getMIPSLabel();
 
     //first loop, collect all classes
     for (let node of root.children) {
@@ -34,7 +34,6 @@ export default function analysize(root: ASTNode_globaldefs, classlookup: ClassLo
             //set base class
             let classdef = classlookup.getClass(node.name.rawstr);
             classdef.setParent(parentclass);
-            let noconstructor = true;
             for (let b of node.body.children) {
                 if (b instanceof ASTNode_vardeclare) {
                     //process a new field
@@ -43,18 +42,20 @@ export default function analysize(root: ASTNode_globaldefs, classlookup: ClassLo
                     if (classdef.hasOwnField(b.name.rawstr)) return new SemanticCheckReturn(new SemanticError(`duplicate field declaration: ${b.name.rawstr} at ${b.name.area}`, ErrorCode.DUP_FIELD_DEFINITION));
                     classdef.addField(b.name.rawstr, type, b.area);
                 }
-                else {
-                    //check type of argument list and return declaration
+                else if (b instanceof ASTNode_functiondef) {
                     for (let a of b.argumentlist.children) { if (!isType(a.type.type.basetype, classlookup)) return createInvalidTypeReturn(a.type.type.basetype, a.type.area); }
                     if (!isFnRet(b.returntype.type.basetype, classlookup)) return createInvalidTypeReturn(b.returntype.type.basetype, b.returntype.area);
                     let argtypelist = [new Type(classdef.name, 0)].concat(toArgTypeList(b.argumentlist));
-                    if (fnlookup.hasMethod(b.name.rawstr, classdef.name, argtypelist)) return new SemanticCheckReturn(new SemanticError(`duplicate method/constructor declaration: ${b.name.rawstr} at ${b.name.area}`, ErrorCode.DUP_METHOD_CONSTRUCTOR_DEFINITION));
-                    //constructor or method
-                    fnlookup.addMethod(b.name.rawstr, classdef.name, b.returntype.type, argtypelist, node.area).astnode = b;
-                    if (noconstructor && b.name.rawstr === ClassLookup.constructorFnName) noconstructor = false;
+                    if (fnlookup.hasDefinedMethod(b.name.rawstr, classdef.name, argtypelist)) return new SemanticCheckReturn(new SemanticError(`duplicate method declaration: ${b.name.rawstr} at ${b.name.area}`, ErrorCode.DUP_METHOD_DEFINITION));
+                    fnlookup.addMethod(b.name.rawstr, classdef.name, b.returntype.type, argtypelist, b.area).astnode = b;
+                }
+                else {
+                    for (let a of b.argumentlist.children) { if (!isType(a.type.type.basetype, classlookup)) return createInvalidTypeReturn(a.type.type.basetype, a.type.area); }
+                    let argtypelist = [new Type(classdef.name, 0)].concat(toArgTypeList(b.argumentlist));
+                    if (fnlookup.hasConstructor(classdef.name, argtypelist)) return new SemanticCheckReturn(new SemanticError(`duplicate constructor declaration: ${b.area}`, ErrorCode.DUP_CONSTRUCTOR_DEFINITION));
+                    fnlookup.addConstructor(classdef.name, argtypelist, b.area).astnode = b;
                 }
             }
-            classdef.noConstructor = noconstructor;
         }
         else {
             //check type of argument list and return declaration
@@ -64,7 +65,7 @@ export default function analysize(root: ASTNode_globaldefs, classlookup: ClassLo
             let argtypelist = toArgTypeList(node.argumentlist);
             if (fnlookup.hasFn(node.name.rawstr, argtypelist)) return new SemanticCheckReturn(new SemanticError(`function already exists (with same signiture): ${node.name.rawstr} at ${node.name.area}`, ErrorCode.DUP_FN_DEFINITION));
             //add function declaration
-            fnlookup.addFn(node.name.rawstr, node.returntype.type, argtypelist, node.area).astnode = node;
+            fnlookup.addFn(node.name.rawstr, node.returntype.type, argtypelist, node.area, false).astnode = node;
         }
     }
 
@@ -85,7 +86,7 @@ export default function analysize(root: ASTNode_globaldefs, classlookup: ClassLo
             if (fndef.predefined) continue;
             let cret = fndef.astnode.makeSymbolTable(classname, classlookup);
             if (!cret.accept) return cret;
-            cret = fndef.astnode.typeAnalysis(classlookup, fnlookup, new SemContext(fndef.rettype, (!classdef || fndef.name !== ClassLookup.constructorFnName) ? null : classdef.getParent(), classdef));
+            cret = fndef.astnode.typeAnalysis(classlookup, fnlookup, new SemContext(fndef.rettype, fndef.name === ClassLookup.constructorFnName, classdef));
             if (!cret.accept) return cret;
             cret = fndef.astnode.codepathAnalysis();
             if (!cret.accept) return cret;

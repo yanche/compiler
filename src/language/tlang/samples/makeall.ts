@@ -2,6 +2,7 @@
 import { compileFromFile } from "../index";
 import { CompileReturn } from "../../../compile";
 import * as fs from "fs";
+import * as path from "path";
 
 function compile(filename: string) {
     console.log(`working on file: ${filename}`)
@@ -32,7 +33,7 @@ const folder = process.argv[2] || __dirname;
 console.log(`compiling *.tlang from folder: ${folder}`);
 
 readdir(folder)
-    .then(files => Promise.all(files.filter(f => f.slice(-6) === ".tlang").map(compile)))
+    .then(files => Promise.all(files.filter(f => f.slice(-6) === ".tlang").map(f => compile(path.join(folder, f)))))
     .then(() => {
         console.log("done");
         process.exit(0);
