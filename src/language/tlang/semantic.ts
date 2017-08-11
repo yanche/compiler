@@ -42,18 +42,18 @@ export default function analysize(root: ASTNode_globaldefs, classlookup: ClassLo
                     if (classdef.hasOwnField(b.name.rawstr)) return new SemanticCheckReturn(new SemanticError(`duplicate field declaration: ${b.name.rawstr} at ${b.name.area}`, ErrorCode.DUP_FIELD_DEFINITION));
                     classdef.addField(b.name.rawstr, type, b.area);
                 }
-                else if (b instanceof ASTNode_functiondef) {
+                else if(b instanceof ASTNode_constructordef) {
+                    for (let a of b.argumentlist.children) { if (!isType(a.type.type.basetype, classlookup)) return createInvalidTypeReturn(a.type.type.basetype, a.type.area); }
+                    let argtypelist = [new Type(classdef.name, 0)].concat(toArgTypeList(b.argumentlist));
+                    if (fnlookup.hasConstructor(classdef.name, argtypelist)) return new SemanticCheckReturn(new SemanticError(`duplicate constructor declaration: ${b.area}`, ErrorCode.DUP_CONSTRUCTOR_DEFINITION));
+                    fnlookup.addConstructor(classdef.name, argtypelist, b.area).astnode = b;
+                }
+                else {
                     for (let a of b.argumentlist.children) { if (!isType(a.type.type.basetype, classlookup)) return createInvalidTypeReturn(a.type.type.basetype, a.type.area); }
                     if (!isFnRet(b.returntype.type.basetype, classlookup)) return createInvalidTypeReturn(b.returntype.type.basetype, b.returntype.area);
                     let argtypelist = [new Type(classdef.name, 0)].concat(toArgTypeList(b.argumentlist));
                     if (fnlookup.hasDefinedMethod(b.name.rawstr, classdef.name, argtypelist)) return new SemanticCheckReturn(new SemanticError(`duplicate method declaration: ${b.name.rawstr} at ${b.name.area}`, ErrorCode.DUP_METHOD_DEFINITION));
                     fnlookup.addMethod(b.name.rawstr, classdef.name, b.returntype.type, argtypelist, b.area).astnode = b;
-                }
-                else {
-                    for (let a of b.argumentlist.children) { if (!isType(a.type.type.basetype, classlookup)) return createInvalidTypeReturn(a.type.type.basetype, a.type.area); }
-                    let argtypelist = [new Type(classdef.name, 0)].concat(toArgTypeList(b.argumentlist));
-                    if (fnlookup.hasConstructor(classdef.name, argtypelist)) return new SemanticCheckReturn(new SemanticError(`duplicate constructor declaration: ${b.area}`, ErrorCode.DUP_CONSTRUCTOR_DEFINITION));
-                    fnlookup.addConstructor(classdef.name, argtypelist, b.area).astnode = b;
                 }
             }
         }
@@ -78,15 +78,16 @@ export default function analysize(root: ASTNode_globaldefs, classlookup: ClassLo
     if (!mainfn[0].rettype.isVoid()) return new SemanticCheckReturn(new SemanticError(`entry function must return void, at ${mainfn[0].area}`, ErrorCode.ENTRY_RETURNS_VOID));
     fnlookup.mainfnmipslabel = mainfn[0].getMIPSLabel();
 
-    //return root.typecheck(new SymbolFrame(null), classlookup, fnlookup, new SemContext());
-    //"" for global functions
-    for (let classname of classlookup.getAllClasses().concat(null)) {
-        let classdef = classlookup.getClass(classname);
-        for (let fndef of fnlookup.findMethods(classname)) {
+    // includes methods, constructors, global functions
+    let allFnList = classlookup.getAllClasses().map(c => {
+        return { fnList: fnlookup.findMethods(c).concat(fnlookup.findConstructors(c)), classdef: classlookup.getClass(c) };
+    }).concat({ fnList: fnlookup.allFn(), classdef: null });
+    for (let item of allFnList) {
+        for (let fndef of item.fnList) {
             if (fndef.predefined) continue;
-            let cret = fndef.astnode.makeSymbolTable(classname, classlookup);
+            let cret = fndef.astnode.makeSymbolTable(item.classdef ? item.classdef.name : null, classlookup);
             if (!cret.accept) return cret;
-            cret = fndef.astnode.typeAnalysis(classlookup, fnlookup, new SemContext(fndef.rettype, fndef.name === ClassLookup.constructorFnName, classdef));
+            cret = fndef.astnode.typeAnalysis(classlookup, fnlookup, new SemContext(fndef.rettype, fndef.name === ClassLookup.constructorFnName, item.classdef));
             if (!cret.accept) return cret;
             cret = fndef.astnode.codepathAnalysis();
             if (!cret.accept) return cret;
@@ -123,8 +124,6 @@ function buildVTableAndFieldOnClass(classdef: ClassDefinition, fnlookup: Functio
     //construct virtual method table
     let selfdefmethods = fnlookup.findMethods(classdef.name), plen = parentvtable.length, selfvtable: Array<FunctionDefinition> = [].concat(parentvtable);
     for (let fndef of selfdefmethods) {
-        //here we ignore the constructor, it does not need to appear in virtual-method-table
-        if (fndef.name === ClassLookup.constructorFnName) continue;
         let i = 0;
         for (; i < plen; ++i) {
             if (selfvtable[i].overridedBy(fndef)) {

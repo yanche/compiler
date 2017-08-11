@@ -104,6 +104,7 @@ export class FunctionLookup {
     }
 
     addMethod(methodname: string, classname: string, rettype: Type, argtypelist: Array<Type>, area: Area): FunctionDefinition {
+        if (methodname === ClassLookup.constructorFnName) throw new Error(`!!!CRITICAL!!! constructor cannot be registered as method, coding error`);
         if (this.hasDefinedMethod(methodname, classname, argtypelist)) throw new Error(`method exists: ${FunctionSigniture.toString(methodname, classname, argtypelist)}`);
         let classMethodMap = this._methodMap.get(classname);
         if (!classMethodMap) {
@@ -147,9 +148,12 @@ export class FunctionLookup {
     }
 
     getApplicableConstructor(classdef: ClassDefinition, parametertypelist: Array<Type>, classlookup: ClassLookup): { noop: boolean; candidates?: Array<FunctionDefinition>; } {
+        // no need to run constructor function, basically here classdef is the parent of Object, to the root of class chain
         if (!classdef) return { noop: true };
         else {
             let fnlist = this._constructorMap.get(classdef.name);
+            // if no constructor definition for this class, means it take all constructor from its parent, so
+            // go on seeking the applicable constructor in its parent class
             if (!fnlist) return this.getApplicableConstructor(classdef.getParent(), parametertypelist, classlookup);
             let candidates = new Array<FunctionDefinition>();
             for (let fndef of fnlist) {
@@ -162,6 +166,16 @@ export class FunctionLookup {
             }
             return { candidates: candidates, noop: false };
         }
+    }
+
+    allFn(): Array<FunctionDefinition> {
+        let ret = new Array<Array<FunctionDefinition>>();
+        for (let x of this._fnMap) ret.push(x[1]);
+        return flatten(ret);
+    }
+
+    findConstructors(classname: string): Array<FunctionDefinition> {
+        return this._constructorMap.get(classname) || [];
     }
 
     findMethods(classname: string): Array<FunctionDefinition> {

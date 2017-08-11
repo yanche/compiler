@@ -45,15 +45,15 @@ export class ASTNode_functiondef extends ASTNode {
         let cret = this.statementlist.codepathAnalysis(false);
         if (!cret.accept) return cret;
         if (cret.returns || this.returntype.type.isVoid()) return new util.SemanticCheckReturn();
-        else return new util.SemanticCheckReturn(new SemanticError(`function/method/constructor does not return a value, at ${this.name.area}`, ErrorCode.NOT_ALWAYS_RETURN));
+        else return new util.SemanticCheckReturn(new SemanticError(`function/method does not return a value, at ${this.name.area}`, ErrorCode.NOT_ALWAYS_RETURN));
     }
 
-    makeSymbolTable(classlookup: util.ClassLookup): util.SemanticCheckReturn {
+    makeSymbolTable(classname: string, classlookup: util.ClassLookup): util.SemanticCheckReturn {
         let symboltable = new util.SymbolFrame(null);
         this._symboltable = symboltable;
         this._tmpregidgen = new IdGen();
         if (classname) {
-            // for method, constructor
+            // for method
             symboltable.add("this", new util.SymbolAttrs(new util.Type(classname, 0), this._tmpregidgen.next(), noArea));
         }
         for (let vardeclare of this.argumentlist.children) {
@@ -74,8 +74,14 @@ export class ASTNode_functiondef extends ASTNode {
     get argTmpRegIdList(): Array<number> { return range(0, this._argtmpregidupper); }
 }
 
-export class ASTNode_constructordef extends ASTNode {
-    constructor(public argumentlist: ASTNode_argumentlist, public statementlist: ASTNode_statementlist) { super(); }
+export class ASTNode_constructordef extends ASTNode_functiondef {
+    constructor(argumentlist: ASTNode_argumentlist, statementlist: ASTNode_statementlist) {
+        super(null, null, argumentlist, statementlist);
+    }
+
+    codepathAnalysis(): util.SemanticCheckReturn {
+        return this.statementlist.codepathAnalysis(false);
+    }
 }
 
 export class ASTNode_classdef extends ASTNode {
@@ -375,8 +381,9 @@ export class ASTNode_return extends ASTNode_statement {
     constructor(public retexp: ASTNode_expr) { super(); }
 
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
+        // for constructor, ctx.rettype is null
         let returntype = ctx.rettype;
-        if (returntype.isVoid()) return new util.SemanticCheckReturn(new SemanticError(`function declares to return void, cannot return a value at ${this.area}`, ErrorCode.FN_RETURN_MISMATCH));
+        if (!returntype || returntype.isVoid()) return new util.SemanticCheckReturn(new SemanticError(`function declares to return void, cannot return a value at ${this.area}`, ErrorCode.FN_RETURN_MISMATCH));
         let cret = this.retexp.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cret.accept) return cret;
         if (util.assignable(cret.type, returntype, classlookup)) return new util.SemanticCheckReturn();
@@ -399,8 +406,9 @@ export class ASTNode_return extends ASTNode_statement {
 
 export class ASTNode_returnvoid extends ASTNode_statement {
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
+        // for constructor, ctx.rettype is null
         let returntype = ctx.rettype;
-        if (!returntype.isVoid()) return new util.SemanticCheckReturn(new SemanticError(`function declares to return ${returntype}, not void, ${this.area}`, ErrorCode.FN_RETURN_MISMATCH));
+        if (returntype && !returntype.isVoid()) return new util.SemanticCheckReturn(new SemanticError(`function declares to return ${returntype}, not void, ${this.area}`, ErrorCode.FN_RETURN_MISMATCH));
         return new util.SemanticCheckReturn();
     }
 
@@ -646,17 +654,19 @@ export class ASTNode_methodcall extends ASTNode_expr {
         if (cret.type.depth !== 0) return new util.SemanticCheckReturn(new SemanticError(`array of ${cret.type} has no method at ${this.obj.area}`, ErrorCode.ARRAY_NO_METHOD));
         let classdef = classlookup.getClass(cret.type.basetype);
         if (!classdef) return new util.SemanticCheckReturn(new SemanticError(`variable not an instance of class, type ${cret.type} at ${this.obj.area}`, ErrorCode.PRIMITIVE_NO_METHOD));
-        parr = [new util.Type(classdef.name, 0)].concat(parr);
         let candidates = new Array<{ seq: number, fndef: util.FunctionDefinition }>();
         for (let i = 0; i < classdef.vmethodTable.length; ++i) {
             let fndef = classdef.vmethodTable[i];
-            let m = util.fnApplicable(fndef, this.method.rawstr, parr, classlookup);
-            if (m.match) {
-                if (m.perfect) {
-                    candidates = [{ seq: i, fndef: fndef }];
-                    break;
+            if (this.method.rawstr === fndef.name) {
+                // ignore the match of "this" pointer here
+                let m = util.fnApplicable(fndef.argtypelist.slice(1), parr, classlookup);
+                if (m.match) {
+                    if (m.perfect) {
+                        candidates = [{ seq: i, fndef: fndef }];
+                        break;
+                    }
+                    else candidates.push({ seq: i, fndef: fndef });
                 }
-                else candidates.push({ seq: i, fndef: fndef });
             }
         }
         if (candidates.length === 0) return new util.SemanticCheckReturn(new SemanticError(`no method with given parameter is applicable, at ${this.method.area}`, ErrorCode.METHOD_NOTFOUND));
@@ -889,18 +899,14 @@ export class ASTNode_newinstance extends ASTNode_expr {
         if (!classdef) return new util.SemanticCheckReturn(new SemanticError(`class not found: ${this.classname.rawstr}, at: ${this.classname.area}`, ErrorCode.CLASS_NOTFOUND));
         let rettype = new util.Type(this.classname.rawstr, 0);
         this._classdef = classdef;
-        if (classdef.noConstructor) {
-            if (plen === 0) return new util.SemanticCheckReturn().setType(rettype);
-            else return new util.SemanticCheckReturn(new SemanticError(`no constructor with given parameter is applicable, at ${this.classname.area}`, ErrorCode.FN_NOTFOUND));
-        }
+        let consret = fnlookup.getApplicableConstructor(classdef, parr, classlookup);
+        if (consret.noop && plen === 0) return new util.SemanticCheckReturn().setType(rettype);
+        let candidates = consret.candidates || [];
+        if (candidates.length === 0) return new util.SemanticCheckReturn(new SemanticError(`no constructor with given parameter is applicable, at ${this.classname.area}`, ErrorCode.FN_NOTFOUND));
+        if (candidates.length > 1) return new util.SemanticCheckReturn(new SemanticError(`ambiguous constructor with given parameter are applicable, at ${this.classname.area}`, ErrorCode.FN_AMBIGUOUS));
         else {
-            let candidates = fnlookup.getApplicableMethod(util.ClassLookup.constructorFnName, this.classname.rawstr, [rettype].concat(parr), classlookup);
-            if (candidates.length === 0) return new util.SemanticCheckReturn(new SemanticError(`no constructor with given parameter is applicable, at ${this.classname.area}`, ErrorCode.FN_NOTFOUND));
-            if (candidates.length > 1) return new util.SemanticCheckReturn(new SemanticError(`ambiguous constructor with given parameter are applicable, at ${this.classname.area}`, ErrorCode.FN_AMBIGUOUS));
-            else {
-                this._constructfndef = candidates[0];
-                return new util.SemanticCheckReturn().setType(rettype);
-            }
+            this._constructfndef = candidates[0];
+            return new util.SemanticCheckReturn().setType(rettype);
         }
     }
 
@@ -919,7 +925,7 @@ export class ASTNode_newinstance extends ASTNode_expr {
         codelines.add(new tc.TAC_allocate(objreg, objreg));
         codelines.add(new tc.TAC_la(tmpreg, this._classdef.getMIPSVTableLabel()));
         codelines.add(new tc.TAC_sw(objreg, 0, tmpreg));
-        if (!this._classdef.noConstructor) {
+        if (this._constructfndef) {
             let pregs = new Array<number>();
             for (let p of this.parameters.children) {
                 pregs.push(p.genIntermediateCode_expr(codelines, tmpRegIdGen));
@@ -927,7 +933,7 @@ export class ASTNode_newinstance extends ASTNode_expr {
             for (let p of pregs.reverse()) {
                 codelines.add(new tc.TAC_param(p));
             }
-            //value of "this"
+            // value of "this"
             codelines.add(new tc.TAC_param(objreg));
             codelines.add(new tc.TAC_procedurecall(this._constructfndef));
         }

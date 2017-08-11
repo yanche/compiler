@@ -3,6 +3,10 @@ class Base {
     constructor(int a) {
 
     }
+    
+    constructor(int a, int b) {
+
+    }
 
     void say(int a) {
 
@@ -11,6 +15,11 @@ class Base {
 
 class Derived : Base {
 
+    constructor() {
+        int a = 100;
+        super(123, 1);
+    }
+
     void say(bool a) {
 
     }
@@ -18,5 +27,4 @@ class Derived : Base {
 
 void main() {
     Derived b = new Derived();
-    b.say(true);
 }
