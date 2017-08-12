@@ -137,7 +137,7 @@ export class FunctionLookup {
     getApplicableFn(fnname: string, parametertypelist: Array<Type>, classlookup: ClassLookup): Array<FunctionDefinition> {
         let fnlist = this._fnMap.get(fnname);
         let candidates = new Array<FunctionDefinition>();
-        for (let fndef of fnlist) {
+        for (let fndef of fnlist || []) {
             let app = fnApplicable(fndef.argtypelist, parametertypelist, classlookup);
             if (app.match) {
                 if (app.perfect) return [fndef];

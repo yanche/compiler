@@ -67,7 +67,7 @@ export default function lex(input: string, prodset: ProdSet): LexReturn {
         //here commentline must be false
         let continueandmove = 0;
         if (commentblock) {
-            if (next2) {
+            if (next2 === "*/") {
                 commentblock = false;
                 continueandmove = 2;
             }
