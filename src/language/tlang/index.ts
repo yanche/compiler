@@ -21,8 +21,6 @@ function compile(input: string, optimizedicpath: string, icregallocpath: string,
         let fnlookup = new FunctionLookup();
         let tret = semanticAnalysis(ast, classlookup, fnlookup);
         if (!tret.accept) return new CompileReturn(tret.error);
-        // let mret = ast.completenesscheck(true);
-        // if (!mret.accept) return new CompileReturn(false, mret.errmsg, mret.errcode);
         let code = generateIntermediateCode(classlookup, fnlookup);
         let iccode = code.toString();
         let mips = generateMIPSCode(code, classlookup, fnlookup.mainfnmipslabel);
