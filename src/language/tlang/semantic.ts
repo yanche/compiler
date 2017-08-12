@@ -6,7 +6,13 @@ import { ErrorCode } from "./error";
 
 const rootClassName = "Object";
 
-export default function analysize(root: ASTNode_globaldefs, classlookup: ClassLookup, fnlookup: FunctionLookup): SemanticCheckReturn {
+export function buildGlobalTypes(root: ASTNode_globaldefs): {
+    result: SemanticCheckReturn;
+    classlookup?: ClassLookup;
+    fnlookup?: FunctionLookup;
+} {
+    let classlookup = new ClassLookup();
+    let fnlookup = new FunctionLookup();
     //predefined classes
     classlookup.addClass(rootClassName, noArea);
     classlookup.getClass(rootClassName).setParent(null);
@@ -20,7 +26,7 @@ export default function analysize(root: ASTNode_globaldefs, classlookup: ClassLo
     for (let node of root.children) {
         if (node instanceof ASTNode_classdef) {
             let nametoken = node.name;
-            if (isType(nametoken.rawstr, classlookup)) return new SemanticCheckReturn(new SemanticError(`cannot define class, name duplication: ${nametoken.rawstr} at ${nametoken.area}`, ErrorCode.DUP_CLASS_DEFINITION));
+            if (isType(nametoken.rawstr, classlookup)) return makeErrorRet(`cannot define class, name duplication: ${nametoken.rawstr} at ${nametoken.area}`, ErrorCode.DUP_CLASS_DEFINITION);
             else classlookup.addClass(nametoken.rawstr, node.area);
         }
     }
@@ -30,7 +36,7 @@ export default function analysize(root: ASTNode_globaldefs, classlookup: ClassLo
         if (node instanceof ASTNode_classdef) {
             let parentclassname = node.extendfrom ? node.extendfrom.rawstr : rootClassName;
             let parentclass = classlookup.getClass(parentclassname);
-            if (!parentclass) return new SemanticCheckReturn(new SemanticError(`not a valid class to inherit: ${parentclassname} at ${node.extendfrom.area}`, ErrorCode.CLASS_NOTFOUND));
+            if (!parentclass) return makeErrorRet(`not a valid class to inherit: ${parentclassname} at ${node.extendfrom.area}`, ErrorCode.CLASS_NOTFOUND);
             //set base class
             let classdef = classlookup.getClass(node.name.rawstr);
             classdef.setParent(parentclass);
@@ -38,40 +44,58 @@ export default function analysize(root: ASTNode_globaldefs, classlookup: ClassLo
                 if (b instanceof ASTNode_vardeclare) {
                     //process a new field
                     let type = b.type.type;
-                    if (!isType(type.basetype, classlookup)) return createInvalidTypeReturn(type.basetype, b.type.area);
-                    if (classdef.hasOwnField(b.name.rawstr)) return new SemanticCheckReturn(new SemanticError(`duplicate field declaration: ${b.name.rawstr} at ${b.name.area}`, ErrorCode.DUP_FIELD_DEFINITION));
+                    if (!isType(type.basetype, classlookup)) return makeInvalidTypeRet(type.basetype, b.type.area);
+                    if (classdef.hasOwnField(b.name.rawstr)) return makeErrorRet(`duplicate field declaration: ${b.name.rawstr} at ${b.name.area}`, ErrorCode.DUP_FIELD_DEFINITION);
                     classdef.addField(b.name.rawstr, type, b.area);
                 }
-                else if(b instanceof ASTNode_constructordef) {
-                    for (let a of b.argumentlist.children) { if (!isType(a.type.type.basetype, classlookup)) return createInvalidTypeReturn(a.type.type.basetype, a.type.area); }
+                else if (b instanceof ASTNode_constructordef) {
+                    for (let a of b.argumentlist.children) { if (!isType(a.type.type.basetype, classlookup)) return makeInvalidTypeRet(a.type.type.basetype, a.type.area); }
                     let argtypelist = [new Type(classdef.name, 0)].concat(toArgTypeList(b.argumentlist));
-                    if (fnlookup.hasConstructor(classdef.name, argtypelist)) return new SemanticCheckReturn(new SemanticError(`duplicate constructor declaration: ${b.area}`, ErrorCode.DUP_CONSTRUCTOR_DEFINITION));
+                    if (fnlookup.hasConstructor(classdef.name, argtypelist)) return makeErrorRet(`duplicate constructor declaration: ${b.area}`, ErrorCode.DUP_CONSTRUCTOR_DEFINITION);
                     fnlookup.addConstructor(classdef.name, argtypelist, b.area).astnode = b;
                 }
                 else {
-                    for (let a of b.argumentlist.children) { if (!isType(a.type.type.basetype, classlookup)) return createInvalidTypeReturn(a.type.type.basetype, a.type.area); }
-                    if (!isFnRet(b.returntype.type.basetype, classlookup)) return createInvalidTypeReturn(b.returntype.type.basetype, b.returntype.area);
+                    for (let a of b.argumentlist.children) { if (!isType(a.type.type.basetype, classlookup)) return makeInvalidTypeRet(a.type.type.basetype, a.type.area); }
+                    if (!isFnRet(b.returntype.type.basetype, classlookup)) return makeInvalidTypeRet(b.returntype.type.basetype, b.returntype.area);
                     let argtypelist = [new Type(classdef.name, 0)].concat(toArgTypeList(b.argumentlist));
-                    if (fnlookup.hasDefinedMethod(b.name.rawstr, classdef.name, argtypelist)) return new SemanticCheckReturn(new SemanticError(`duplicate method declaration: ${b.name.rawstr} at ${b.name.area}`, ErrorCode.DUP_METHOD_DEFINITION));
+                    if (fnlookup.hasDefinedMethod(b.name.rawstr, classdef.name, argtypelist)) return makeErrorRet(`duplicate method declaration: ${b.name.rawstr} at ${b.name.area}`, ErrorCode.DUP_METHOD_DEFINITION);
                     fnlookup.addMethod(b.name.rawstr, classdef.name, b.returntype.type, argtypelist, b.area).astnode = b;
                 }
             }
         }
         else {
             //check type of argument list and return declaration
-            for (let a of node.argumentlist.children) { if (!isType(a.type.type.basetype, classlookup)) return createInvalidTypeReturn(a.type.type.basetype, a.type.area); }
-            if (!isFnRet(node.returntype.type.basetype, classlookup)) return createInvalidTypeReturn(node.returntype.type.basetype, node.returntype.area);
+            for (let a of node.argumentlist.children) { if (!isType(a.type.type.basetype, classlookup)) return makeInvalidTypeRet(a.type.type.basetype, a.type.area); }
+            if (!isFnRet(node.returntype.type.basetype, classlookup)) return makeInvalidTypeRet(node.returntype.type.basetype, node.returntype.area);
             //check existence of same function (by signiture)
             let argtypelist = toArgTypeList(node.argumentlist);
-            if (fnlookup.hasFn(node.name.rawstr, argtypelist)) return new SemanticCheckReturn(new SemanticError(`function already exists (with same signiture): ${node.name.rawstr} at ${node.name.area}`, ErrorCode.DUP_FN_DEFINITION));
+            if (fnlookup.hasFn(node.name.rawstr, argtypelist)) return makeErrorRet(`function already exists (with same signiture): ${node.name.rawstr} at ${node.name.area}`, ErrorCode.DUP_FN_DEFINITION);
             //add function declaration
             fnlookup.addFn(node.name.rawstr, node.returntype.type, argtypelist, node.area, false).astnode = node;
         }
     }
 
     let cret = buildVTableAndField(classlookup, fnlookup);
-    if (!cret.accept) return cret;
+    if (!cret.accept) return { result: cret };
+    else return {
+        result: cret,
+        classlookup: classlookup,
+        fnlookup: fnlookup
+    };
 
+    function makeErrorRet(errmsg: string, errcode: number) {
+        return {
+            result: new SemanticCheckReturn(new SemanticError(errmsg, errcode))
+        };
+    }
+    function makeInvalidTypeRet(typeBaseName: string, area: Area) {
+        return {
+            result: createInvalidTypeReturn(typeBaseName, area)
+        }
+    }
+}
+
+export function semanticAnalysize(root: ASTNode_globaldefs, classlookup: ClassLookup, fnlookup: FunctionLookup): SemanticCheckReturn {
     let mainfn = fnlookup.getApplicableFn("main", [], classlookup);
     if (mainfn.length === 0) return new SemanticCheckReturn(new SemanticError("entry function (main without parameter) is not found", ErrorCode.ENTRY_NOTFOUND));
     if (mainfn.length > 1) throw new Error("impossible code path, reserve for debugging purpose");

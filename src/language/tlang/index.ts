@@ -2,7 +2,7 @@
 import lex from "./lex";
 import { astConverter, parser, prodSet } from "./syntax";
 import { CompileReturn } from "../../compile";
-import semanticAnalysis from "./semantic";
+import { semanticAnalysize, buildGlobalTypes } from "./semantic";
 import { ASTNode_globaldefs } from "./ast";
 import { file } from "../../utility";
 import { generateIntermediateCode } from "./intermediatecode";
@@ -17,9 +17,11 @@ function compile(input: string, optimizedicpath: string, icregallocpath: string,
         let parseret = parser.parse(lexret.tokens);
         if (!parseret.accept) return new CompileReturn(parseret.error);
         let ast = <ASTNode_globaldefs>astConverter.toAST(parseret.root);
-        let classlookup = new ClassLookup();
-        let fnlookup = new FunctionLookup();
-        let tret = semanticAnalysis(ast, classlookup, fnlookup);
+        let gret = buildGlobalTypes(ast);
+        if (!gret.result.accept) return new CompileReturn(gret.result.error);
+        let classlookup = gret.classlookup;
+        let fnlookup = gret.fnlookup;
+        let tret = semanticAnalysize(ast, classlookup, fnlookup);
         if (!tret.accept) return new CompileReturn(tret.error);
         let code = generateIntermediateCode(classlookup, fnlookup);
         let iccode = code.toString();
