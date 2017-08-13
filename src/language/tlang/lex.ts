@@ -36,8 +36,8 @@ function isIdChCode(chcode: number): boolean {
     return isIdStartChCode(chcode) || isDigitChCode(chcode);
 }
 
-function areaWithColNext(posi: Posi, colnext: number): Area {
-    return new Area(posi, new Posi(posi.row, posi.col + colnext));
+function areaWithColNext(posi: Posi, strlen: number): Area {
+    return new Area(posi, new Posi(posi.row, posi.col + strlen - 1));
 }
 
 export default function lex(input: string, prodset: ProdSet): LexReturn {
