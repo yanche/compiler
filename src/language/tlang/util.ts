@@ -232,19 +232,23 @@ export class FunctionSigniture {
     private _name: string;
     private _classname: string;
     private _argtypelist: Array<Type>;
+
     constructor(name: string, classname: string, argtypelist: Array<Type>) {
         this._name = name;
         this._classname = classname || "";
         this._argtypelist = argtypelist;
     }
+
     equals(name: string, classname: string, argtypelist: Array<Type>) {
         return this._name === name && this._classname === (classname || "") && this._argtypelist.length === argtypelist.length && this._argtypelist.every((type, idx) => {
             return type.equals2(argtypelist[idx]);
         });
     }
+
     toString(): string {
         return FunctionSigniture.toString(this._name, this._classname, this._argtypelist);
     }
+    
     static toString(name: string, classname: string, argtypelist: Array<Type>): string {
         let classprefix = classname ? (classname + ":") : "";
         return [classprefix + name].concat(argtypelist.map(type => type.toString())).join(":");

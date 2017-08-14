@@ -698,7 +698,8 @@ export class ASTNode_methodcall extends ASTNode_expr {
         //now retreg has the address of vtable
         codelines.add(new tc.TAC_lw(objreg, 0, retreg));
         //now retreg has the runtime address of method
-        codelines.add(new tc.TAC_binary_int("+", retreg, this._vtable_seq * 4, retreg));
+        if (this._vtable_seq > 0)
+            codelines.add(new tc.TAC_binary_int("+", retreg, this._vtable_seq * 4, retreg));
         //load the method address into retreg
         codelines.add(new tc.TAC_lw(retreg, 0, retreg));
         //call the method

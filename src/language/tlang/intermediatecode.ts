@@ -1,5 +1,5 @@
 
-import * as utility from "../../utility";
+import { IdGen, flatten } from "../../utility";
 import * as t from "./tac";
 import * as r from "./regallocate";
 import * as m from "./mipscode";
@@ -226,42 +226,39 @@ function finalizeLabelRef(codelines: Array<CodeLine>) {
 }
 
 export function generateIntermediateCode(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup): IntermediateCode {
-    let code = new IntermediateCode(), labelidgen = new utility.IdGen();
+    let code = new IntermediateCode(), labelidgen = new IdGen();
     code.addVtableGData(classlookup);
-    for (let classname of classlookup.getAllClasses().concat(null)) {
-        let classdef = classlookup.getClass(classname);
-        for (let fndef of fnlookup.findMethods(classname)) {
-            if (fndef.astnode == null) continue;
-            let codelines = new CodeLineCollector();
-            fndef.astnode.genIntermediateCode(codelines);
-            finalizeLabelRef(codelines._arr);
-            let cllen = codelines._arr.length;
-            //each code-line would have one reg-info-inference record (one for input one for output)
-            let clvalueinfer = new Array<CodeLineRegInfoInferences>(cllen);
-            for (let i = 0; i < cllen; ++i)
-                clvalueinfer[i] = new CodeLineRegInfoInferences(fndef.astnode.tmpRegAssigned);
-            // console.log("parameter tmp register for: " + fndef.name);
-            // console.log(fndef.astnode.argTmpRegIdList);
-            //set the value type of arguments to "ANY"
-            for (let i of fndef.astnode.argTmpRegIdList)
-                clvalueinfer[0].top_val[i].type = TmpRegValueInference.TYPE_ANY;
-            valueInference(codelines._arr, clvalueinfer);
-            valueFold(codelines._arr, clvalueinfer); //fold will replace several TAC
-            livenessInference(codelines._arr, clvalueinfer);
-            livenessProne(codelines._arr, clvalueinfer); //livenessProne will replace several TAC
-            removeBranch(codelines._arr);
-            //final code-lines
-            let fcl = compress(codelines._arr);
-            let compressed_codelines = new Array<CodeLine>(), compressed_reginfer = new Array<CodeLineRegInfoInferences>();
-            for (let i = 0; i < fcl.length; ++i) {
-                let idx = fcl[i];
-                let cl = codelines._arr[idx];
-                if (cl.label != null) cl.label.num = labelidgen.next();
-                compressed_codelines.push(cl);
-                compressed_reginfer.push(clvalueinfer[idx]);
-            }
-            code.newCodePiece(fndef, fndef.astnode.tmpRegAssigned, compressed_codelines, compressed_reginfer);
+    for (let fndef of flatten([fnlookup.allFn(), flatten(classlookup.getAllClasses().map(c => flatten([fnlookup.findMethods(c), fnlookup.findConstructors(c)])))])) {
+        if (fndef.predefined) continue;
+        let codelines = new CodeLineCollector();
+        fndef.astnode.genIntermediateCode(codelines);
+        finalizeLabelRef(codelines._arr);
+        let cllen = codelines._arr.length;
+        //each code-line would have one reg-info-inference record (one for input one for output)
+        let clvalueinfer = new Array<CodeLineRegInfoInferences>(cllen);
+        for (let i = 0; i < cllen; ++i)
+            clvalueinfer[i] = new CodeLineRegInfoInferences(fndef.astnode.tmpRegAssigned);
+        // console.log("parameter tmp register for: " + fndef.name);
+        // console.log(fndef.astnode.argTmpRegIdList);
+        //set the value type of arguments to "ANY"
+        for (let i of fndef.astnode.argTmpRegIdList)
+            clvalueinfer[0].top_val[i].type = TmpRegValueInference.TYPE_ANY;
+        valueInference(codelines._arr, clvalueinfer);
+        valueFold(codelines._arr, clvalueinfer); //fold will replace several TAC
+        livenessInference(codelines._arr, clvalueinfer);
+        livenessProne(codelines._arr, clvalueinfer); //livenessProne will replace several TAC
+        removeBranch(codelines._arr);
+        //final code-lines
+        let fcl = compress(codelines._arr);
+        let compressed_codelines = new Array<CodeLine>(), compressed_reginfer = new Array<CodeLineRegInfoInferences>();
+        for (let i = 0; i < fcl.length; ++i) {
+            let idx = fcl[i];
+            let cl = codelines._arr[idx];
+            if (cl.label != null) cl.label.num = labelidgen.next();
+            compressed_codelines.push(cl);
+            compressed_reginfer.push(clvalueinfer[idx]);
         }
+        code.newCodePiece(fndef, fndef.astnode.tmpRegAssigned, compressed_codelines, compressed_reginfer);
     }
     return code;
 }
@@ -297,7 +294,7 @@ export class CodeLineCollector {
 export class IntermediateCode {
     private _codepieces: Array<CodePiece>;
     private _gdatapieces: Array<GDATA>;
-    private _labelidgen: utility.IdGen;
+    private _labelidgen: IdGen;
 
     toMIPS(asm: m.MIPSAssembly): this {
         for (let gd of this._gdatapieces)
@@ -306,29 +303,34 @@ export class IntermediateCode {
             cp.toMIPS(asm);
         return this;
     }
+
     newCodePiece(fndef: util.FunctionDefinition, tmpregcount: number, codelines: Array<CodeLine>, tmpreginfer: Array<CodeLineRegInfoInferences>): this {
         this._codepieces.push(new CodePiece(fndef, tmpregcount, codelines, tmpreginfer));
         return this;
     }
+
     toString(): string {
         let gdata = ".data\r\n" + this._gdatapieces.map(gdata => gdata.toString()).join("\r\n\r\n");
         let text = ".text\r\n" + this._codepieces.map(cp => cp.toString()).join("\r\n\r\n");
         return gdata + "\r\n\r\n" + text;
     }
+
     addGData(gdata: GDATA): this {
         this._gdatapieces.push(gdata);
         return this;
     }
+
     addVtableGData(classlookup: util.ClassLookup): this {
         for (let classname of classlookup.getAllClasses()) {
             this.addGData(new GDATA_VTABLE(classlookup.getClass(classname)));
         }
         return this;
     }
+
     constructor() {
         this._codepieces = new Array<CodePiece>();
         this._gdatapieces = new Array<GDATA>();
-        this._labelidgen = new utility.IdGen();
+        this._labelidgen = new IdGen();
     }
 }
 
@@ -519,22 +521,27 @@ abstract class GDATA {
     toString(): string {
         throw new Error("not implemented");
     }
+
     toMIPS(asm: m.MIPSAssembly): this {
         throw new Error("not implemented");
     }
 }
+
 class GDATA_VTABLE extends GDATA {
     private _vtable: Array<util.FunctionDefinition>;
     private _vtable_label: string;
+
     constructor(classdef: util.ClassDefinition) {
         super();
         this._vtable = classdef.vmethodTable;
         //use mips label
         this._vtable_label = classdef.getMIPSVTableLabel();
     }
+
     toString(): string {
         return [this._vtable_label + " :"].concat(this._vtable.map(fndef => fndef.signiture.toString())).join("\r\n");
     }
+
     toMIPS(asm: m.MIPSAssembly): this {
         //noaction, vtable & vtable-setup will be processed as a "predefined block" of mips code generation
         return this;
