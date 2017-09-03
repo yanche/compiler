@@ -5,9 +5,6 @@ import * as m from "./mipscode";
 import * as r from "./regallocate";
 
 import ValueInference = valueinfer.ValueInference;
-import ValueType = valueinfer.ValueType;
-import VALUEINFER_NEVER = valueinfer.NEVER;
-import VALUEINFER_ANY = valueinfer.ANY;
 
 function reg2str(regnum: number): string {
     return "$" + regnum;
@@ -68,8 +65,8 @@ export class TAC_retreg extends TAC_ret {
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
         let info = tmpreginfers[this.reg];
-        if (info.type === ValueType.CONST) return new TAC_retint(info.cons);
-        else if (info.type === ValueType.CONST_TIMES_REG && info.cons === 1) return new TAC_retreg(info.regnum);
+        if (info.type === valueinfer.ValueType.CONST) return new TAC_retint(info.cons);
+        else if (info.type === valueinfer.ValueType.CONST_TIMES_REG && info.cons === 1) return new TAC_retreg(info.regnum);
         else return this;
     }
     tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
@@ -111,11 +108,11 @@ export class TAC_loadint extends TAC {
         return [reg2str(this.to_reg), "=", this.num].join(" ");
     }
     inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
-        return { regnum: this.to_reg, reginfo: { cons: this.num, type: ValueType.CONST } };
+        return { regnum: this.to_reg, reginfo: { cons: this.num, type: valueinfer.ValueType.CONST } };
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
         let info = tmpreginfers[this.to_reg];
-        if (info.type === ValueType.CONST && info.cons === this.num) return new TAC_noop();
+        if (info.type === valueinfer.ValueType.CONST && info.cons === this.num) return new TAC_noop();
         else return this;
     }
     tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
@@ -147,10 +144,10 @@ export class TAC_mov extends TAC {
     simplify(tmpreginfers: Array<ValueInference>): TAC {
         if (this.from_reg === this.to_reg) return new TAC_noop();
         let info1 = tmpreginfers[this.from_reg], info2 = tmpreginfers[this.to_reg];
-        if (info1.type === ValueType.CONST && info2.type === ValueType.CONST && info1.cons === info2.cons) return new TAC_noop();
-        else if (info1.type === ValueType.CONST_TIMES_REG && info2.type === ValueType.CONST_TIMES_REG && info1.cons === info2.cons && info1.regnum === info2.regnum) return new TAC_noop();
-        else if (info1.type === ValueType.CONST) return new TAC_loadint(info1.cons, this.to_reg);
-        else if (info1.type === ValueType.CONST_TIMES_REG) return new TAC_binary_int("*", info1.regnum, info1.cons, this.to_reg).simplify(tmpreginfers);
+        if (info1.type === valueinfer.ValueType.CONST && info2.type === valueinfer.ValueType.CONST && info1.cons === info2.cons) return new TAC_noop();
+        else if (info1.type === valueinfer.ValueType.CONST_TIMES_REG && info2.type === valueinfer.ValueType.CONST_TIMES_REG && info1.cons === info2.cons && info1.regnum === info2.regnum) return new TAC_noop();
+        else if (info1.type === valueinfer.ValueType.CONST) return new TAC_loadint(info1.cons, this.to_reg);
+        else if (info1.type === valueinfer.ValueType.CONST_TIMES_REG) return new TAC_binary_int("*", info1.regnum, info1.cons, this.to_reg).simplify(tmpreginfers);
         else return this;
     }
     tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
@@ -203,8 +200,8 @@ export class TAC_param extends TAC {
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
         let info = tmpreginfers[this.reg];
-        if (info.type === ValueType.CONST) return new TAC_paramint(info.cons);
-        else if (info.type === ValueType.CONST_TIMES_REG && info.cons === 1) return new TAC_param(info.regnum);
+        if (info.type === valueinfer.ValueType.CONST) return new TAC_paramint(info.cons);
+        else if (info.type === valueinfer.ValueType.CONST_TIMES_REG && info.cons === 1) return new TAC_param(info.regnum);
         else return this;
     }
     tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
@@ -234,7 +231,7 @@ export class TAC_allocateint extends TAC {
         return [reg2str(this.result_reg), "=", "allocateint", this.num].join(" ");
     }
     inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
-        return { regnum: this.result_reg, reginfo: VALUEINFER_ANY };
+        return { regnum: this.result_reg, reginfo: valueinfer.ANY };
     }
     tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
         return [{ regnum: this.result_reg, live: false }];
@@ -262,12 +259,12 @@ export class TAC_allocate extends TAC {
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
         let info = tmpreginfers[this.reg_bytes];
-        if (info.type === ValueType.CONST) return new TAC_allocateint(info.cons, this.result_reg);
-        else if (info.type === ValueType.CONST_TIMES_REG && info.cons === 1) return new TAC_allocate(info.regnum, this.result_reg);
+        if (info.type === valueinfer.ValueType.CONST) return new TAC_allocateint(info.cons, this.result_reg);
+        else if (info.type === valueinfer.ValueType.CONST_TIMES_REG && info.cons === 1) return new TAC_allocate(info.regnum, this.result_reg);
         else return this;
     }
     inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
-        return { regnum: this.result_reg, reginfo: VALUEINFER_ANY };
+        return { regnum: this.result_reg, reginfo: valueinfer.ANY };
     }
     tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
         return tmpRegLiveness_assign(tmpregbottomlive, [this.reg_bytes], this.result_reg, true);
@@ -310,7 +307,7 @@ export class TAC_fncall extends TAC {
         return [reg2str(this.result_reg), "=", "call", this.fn.signiture, this.fn.argtypelist.length].join(" ");
     }
     inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
-        return { regnum: this.result_reg, reginfo: VALUEINFER_ANY };
+        return { regnum: this.result_reg, reginfo: valueinfer.ANY };
     }
     tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
         return [{ regnum: this.result_reg, live: false }];
@@ -345,11 +342,11 @@ export class TAC_fncall_reg extends TAC {
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
         let info = tmpreginfers[this.fn_reg];
-        if (info.type === ValueType.CONST_TIMES_REG && info.cons === 1) return new TAC_fncall_reg(info.regnum, this.plen, this.result_reg);
+        if (info.type === valueinfer.ValueType.CONST_TIMES_REG && info.cons === 1) return new TAC_fncall_reg(info.regnum, this.plen, this.result_reg);
         else return this;
     }
     inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
-        return { regnum: this.result_reg, reginfo: VALUEINFER_ANY };
+        return { regnum: this.result_reg, reginfo: valueinfer.ANY };
     }
     tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
         return tmpRegLiveness_assign(tmpregbottomlive, [this.fn_reg], this.result_reg, false);
@@ -407,7 +404,7 @@ export class TAC_procedurecall_reg extends TAC {
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
         let info = tmpreginfers[this.fn_reg];
-        if (info.type === ValueType.CONST_TIMES_REG && info.cons === 1) return new TAC_procedurecall_reg(info.regnum, this.plen);
+        if (info.type === valueinfer.ValueType.CONST_TIMES_REG && info.cons === 1) return new TAC_procedurecall_reg(info.regnum, this.plen);
         else return this;
     }
     tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
@@ -438,63 +435,63 @@ export class TAC_binary extends TAC {
     inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         let retinfo: ValueInference, oinfo1 = tmpreginfers[this.operand1_reg], oinfo2 = tmpreginfers[this.operand2_reg];
 
-        if (oinfo1.type === ValueType.NEVER || oinfo2.type === ValueType.NEVER)
+        if (oinfo1.type === valueinfer.ValueType.NEVER || oinfo2.type === valueinfer.ValueType.NEVER)
             throw new Error("defensive code, undefined behavior");
-        else if (this.op === "*" && ((oinfo1.type === ValueType.CONST && oinfo1.cons === 0) || (oinfo2.type === ValueType.CONST && oinfo2.cons === 0))) {
-            retinfo = { type: ValueType.CONST, cons: 0 };
+        else if (this.op === "*" && ((oinfo1.type === valueinfer.ValueType.CONST && oinfo1.cons === 0) || (oinfo2.type === valueinfer.ValueType.CONST && oinfo2.cons === 0))) {
+            retinfo = { type: valueinfer.ValueType.CONST, cons: 0 };
             //TODO: MORE
         }
-        else if ((this.op !== "/" || oinfo2.cons !== 0) && oinfo1.type === ValueType.CONST && oinfo2.type === ValueType.CONST) {
-            retinfo = { type: ValueType.CONST, cons: bi_op(this.op, oinfo1.cons, oinfo2.cons) };
+        else if ((this.op !== "/" || oinfo2.cons !== 0) && oinfo1.type === valueinfer.ValueType.CONST && oinfo2.type === valueinfer.ValueType.CONST) {
+            retinfo = { type: valueinfer.ValueType.CONST, cons: bi_op(this.op, oinfo1.cons, oinfo2.cons) };
         }
-        else if (this.op === "*" && oinfo1.type === ValueType.CONST_TIMES_REG && oinfo2.type === ValueType.CONST && oinfo1.regnum !== this.result_reg) {
-            retinfo = { type: ValueType.CONST_TIMES_REG, cons: oinfo1.cons * oinfo2.cons, regnum: oinfo1.regnum };
+        else if (this.op === "*" && oinfo1.type === valueinfer.ValueType.CONST_TIMES_REG && oinfo2.type === valueinfer.ValueType.CONST && oinfo1.regnum !== this.result_reg) {
+            retinfo = { type: valueinfer.ValueType.CONST_TIMES_REG, cons: oinfo1.cons * oinfo2.cons, regnum: oinfo1.regnum };
         }
-        else if (this.op === "*" && oinfo2.type === ValueType.CONST_TIMES_REG && oinfo1.type === ValueType.CONST && oinfo2.regnum !== this.result_reg) {
-            retinfo = { type: ValueType.CONST_TIMES_REG, cons: oinfo1.cons * oinfo2.cons, regnum: oinfo2.regnum };
+        else if (this.op === "*" && oinfo2.type === valueinfer.ValueType.CONST_TIMES_REG && oinfo1.type === valueinfer.ValueType.CONST && oinfo2.regnum !== this.result_reg) {
+            retinfo = { type: valueinfer.ValueType.CONST_TIMES_REG, cons: oinfo1.cons * oinfo2.cons, regnum: oinfo2.regnum };
         }
-        else if ((this.op === "+" || this.op === "-") && oinfo1.type === ValueType.CONST_TIMES_REG && oinfo2.type === ValueType.CONST_TIMES_REG && oinfo1.regnum === oinfo2.regnum && oinfo1.regnum !== this.result_reg) {
+        else if ((this.op === "+" || this.op === "-") && oinfo1.type === valueinfer.ValueType.CONST_TIMES_REG && oinfo2.type === valueinfer.ValueType.CONST_TIMES_REG && oinfo1.regnum === oinfo2.regnum && oinfo1.regnum !== this.result_reg) {
             let cons: number;
             if (this.op === "+")
                 cons = oinfo1.cons + oinfo2.cons;
             else
                 cons = oinfo1.cons - oinfo2.cons;
-            retinfo = { type: ValueType.CONST_TIMES_REG, regnum: oinfo1.regnum, cons: cons };
+            retinfo = { type: valueinfer.ValueType.CONST_TIMES_REG, regnum: oinfo1.regnum, cons: cons };
         }
-        else if (this.op === "*" && oinfo1.type === ValueType.CONST && oinfo2.type === ValueType.ANY && this.result_reg !== this.operand2_reg) {
-            retinfo = { type: ValueType.CONST_TIMES_REG, regnum: this.operand2_reg, cons: oinfo1.cons };
+        else if (this.op === "*" && oinfo1.type === valueinfer.ValueType.CONST && oinfo2.type === valueinfer.ValueType.ANY && this.result_reg !== this.operand2_reg) {
+            retinfo = { type: valueinfer.ValueType.CONST_TIMES_REG, regnum: this.operand2_reg, cons: oinfo1.cons };
         }
-        else if (this.op === "*" && oinfo2.type === ValueType.CONST && oinfo1.type === ValueType.ANY && this.result_reg !== this.operand1_reg) {
-            retinfo = { type: ValueType.CONST_TIMES_REG, regnum: this.operand1_reg, cons: oinfo2.cons };
+        else if (this.op === "*" && oinfo2.type === valueinfer.ValueType.CONST && oinfo1.type === valueinfer.ValueType.ANY && this.result_reg !== this.operand1_reg) {
+            retinfo = { type: valueinfer.ValueType.CONST_TIMES_REG, regnum: this.operand1_reg, cons: oinfo2.cons };
         }
-        else retinfo = VALUEINFER_ANY;
+        else retinfo = valueinfer.ANY;
 
         return { regnum: this.result_reg, reginfo: retinfo };
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
         let oinfo1 = tmpreginfers[this.operand1_reg], oinfo2 = tmpreginfers[this.operand2_reg];
-        if (this.op === "*" && ((oinfo1.type === ValueType.CONST && oinfo1.cons === 0) || (oinfo2.type === ValueType.CONST && oinfo2.cons === 0))) {
+        if (this.op === "*" && ((oinfo1.type === valueinfer.ValueType.CONST && oinfo1.cons === 0) || (oinfo2.type === valueinfer.ValueType.CONST && oinfo2.cons === 0))) {
             return new TAC_loadint(0, this.result_reg);
             //TODO: MERGE WITH regInfoOutput
         }
-        else if ((this.op !== "/" || oinfo2.cons !== 0) && oinfo1.type === ValueType.CONST && oinfo2.type === ValueType.CONST) {
+        else if ((this.op !== "/" || oinfo2.cons !== 0) && oinfo1.type === valueinfer.ValueType.CONST && oinfo2.type === valueinfer.ValueType.CONST) {
             return new TAC_loadint(bi_op(this.op, oinfo1.cons, oinfo2.cons), this.result_reg).simplify(tmpreginfers);
         }
-        else if (this.op === "*" && oinfo1.type === ValueType.CONST_TIMES_REG && oinfo2.type === ValueType.CONST) {
+        else if (this.op === "*" && oinfo1.type === valueinfer.ValueType.CONST_TIMES_REG && oinfo2.type === valueinfer.ValueType.CONST) {
             return new TAC_binary_int("*", oinfo1.regnum, oinfo1.cons * oinfo2.cons, this.result_reg);
         }
-        else if (this.op === "*" && oinfo2.type === ValueType.CONST_TIMES_REG && oinfo1.type === ValueType.CONST) {
+        else if (this.op === "*" && oinfo2.type === valueinfer.ValueType.CONST_TIMES_REG && oinfo1.type === valueinfer.ValueType.CONST) {
             return new TAC_binary_int("*", oinfo2.regnum, oinfo1.cons * oinfo2.cons, this.result_reg);
         }
-        else if ((this.op === "+" || this.op === "-") && oinfo1.type === ValueType.CONST_TIMES_REG && oinfo2.type === ValueType.CONST_TIMES_REG && oinfo1.regnum === oinfo2.regnum) {
+        else if ((this.op === "+" || this.op === "-") && oinfo1.type === valueinfer.ValueType.CONST_TIMES_REG && oinfo2.type === valueinfer.ValueType.CONST_TIMES_REG && oinfo1.regnum === oinfo2.regnum) {
             let opint = this.op === "+" ? (oinfo1.cons + oinfo2.cons) : (oinfo1.cons - oinfo2.cons);
             return new TAC_binary_int("*", oinfo1.regnum, opint, this.result_reg);
         }
-        else if (this.op === "*" && oinfo1.type === ValueType.CONST) {
+        else if (this.op === "*" && oinfo1.type === valueinfer.ValueType.CONST) {
             if (oinfo1.cons === 1) return new TAC_mov(this.operand2_reg, this.result_reg);
             else return new TAC_binary_int("*", this.operand2_reg, oinfo1.cons, this.result_reg);
         }
-        else if (this.op === "*" && oinfo2.type === ValueType.CONST) {
+        else if (this.op === "*" && oinfo2.type === valueinfer.ValueType.CONST) {
             if (oinfo2.cons === 1) return new TAC_mov(this.operand1_reg, this.result_reg);
             else return new TAC_binary_int("*", this.operand1_reg, oinfo2.cons, this.result_reg);
         }
@@ -535,38 +532,38 @@ export class TAC_binary_int extends TAC {
     inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         let retinfo: ValueInference, oinfo = tmpreginfers[this.operand_reg];
 
-        if (oinfo.type === ValueType.NEVER)
+        if (oinfo.type === valueinfer.ValueType.NEVER)
             throw new Error("defensive code, unclear behavior");
-        else if (this.op === "*" && ((oinfo.type === ValueType.CONST && oinfo.cons === 0) || this.operand_int === 0)) {
-            retinfo = { type: ValueType.CONST, cons: 0 };
+        else if (this.op === "*" && ((oinfo.type === valueinfer.ValueType.CONST && oinfo.cons === 0) || this.operand_int === 0)) {
+            retinfo = { type: valueinfer.ValueType.CONST, cons: 0 };
             //TODO: MORE
         }
-        else if (this.op === "*" && oinfo.type === ValueType.CONST_TIMES_REG) {
-            retinfo = { type: ValueType.CONST_TIMES_REG, cons: oinfo.cons * this.operand_int, regnum: oinfo.regnum };
+        else if (this.op === "*" && oinfo.type === valueinfer.ValueType.CONST_TIMES_REG) {
+            retinfo = { type: valueinfer.ValueType.CONST_TIMES_REG, cons: oinfo.cons * this.operand_int, regnum: oinfo.regnum };
             //TODO: MORE
         }
-        else if (oinfo.type === ValueType.ANY)
-            retinfo = VALUEINFER_ANY;
-        else if ((this.op !== "/" || this.operand_int !== 0) && oinfo.type === ValueType.CONST) {
-            retinfo = { type: ValueType.CONST, cons: bi_op(this.op, oinfo.cons, this.operand_int) };
+        else if (oinfo.type === valueinfer.ValueType.ANY)
+            retinfo = valueinfer.ANY;
+        else if ((this.op !== "/" || this.operand_int !== 0) && oinfo.type === valueinfer.ValueType.CONST) {
+            retinfo = { type: valueinfer.ValueType.CONST, cons: bi_op(this.op, oinfo.cons, this.operand_int) };
         }
-        else retinfo = VALUEINFER_ANY;
+        else retinfo = valueinfer.ANY;
 
         return { regnum: this.result_reg, reginfo: retinfo };
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
         let oinfo = tmpreginfers[this.operand_reg];
-        if (this.op === "*" && ((oinfo.type === ValueType.CONST && oinfo.cons === 0) || this.operand_int === 0)) {
+        if (this.op === "*" && ((oinfo.type === valueinfer.ValueType.CONST && oinfo.cons === 0) || this.operand_int === 0)) {
             return new TAC_loadint(0, this.result_reg).simplify(tmpreginfers);
             //TODO: MERGE WITH regInfoOutput
         }
-        else if (this.op === "*" && oinfo.type === ValueType.CONST_TIMES_REG) {
+        else if (this.op === "*" && oinfo.type === valueinfer.ValueType.CONST_TIMES_REG) {
             let cons = oinfo.cons * this.operand_int;
             if (cons === 1) return new TAC_mov(oinfo.regnum, this.result_reg).simplify(tmpreginfers);
             else return new TAC_binary_int("*", oinfo.regnum, cons, this.result_reg);
             //TODO: MORE
         }
-        else if ((this.op !== "/" || this.operand_int !== 0) && oinfo.type === ValueType.CONST) {
+        else if ((this.op !== "/" || this.operand_int !== 0) && oinfo.type === valueinfer.ValueType.CONST) {
             return new TAC_loadint(bi_op(this.op, oinfo.cons, this.operand_int), this.result_reg).simplify(tmpreginfers);
         }
         else if (this.op === "*" && this.operand_int === 1)
@@ -607,26 +604,26 @@ export class TAC_unary extends TAC {
     inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         let retinfo: ValueInference, oinfo = tmpreginfers[this.operand_reg];
 
-        if (oinfo.type === ValueType.NEVER)
+        if (oinfo.type === valueinfer.ValueType.NEVER)
             throw new Error("defensive code, unclear behavior");
-        else if (oinfo.type === ValueType.ANY)
-            retinfo = VALUEINFER_ANY;
-        else if (oinfo.type === ValueType.CONST) {
-            retinfo = { type: ValueType.CONST, cons: unary_op(this.op, oinfo.cons) };
+        else if (oinfo.type === valueinfer.ValueType.ANY)
+            retinfo = valueinfer.ANY;
+        else if (oinfo.type === valueinfer.ValueType.CONST) {
+            retinfo = { type: valueinfer.ValueType.CONST, cons: unary_op(this.op, oinfo.cons) };
         }
-        else if (oinfo.type === ValueType.CONST_TIMES_REG && this.op === "-") {
-            retinfo = { type: ValueType.CONST_TIMES_REG, cons: -oinfo.cons, regnum: oinfo.regnum };
+        else if (oinfo.type === valueinfer.ValueType.CONST_TIMES_REG && this.op === "-") {
+            retinfo = { type: valueinfer.ValueType.CONST_TIMES_REG, cons: -oinfo.cons, regnum: oinfo.regnum };
         }
-        else retinfo = VALUEINFER_ANY;
+        else retinfo = valueinfer.ANY;
 
         return { regnum: this.result_reg, reginfo: retinfo };
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
         let oinfo = tmpreginfers[this.operand_reg];
-        if (oinfo.type === ValueType.CONST) {
+        if (oinfo.type === valueinfer.ValueType.CONST) {
             return new TAC_loadint(unary_op(this.op, oinfo.cons), this.result_reg).simplify(tmpreginfers);
         }
-        else if (oinfo.type === ValueType.CONST_TIMES_REG && this.op === "-") {
+        else if (oinfo.type === valueinfer.ValueType.CONST_TIMES_REG && this.op === "-") {
             return new TAC_binary_int("*", oinfo.regnum, -oinfo.cons, this.result_reg);
         }
         else return this;
@@ -674,7 +671,7 @@ export class TAC_btrue extends TAC_branch {
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
         let oinfo = tmpreginfers[this.reg];
-        if (oinfo.type === ValueType.CONST) {
+        if (oinfo.type === valueinfer.ValueType.CONST) {
             if (oinfo.cons === 0) return new TAC_noop();
             else return new TAC_branch(this.label);
         }
@@ -703,7 +700,7 @@ export class TAC_bfalse extends TAC_branch {
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
         let oinfo = tmpreginfers[this.reg];
-        if (oinfo.type === ValueType.CONST) {
+        if (oinfo.type === valueinfer.ValueType.CONST) {
             if (oinfo.cons !== 0) return new TAC_noop();
             else return new TAC_branch(this.label);
         }
@@ -731,11 +728,11 @@ export class TAC_lw extends TAC {
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
         let oinfo = tmpreginfers[this.store_reg];
-        if (oinfo.type === ValueType.CONST_TIMES_REG && oinfo.cons === 1) return new TAC_lw(oinfo.regnum, this.offset, this.result_reg);
+        if (oinfo.type === valueinfer.ValueType.CONST_TIMES_REG && oinfo.cons === 1) return new TAC_lw(oinfo.regnum, this.offset, this.result_reg);
         else return this;
     }
     inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
-        return { regnum: this.result_reg, reginfo: VALUEINFER_ANY };
+        return { regnum: this.result_reg, reginfo: valueinfer.ANY };
     }
     tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
         return tmpRegLiveness_assign(tmpregbottomlive, [this.store_reg], this.result_reg, true);
@@ -770,11 +767,11 @@ export class TAC_lb extends TAC {
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
         let oinfo = tmpreginfers[this.store_reg];
-        if (oinfo.type === ValueType.CONST_TIMES_REG && oinfo.cons === 1) return new TAC_lb(oinfo.regnum, this.offset, this.result_reg);
+        if (oinfo.type === valueinfer.ValueType.CONST_TIMES_REG && oinfo.cons === 1) return new TAC_lb(oinfo.regnum, this.offset, this.result_reg);
         else return this;
     }
     inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
-        return { regnum: this.result_reg, reginfo: VALUEINFER_ANY };
+        return { regnum: this.result_reg, reginfo: valueinfer.ANY };
     }
     tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
         return tmpRegLiveness_assign(tmpregbottomlive, [this.store_reg], this.result_reg, true);
@@ -810,8 +807,8 @@ export class TAC_sw extends TAC {
     simplify(tmpreginfers: Array<ValueInference>): TAC {
         let oinfo1 = tmpreginfers[this.store_reg], oinfo2 = tmpreginfers[this.from_reg];
         let sreg = this.store_reg, freg = this.from_reg;
-        if (oinfo1.type === ValueType.CONST_TIMES_REG && oinfo1.cons === 1) sreg = oinfo1.regnum;
-        if (oinfo2.type === ValueType.CONST_TIMES_REG && oinfo2.cons === 1) freg = oinfo2.regnum;
+        if (oinfo1.type === valueinfer.ValueType.CONST_TIMES_REG && oinfo1.cons === 1) sreg = oinfo1.regnum;
+        if (oinfo2.type === valueinfer.ValueType.CONST_TIMES_REG && oinfo2.cons === 1) freg = oinfo2.regnum;
         if (sreg !== this.store_reg || freg !== this.from_reg) return new TAC_sw(sreg, this.offset, freg);
         else return this;
     }
@@ -839,8 +836,8 @@ export class TAC_sb extends TAC {
     simplify(tmpreginfers: Array<ValueInference>): TAC {
         let oinfo1 = tmpreginfers[this.store_reg], oinfo2 = tmpreginfers[this.from_reg];
         let sreg = this.store_reg, freg = this.from_reg;
-        if (oinfo1.type === ValueType.CONST_TIMES_REG && oinfo1.cons === 1) sreg = oinfo1.regnum;
-        if (oinfo2.type === ValueType.CONST_TIMES_REG && oinfo2.cons === 1) freg = oinfo2.regnum;
+        if (oinfo1.type === valueinfer.ValueType.CONST_TIMES_REG && oinfo1.cons === 1) sreg = oinfo1.regnum;
+        if (oinfo2.type === valueinfer.ValueType.CONST_TIMES_REG && oinfo2.cons === 1) freg = oinfo2.regnum;
         if (sreg !== this.store_reg || freg !== this.from_reg) return new TAC_sb(sreg, this.offset, freg);
         else return this;
     }
@@ -866,7 +863,7 @@ export class TAC_la extends TAC {
         return [reg2str(this.to_reg), "=", this.label].join(" ");
     }
     inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
-        return { regnum: this.to_reg, reginfo: VALUEINFER_ANY };
+        return { regnum: this.to_reg, reginfo: valueinfer.ANY };
     }
     tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
         return [{ regnum: this.to_reg, live: false }];

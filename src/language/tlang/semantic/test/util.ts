@@ -1,6 +1,6 @@
 
 import { ASTNode_globaldefs } from "../../ast";
-import { buildGlobalTypes, semanticAnalysize } from "../../semantic";
+import { buildGlobalTypes, semanticAnalysize } from "../index";
 import { parser, prodSet, astConverter } from "../../syntax";
 import lex from "../../lex";
 import * as assert from "assert";

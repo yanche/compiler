@@ -1,6 +1,6 @@
 
-import { ProdSet } from "../../productions";
-import { LexReturn, Token, noArea, Posi, Area, InvalidTokenError } from "../../compile";
+import { ProdSet } from "../../../productions";
+import { LexReturn, Token, noArea, Posi, Area, InvalidTokenError } from "../../../compile";
 
 
 let tripples = [">>>"];
