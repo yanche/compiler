@@ -21,7 +21,7 @@ function compile(input: string, optimizedicpath: string, icregallocpath: string,
         if (!gret.result.accept) return new CompileReturn(gret.result.error);
         let classlookup = gret.classlookup;
         let fnlookup = gret.fnlookup;
-        let tret = semanticAnalysize(ast, classlookup, fnlookup);
+        let tret = semanticAnalysize(classlookup, fnlookup);
         if (!tret.accept) return new CompileReturn(tret.error);
         let code = generateIntermediateCode(classlookup, fnlookup);
         let iccode = code.toString();

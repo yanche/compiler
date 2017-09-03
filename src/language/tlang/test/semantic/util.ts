@@ -13,5 +13,5 @@ export function getSemanticResult(code: string) {
     let ast = <ASTNode_globaldefs>astConverter.toAST(parseRet.root);
     let gRet = buildGlobalTypes(ast);
     assert.ok(gRet.result.accept);
-    return semanticAnalysize(ast, gRet.classlookup, gRet.fnlookup);
+    return semanticAnalysize(gRet.classlookup, gRet.fnlookup);
 }

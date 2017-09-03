@@ -95,7 +95,7 @@ export function buildGlobalTypes(root: ASTNode_globaldefs): {
     }
 }
 
-export function semanticAnalysize(root: ASTNode_globaldefs, classlookup: ClassLookup, fnlookup: FunctionLookup): SemanticCheckReturn {
+export function semanticAnalysize(classlookup: ClassLookup, fnlookup: FunctionLookup): SemanticCheckReturn {
     let mainfn = fnlookup.getApplicableFn("main", [], classlookup);
     if (mainfn.length === 0) return new SemanticCheckReturn(new SemanticError("entry function (main without parameter) is not found", ErrorCode.ENTRY_NOTFOUND));
     if (mainfn.length > 1) throw new Error("impossible code path, reserve for debugging purpose");
