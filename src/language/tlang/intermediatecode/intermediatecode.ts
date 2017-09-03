@@ -1,10 +1,11 @@
 
-import { IdGen, flatten } from "../../utility";
-import * as t from "./tac";
-import * as r from "./regallocate";
-import * as m from "./mipscode";
+import { IdGen, flatten } from "../../../utility";
+import * as t from "../tac";
+import * as r from "../regallocate";
+import * as m from "../mipscode";
 //import * as tc from "./typecheck";
-import * as util from "./util";
+import * as util from "../util";
+import { ValueInference, ValueType, merge, NEVER, ANY, equal as valInferEquals } from "./valueinfer";
 
 //FOR INTERMEDIATE CODE GENERATION AND OPTIMIZATION
 
@@ -13,7 +14,11 @@ function inferTopTmpRegValues(from: Array<CodeLineRegInfoInferences>, to: CodeLi
     let flen = to.top_val.length, changed = false;
     for (let i = 0; i < flen; ++i) {
         let fromslice = from.map(r => r.bottom_val[i]);
-        if (to.top_val[i].mergeFrom(fromslice)) changed = true;
+        let mret = merge(to.top_val[i], fromslice);
+        if (!valInferEquals(mret, to.top_val[i])) {
+            changed = true;
+            to.top_val[i] = mret;
+        }
     }
     return changed;
 }
@@ -21,7 +26,11 @@ function inferTopTmpRegValues(from: Array<CodeLineRegInfoInferences>, to: CodeLi
 function inferBottomTmpRegValues(tac: t.TAC, regvinfer: CodeLineRegInfoInferences): boolean {
     let o = tac.inferTmpRegValue(regvinfer.top_val), changed = false, rlen = regvinfer.bottom_val.length;
     for (let i = 0; i < rlen; ++i) {
-        if (regvinfer.bottom_val[i].mergeFrom([(o == null || o.regnum !== i) ? regvinfer.top_val[i] : o.reginfo])) changed = true;
+        const mret = merge(regvinfer.bottom_val[i], [(!o || o.regnum !== i) ? regvinfer.top_val[i] : o.reginfo]);
+        if (!valInferEquals(mret, regvinfer.bottom_val[i])) {
+            changed = true;
+            regvinfer.bottom_val[i] = mret;
+        }
     }
     return changed;
 }
@@ -208,7 +217,7 @@ function compress(codelines: Array<CodeLine>): Array<number> {
 
 function finalizeLabelRef(codelines: Array<CodeLine>) {
     for (let cl of codelines)
-        if (cl.label != null)
+        if (cl.label)
             cl.label.upstreams = new Array<CodeLine>();
     for (let cl of codelines) {
         let tac = cl.tac;
@@ -216,7 +225,7 @@ function finalizeLabelRef(codelines: Array<CodeLine>) {
             tac.label.upstreams.push(cl);
     }
     for (let cl of codelines) {
-        if (cl.label != null) {
+        if (cl.label) {
             if (cl.label.upstreams.length > 0)
                 cl.label.owner = cl;
             else
@@ -238,11 +247,9 @@ export function generateIntermediateCode(classlookup: util.ClassLookup, fnlookup
         let clvalueinfer = new Array<CodeLineRegInfoInferences>(cllen);
         for (let i = 0; i < cllen; ++i)
             clvalueinfer[i] = new CodeLineRegInfoInferences(fndef.astnode.tmpRegAssigned);
-        // console.log("parameter tmp register for: " + fndef.name);
-        // console.log(fndef.astnode.argTmpRegIdList);
         //set the value type of arguments to "ANY"
         for (let i of fndef.astnode.argTmpRegIdList)
-            clvalueinfer[0].top_val[i].type = TmpRegValueInference.TYPE_ANY;
+            clvalueinfer[0].top_val[i] = ANY;
         valueInference(codelines._arr, clvalueinfer);
         valueFold(codelines._arr, clvalueinfer); //fold will replace several TAC
         livenessInference(codelines._arr, clvalueinfer);
@@ -264,16 +271,15 @@ export function generateIntermediateCode(classlookup: util.ClassLookup, fnlookup
 }
 
 export class CodeLineRegInfoInferences {
-    top_val: Array<TmpRegValueInference>;
-    bottom_val: Array<TmpRegValueInference>;
+    top_val: Array<ValueInference>;
+    bottom_val: Array<ValueInference>;
     top_live: Set<number>;
     bottom_live: Set<number>;
     constructor(regcount: number) {
-        this.top_val = new Array<TmpRegValueInference>(regcount);
-        this.bottom_val = new Array<TmpRegValueInference>(regcount);
+        this.top_val = new Array<ValueInference>(regcount);
+        this.bottom_val = new Array<ValueInference>(regcount);
         for (let i = 0; i < regcount; ++i) {
-            this.top_val[i] = new TmpRegValueInference();
-            this.bottom_val[i] = new TmpRegValueInference();
+            this.bottom_val[i] = this.top_val[i] = NEVER;
         }
         this.top_live = null;
         this.bottom_live = null;
@@ -282,10 +288,12 @@ export class CodeLineRegInfoInferences {
 
 export class CodeLineCollector {
     _arr: Array<CodeLine>;
+
     add(tac: t.TAC, label?: util.CodeLabel): this {
         this._arr.push(new CodeLine(tac, label));
         return this;
     }
+
     constructor() {
         this._arr = new Array<CodeLine>();
     }
@@ -341,65 +349,6 @@ export class IntermediateCode {
 //     arr[arr.length - 1] = linestr;
 //     return arr.join("");
 // }
-
-export class TmpRegValueInference {
-    //for folding
-    type: number;  //1:any value, 2: constant, 3: constant times register
-    cons: number;
-    regnum: number;
-
-    // clone(): RegInfo {
-    //     let ret = new RegInfo();
-    //     ret.type = this.type;
-    //     ret.cons = this.cons;
-    //     ret.regnum = this.regnum;
-    //     return ret;
-    // }
-    mergeFrom(froms: Array<TmpRegValueInference>): boolean {
-        if (this.type === TmpRegValueInference.TYPE_ANY) return false;
-        let cons: number = null, regnum: number = null, type = this.type, rlen = froms.length;
-        for (let i = 0; i < rlen; ++i) {
-            let r = froms[i];
-            if (r.type === TmpRegValueInference.TYPE_ANY) {
-                this.type = TmpRegValueInference.TYPE_ANY;
-                return true;
-            }
-            else if (type === TmpRegValueInference.TYPE_NEVER) {
-                cons = r.cons;
-                regnum = r.regnum;
-                type = r.type;
-            }
-            else if (r.type === TmpRegValueInference.TYPE_CONST) {
-                //here type must be CONST or CONST_TIMES_REG
-                if (type !== TmpRegValueInference.TYPE_CONST || cons !== r.cons) {
-                    this.type = TmpRegValueInference.TYPE_ANY;
-                    return true;
-                }
-            }
-            else if (r.type === TmpRegValueInference.TYPE_CONST_TIMES_REG) {
-                if (type !== TmpRegValueInference.TYPE_CONST_TIMES_REG || regnum !== r.regnum || cons !== r.cons) {
-                    this.type = TmpRegValueInference.TYPE_ANY;
-                    return true;
-                }
-            }
-        }
-        if (this.type === type) return false;
-        else {
-            this.type = type;
-            this.cons = cons;
-            this.regnum = regnum;
-            return true;
-        }
-    }
-    constructor() {
-        this.type = TmpRegValueInference.TYPE_NEVER;
-    }
-
-    static TYPE_NEVER = 0;
-    static TYPE_ANY = 1;
-    static TYPE_CONST = 2;
-    static TYPE_CONST_TIMES_REG = 3;
-}
 
 // export function fnLabel(fnsigniture: string): string {
 //     if (fnsigniture === "main") return fnsigniture;
@@ -494,14 +443,14 @@ export class CodeLine {
         return this;
     }
     branchInCL(): Array<CodeLine> {
-        if (this.label == null) return [];
+        if (!this.label) return [];
         else return this.label.upstreams;
     }
     branchToCL(): CodeLine {
         let tac = this.tac;
         if (tac instanceof t.TAC_branch) {
             let retcl = tac.label.owner;
-            if (retcl == null) throw new Error("defensive code, label point to nothing, branchToCL is supposed to be called under label-complete mode");
+            if (!retcl) throw new Error("defensive code, label point to nothing, branchToCL is supposed to be called under label-complete mode");
             return retcl;
         }
         else return null;
