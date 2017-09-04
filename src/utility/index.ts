@@ -106,3 +106,19 @@ export function flatten<T>(arr: Array<T | Array<T>>): Array<T> {
 export function startsWith(strbase: string, strpart: string): boolean {
     return strbase.slice(0, strpart.length) === strpart;
 }
+
+export function initArray<T>(len: number, init: T): Array<T> {
+    let ret = new Array<T>(len);
+    for (let i = 0; i < len; ++i) ret[i] = init;
+    return ret;
+}
+
+export function findFirst<T>(arr: Array<T>, predicate: (t: T, idx: number) => boolean, def?: T): T {
+    let len = arr.length;
+    for (let i = 0; i < len; ++i) {
+        if (predicate(arr[i], i)) {
+            return arr[i];
+        }
+    }
+    return def;
+}

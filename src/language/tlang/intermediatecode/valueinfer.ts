@@ -1,5 +1,5 @@
 
-import { flatten, range } from "../../../utility";
+import { flatten, range, initArray } from "../../../utility";
 import { CodeLine } from "./intermediatecode";
 
 export enum ValueType {
@@ -43,10 +43,7 @@ export function inferValues(codelines: Array<CodeLine>, regcount: number, initAn
     let clen = codelines.length;
     let clValInfers = new Array<Array<ValueInference>>(clen);
     for (let i = 0; i < clen; ++i) {
-        let clregs = clValInfers[i] = new Array<ValueInference>(regcount);
-        for (let j = 0; j < regcount; ++j) {
-            clregs[j] = NEVER;
-        }
+        clValInfers[i] = initArray(regcount, NEVER);
     }
     let line1Init = new Array<ValueInference>(regcount);
     for (let i = 0; i < regcount; ++i)line1Init[i] = NEVER;

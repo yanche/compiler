@@ -7,76 +7,11 @@ import * as m from "../mipscode";
 import * as util from "../util";
 import { ValueInference, NEVER, ANY, inferValues } from "./valueinfer";
 import { valueFold } from "./valuefold";
+import { inferLiveness } from "./livenessinfer";
 
 //FOR INTERMEDIATE CODE GENERATION AND OPTIMIZATION
 
-function livenessInference(codelines: Array<CodeLine>, regvinfer: Array<CodeLineRegInfoInferences>) {
-    //from BOTTOM to TOP
-    let clen = codelines.length;
-    for (let i = 0; i < clen; ++i)codelines[i].linenum = i;
-    let stack = codelines.filter(c => c.tac instanceof t.TAC_ret).map(c => c.linenum);
-    let stacktop = stack.length;
-    while (stacktop > 0) {
-        let codeseq = stack[--stacktop];
-        let cl = codelines[codeseq];
-        let extrato = cl.branchToCL();
-        let nexts = extrato == null ? [] : [extrato.linenum];
-        if (codeseq !== clen - 1) nexts.push(codeseq + 1);
-        if (inferBottomTmpRegLiveness(nexts.map(i => regvinfer[i].top_live || new Set<number>()), regvinfer[codeseq])) {
-            if (inferTopTmpRegLiveness(cl.tac, regvinfer[codeseq])) {
-                let upstream = (codeseq === 0 ? [] : [codeseq - 1]).concat(cl.branchInCL().map(l => l.linenum));
-                for (let s of upstream) {
-                    let i = 0;
-                    for (; i < stacktop; ++i) {
-                        if (stack[i] === s) break;
-                    }
-                    if (i === stacktop) stack[stacktop++] = s;
-                }
-            }
-        }
-    }
-}
 
-function inferBottomTmpRegLiveness(fromcl: Iterable<Iterable<number>>, regvinfer: CodeLineRegInfoInferences): boolean {
-    let changed = false, lives = new Set<number>();
-    for (let s of fromcl)
-        for (let l of s)
-            lives.add(l);
-    if (regvinfer.bottom_live == null) {
-        regvinfer.bottom_live = lives;
-        changed = true;
-    }
-    else {
-        for (let l of lives) {
-            if (!regvinfer.bottom_live.has(l)) {
-                regvinfer.bottom_live.add(l);
-                changed = true;
-            }
-        }
-    }
-    return changed;
-}
-
-function inferTopTmpRegLiveness(tac: t.TAC, regvinfer: CodeLineRegInfoInferences): boolean {
-    let charr = tac.tmpRegLiveness(regvinfer.bottom_live), changed = false, tmpset = new Set<number>(regvinfer.bottom_live);
-    for (let c of charr) {
-        if (c.live) tmpset.add(c.regnum);
-        else tmpset.delete(c.regnum);
-    }
-    if (regvinfer.top_live == null) {
-        regvinfer.top_live = tmpset;
-        changed = true;
-    }
-    else {
-        for (let n of tmpset) {
-            if (!regvinfer.top_live.has(n)) {
-                regvinfer.top_live.add(n);
-                changed = true;
-            }
-        }
-    }
-    return changed;
-}
 
 function livenessProne(codelines: Array<CodeLine>, regvinfer: Array<CodeLineRegInfoInferences>) {
     let tlen = codelines.length;
@@ -163,16 +98,13 @@ export function generateIntermediateCode(classlookup: util.ClassLookup, fnlookup
         fndef.astnode.genIntermediateCode(codelines);
         finalizeLabelRef(codelines._arr);
         let cllen = codelines._arr.length;
-        //each code-line would have one reg-info-inference record (one for input one for output)
-        let clvalueinfer = new Array<CodeLineRegInfoInferences>(cllen);
         for (let i = 0; i < cllen; ++i) {
             codelines._arr[i].linenum = i;
-            clvalueinfer[i] = new CodeLineRegInfoInferences(fndef.astnode.tmpRegAssigned);
         }
         let valInfers = inferValues(codelines._arr, fndef.astnode.tmpRegAssigned, fndef.astnode.argTmpRegIdList);
-        valueFold(codelines._arr, valInfers); //fold will replace several TAC
-        livenessInference(codelines._arr, clvalueinfer);
-        livenessProne(codelines._arr, clvalueinfer); //livenessProne will replace several TAC
+        valueFold(codelines._arr, valInfers); // fold will replace several TAC
+        let liveInfers = inferLiveness(codelines._arr, fndef.astnode.tmpRegAssigned);
+        livenessProne(codelines._arr); // livenessProne will replace several TAC
         removeBranch(codelines._arr);
         //final code-lines
         let fcl = compress(codelines._arr);
@@ -187,15 +119,6 @@ export function generateIntermediateCode(classlookup: util.ClassLookup, fnlookup
         code.newCodePiece(fndef, fndef.astnode.tmpRegAssigned, compressed_codelines, compressed_reginfer);
     }
     return code;
-}
-
-export class CodeLineRegInfoInferences {
-    top_live: Set<number>;
-    bottom_live: Set<number>;
-    constructor(regcount: number) {
-        this.top_live = null;
-        this.bottom_live = null;
-    }
 }
 
 export class CodeLineCollector {

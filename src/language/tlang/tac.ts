@@ -23,7 +23,7 @@ export abstract class TAC {
     simplify(tmpreginfers: Array<ValueInference>): TAC {
         return this;
     }
-    tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
+    liveness(regbtmlive: Array<boolean>): Array<{ regnum: number, live: boolean }> {
         return [];
     }
     livenessProne(tmpregbottomlive: Set<number>): TAC {
@@ -69,7 +69,7 @@ export class TAC_retreg extends TAC_ret {
         else if (info.type === valueinfer.ValueType.CONST_TIMES_REG && info.cons === 1) return new TAC_retreg(info.regnum);
         else return this;
     }
-    tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
+    liveness(regbtmlive: Array<boolean>): Array<{ regnum: number, live: boolean }> {
         return [{ regnum: this.reg, live: true }];
     }
     readReg(regnum: number): boolean {
@@ -115,8 +115,8 @@ export class TAC_loadint extends TAC {
         if (info.type === valueinfer.ValueType.CONST && info.cons === this.num) return new TAC_noop();
         else return this;
     }
-    tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
-        return tmpRegLiveness_assign(tmpregbottomlive, [], this.to_reg, true);
+    liveness(regbtmlive: Array<boolean>): Array<{ regnum: number, live: boolean }> {
+        return tmpRegLiveness_assign(regbtmlive, [], this.to_reg, true);
     }
     livenessProne(tmpregbottomlive: Set<number>): TAC {
         return tmpregbottomlive.has(this.to_reg) ? this : new TAC_noop();
@@ -150,9 +150,9 @@ export class TAC_mov extends TAC {
         else if (info1.type === valueinfer.ValueType.CONST_TIMES_REG) return new TAC_binary_int("*", info1.regnum, info1.cons, this.to_reg).simplify(tmpreginfers);
         else return this;
     }
-    tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
+    liveness(regbtmlive: Array<boolean>): Array<{ regnum: number, live: boolean }> {
         if (this.from_reg === this.to_reg) return [];
-        return tmpRegLiveness_assign(tmpregbottomlive, [this.from_reg], this.to_reg, true);
+        return tmpRegLiveness_assign(regbtmlive, [this.from_reg], this.to_reg, true);
     }
     livenessProne(tmpregbottomlive: Set<number>): TAC {
         return tmpregbottomlive.has(this.to_reg) ? this : new TAC_noop();
@@ -204,7 +204,7 @@ export class TAC_param extends TAC {
         else if (info.type === valueinfer.ValueType.CONST_TIMES_REG && info.cons === 1) return new TAC_param(info.regnum);
         else return this;
     }
-    tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
+    liveness(regbtmlive: Array<boolean>): Array<{ regnum: number, live: boolean }> {
         return [{ regnum: this.reg, live: true }];
     }
     readReg(regnum: number): boolean {
@@ -233,7 +233,7 @@ export class TAC_allocateint extends TAC {
     inferValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         return { regnum: this.result_reg, reginfo: valueinfer.ANY };
     }
-    tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
+    liveness(regbtmlive: Array<boolean>): Array<{ regnum: number, live: boolean }> {
         return [{ regnum: this.result_reg, live: false }];
     }
     livenessProne(tmpregbottomlive: Set<number>): TAC {
@@ -266,8 +266,8 @@ export class TAC_allocate extends TAC {
     inferValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         return { regnum: this.result_reg, reginfo: valueinfer.ANY };
     }
-    tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
-        return tmpRegLiveness_assign(tmpregbottomlive, [this.reg_bytes], this.result_reg, true);
+    liveness(regbtmlive: Array<boolean>): Array<{ regnum: number, live: boolean }> {
+        return tmpRegLiveness_assign(regbtmlive, [this.reg_bytes], this.result_reg, true);
     }
     livenessProne(tmpregbottomlive: Set<number>): TAC {
         return tmpregbottomlive.has(this.result_reg) ? this : new TAC_noop();
@@ -309,7 +309,7 @@ export class TAC_fncall extends TAC {
     inferValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         return { regnum: this.result_reg, reginfo: valueinfer.ANY };
     }
-    tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
+    liveness(regbtmlive: Array<boolean>): Array<{ regnum: number, live: boolean }> {
         return [{ regnum: this.result_reg, live: false }];
     }
     livenessProne(tmpregbottomlive: Set<number>): TAC {
@@ -348,8 +348,8 @@ export class TAC_fncall_reg extends TAC {
     inferValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         return { regnum: this.result_reg, reginfo: valueinfer.ANY };
     }
-    tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
-        return tmpRegLiveness_assign(tmpregbottomlive, [this.fn_reg], this.result_reg, false);
+    liveness(regbtmlive: Array<boolean>): Array<{ regnum: number, live: boolean }> {
+        return tmpRegLiveness_assign(regbtmlive, [this.fn_reg], this.result_reg, false);
     }
     livenessProne(tmpregbottomlive: Set<number>): TAC {
         return tmpregbottomlive.has(this.result_reg) ? this : new TAC_procedurecall_reg(this.fn_reg, this.plen);
@@ -407,7 +407,7 @@ export class TAC_procedurecall_reg extends TAC {
         if (info.type === valueinfer.ValueType.CONST_TIMES_REG && info.cons === 1) return new TAC_procedurecall_reg(info.regnum, this.plen);
         else return this;
     }
-    tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
+    liveness(regbtmlive: Array<boolean>): Array<{ regnum: number, live: boolean }> {
         return [{ regnum: this.fn_reg, live: true }];
     }
     readReg(regnum: number): boolean {
@@ -497,8 +497,8 @@ export class TAC_binary extends TAC {
         }
         else return this;
     }
-    tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
-        return tmpRegLiveness_assign(tmpregbottomlive, [this.operand1_reg, this.operand2_reg], this.result_reg, true);
+    liveness(regbtmlive: Array<boolean>): Array<{ regnum: number, live: boolean }> {
+        return tmpRegLiveness_assign(regbtmlive, [this.operand1_reg, this.operand2_reg], this.result_reg, true);
     }
     livenessProne(tmpregbottomlive: Set<number>): TAC {
         return tmpregbottomlive.has(this.result_reg) ? this : new TAC_noop();
@@ -570,8 +570,8 @@ export class TAC_binary_int extends TAC {
             return new TAC_mov(this.operand_reg, this.result_reg);
         else return this;
     }
-    tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
-        return tmpRegLiveness_assign(tmpregbottomlive, [this.operand_reg], this.result_reg, true);
+    liveness(regbtmlive: Array<boolean>): Array<{ regnum: number, live: boolean }> {
+        return tmpRegLiveness_assign(regbtmlive, [this.operand_reg], this.result_reg, true);
     }
     livenessProne(tmpregbottomlive: Set<number>): TAC {
         return tmpregbottomlive.has(this.result_reg) ? this : new TAC_noop();
@@ -628,8 +628,8 @@ export class TAC_unary extends TAC {
         }
         else return this;
     }
-    tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
-        return tmpRegLiveness_assign(tmpregbottomlive, [this.operand_reg], this.result_reg, true);
+    liveness(regbtmlive: Array<boolean>): Array<{ regnum: number, live: boolean }> {
+        return tmpRegLiveness_assign(regbtmlive, [this.operand_reg], this.result_reg, true);
     }
     livenessProne(tmpregbottomlive: Set<number>): TAC {
         return tmpregbottomlive.has(this.result_reg) ? this : new TAC_noop();
@@ -677,7 +677,7 @@ export class TAC_btrue extends TAC_branch {
         }
         else return this;
     }
-    tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
+    liveness(regbtmlive: Array<boolean>): Array<{ regnum: number, live: boolean }> {
         return [{ regnum: this.reg, live: true }];
     }
     readReg(regnum: number): boolean {
@@ -706,7 +706,7 @@ export class TAC_bfalse extends TAC_branch {
         }
         else return this;
     }
-    tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
+    liveness(regbtmlive: Array<boolean>): Array<{ regnum: number, live: boolean }> {
         return [{ regnum: this.reg, live: true }];
     }
     readReg(regnum: number): boolean {
@@ -734,8 +734,8 @@ export class TAC_lw extends TAC {
     inferValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         return { regnum: this.result_reg, reginfo: valueinfer.ANY };
     }
-    tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
-        return tmpRegLiveness_assign(tmpregbottomlive, [this.store_reg], this.result_reg, true);
+    liveness(regbtmlive: Array<boolean>): Array<{ regnum: number, live: boolean }> {
+        return tmpRegLiveness_assign(regbtmlive, [this.store_reg], this.result_reg, true);
     }
     livenessProne(tmpregbottomlive: Set<number>): TAC {
         return tmpregbottomlive.has(this.result_reg) ? this : new TAC_noop();
@@ -773,8 +773,8 @@ export class TAC_lb extends TAC {
     inferValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         return { regnum: this.result_reg, reginfo: valueinfer.ANY };
     }
-    tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
-        return tmpRegLiveness_assign(tmpregbottomlive, [this.store_reg], this.result_reg, true);
+    liveness(regbtmlive: Array<boolean>): Array<{ regnum: number, live: boolean }> {
+        return tmpRegLiveness_assign(regbtmlive, [this.store_reg], this.result_reg, true);
     }
     livenessProne(tmpregbottomlive: Set<number>): TAC {
         return tmpregbottomlive.has(this.result_reg) ? this : new TAC_noop();
@@ -812,7 +812,7 @@ export class TAC_sw extends TAC {
         if (sreg !== this.store_reg || freg !== this.from_reg) return new TAC_sw(sreg, this.offset, freg);
         else return this;
     }
-    tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
+    liveness(regbtmlive: Array<boolean>): Array<{ regnum: number, live: boolean }> {
         return [{ regnum: this.store_reg, live: true }, { regnum: this.from_reg, live: true }];
     }
     readReg(regnum: number): boolean {
@@ -841,7 +841,7 @@ export class TAC_sb extends TAC {
         if (sreg !== this.store_reg || freg !== this.from_reg) return new TAC_sb(sreg, this.offset, freg);
         else return this;
     }
-    tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
+    liveness(regbtmlive: Array<boolean>): Array<{ regnum: number, live: boolean }> {
         return [{ regnum: this.store_reg, live: true }, { regnum: this.from_reg, live: true }];
     }
     readReg(regnum: number): boolean {
@@ -865,7 +865,7 @@ export class TAC_la extends TAC {
     inferValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         return { regnum: this.to_reg, reginfo: valueinfer.ANY };
     }
-    tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
+    liveness(regbtmlive: Array<boolean>): Array<{ regnum: number, live: boolean }> {
         return [{ regnum: this.to_reg, live: false }];
     }
     livenessProne(tmpregbottomlive: Set<number>): TAC {
@@ -919,8 +919,8 @@ function unary_op(op: string, num: number): number {
 }
 //deadignore: true for a=b+c
 //            false for a=fib(1,2)
-function tmpRegLiveness_assign(tmpregbottomlive: Set<number>, rhs_reg: Array<number>, lhs_reg: number, deadignore: boolean): Array<{ regnum: number, live: boolean }> {
-    if (!tmpregbottomlive.has(lhs_reg) && deadignore) return [];
+function tmpRegLiveness_assign(regbtmlive: Array<boolean>, rhs_reg: Array<number>, lhs_reg: number, deadignore: boolean): Array<{ regnum: number, live: boolean }> {
+    if (!regbtmlive[lhs_reg] && deadignore) return [];
     let r = rhs_reg.map(r => { return { regnum: r, live: true } });
     if (rhs_reg.some(r => r == lhs_reg)) return r;
     else return [{ regnum: lhs_reg, live: false }].concat(r);
