@@ -91,14 +91,17 @@ export class MIPSAssembly {
         let dataarr = this._gdata.length === 0 ? [] : [".data"].concat(this._gdata.map(g => g.toString()));
         return dataarr.concat(".text").concat(this._textarea.map(t => t.toString())).join("\r\n");
     }
+
     addCode(instruction: MIPSInstruction, label?: string): this {
         this._textarea.push(new MIPSCodeLine(instruction, label));
         return this;
     }
+
     addGData(gdata: MIPSGData, label?: string): this {
         this._gdata.push(new MIPSGDataLine(gdata, label));
         return this;
     }
+    
     constructor() {
         this._textarea = new Array<MIPSCodeLine>();
         this._gdata = new Array<MIPSGDataLine>();

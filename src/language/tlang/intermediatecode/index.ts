@@ -172,13 +172,16 @@ export class CodePiece {
         asm.addCode(new m.MIPS_emptyline());
         return this;
     }
+    
     toString(): string {
         return this._fndef.signiture + "\r\n" + this._codelines.join("\r\n");
     }
+
     private _fndef: util.FunctionDefinition;
     private _tmpregcount: number;
     private _codelines: Array<CodeLine>;
-    private _tmpreginfer: Array<CodeLineRegInfoInferences>
+    private _tmpreginfer: Array<CodeLineRegInfoInferences>;
+
     constructor(fndef: util.FunctionDefinition, tmpregcount: number, codelines: Array<CodeLine>, tmpreginfer: Array<CodeLineRegInfoInferences>) {
         this._fndef = fndef;
         this._tmpregcount = tmpregcount;
@@ -205,10 +208,12 @@ export class CodeLine {
         }
         return this;
     }
+
     branchInCL(): Array<CodeLine> {
         if (!this.label) return [];
         else return this.label.upstreams;
     }
+
     branchToCL(): CodeLine {
         let tac = this.tac;
         if (tac instanceof t.TAC_branch) {
@@ -218,12 +223,14 @@ export class CodeLine {
         }
         else return null;
     }
+
     toString(): string {
         let labelstr = "";
         if (this.label != null)
             labelstr = this.label + " :\r\n";
         return labelstr + this.tac.toString();
     }
+
     constructor(public tac: t.TAC, public label?: util.CodeLabel) { }
 }
 
