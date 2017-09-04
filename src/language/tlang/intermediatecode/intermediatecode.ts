@@ -8,23 +8,13 @@ import * as util from "../util";
 import { ValueInference, NEVER, ANY, inferValues } from "./valueinfer";
 import { valueFold } from "./valuefold";
 import { inferLiveness } from "./livenessinfer";
+import { livenessProne } from "./livenessprone";
 
-//FOR INTERMEDIATE CODE GENERATION AND OPTIMIZATION
+// FOR INTERMEDIATE CODE GENERATION AND OPTIMIZATION
 
-
-
-function livenessProne(codelines: Array<CodeLine>, regvinfer: Array<CodeLineRegInfoInferences>) {
-    let tlen = codelines.length;
-    for (let i = 0; i < tlen; ++i) {
-        let cl = codelines[i];
-        cl.tac = cl.tac.livenessProne(regvinfer[i].bottom_live);
-    }
-}
-
-//remove unnecessary branch(jump)
+// remove unnecessary branch(jump)
 function removeBranch(codelines: Array<CodeLine>) {
     let clen = codelines.length;
-    for (let i = 0; i < clen; ++i)codelines[i].linenum = i;
     for (let i = 0; i < clen - 1; ++i) {
         let cl = codelines[i];
         let tac = cl.tac;
@@ -32,7 +22,7 @@ function removeBranch(codelines: Array<CodeLine>) {
             let tidx = tac.label.owner.linenum;
             if (tidx > i) {
                 let j = i + 1;
-                //if all instructions before the jump target is NOOP, then this jump is unnecessary
+                // if all instructions before the jump target is NOOP, then this jump is unnecessary
                 while (codelines[j].tac instanceof t.TAC_noop && j < tidx)++j;
                 if (j === tidx)
                     cl.tac = new t.TAC_noop();
@@ -42,7 +32,7 @@ function removeBranch(codelines: Array<CodeLine>) {
     finalizeLabelRef(codelines);
 }
 
-//remove noop instruction
+// remove noop instruction
 function compress(codelines: Array<CodeLine>): Array<number> {
     let clen = codelines.length, lastcl: CodeLine = null;
     for (let j = clen - 1; j >= 0; --j) {
@@ -104,9 +94,9 @@ export function generateIntermediateCode(classlookup: util.ClassLookup, fnlookup
         let valInfers = inferValues(codelines._arr, fndef.astnode.tmpRegAssigned, fndef.astnode.argTmpRegIdList);
         valueFold(codelines._arr, valInfers); // fold will replace several TAC
         let liveInfers = inferLiveness(codelines._arr, fndef.astnode.tmpRegAssigned);
-        livenessProne(codelines._arr); // livenessProne will replace several TAC
+        livenessProne(codelines._arr, liveInfers); // livenessProne will replace several TAC
         removeBranch(codelines._arr);
-        //final code-lines
+        // final code-lines
         let fcl = compress(codelines._arr);
         let compressed_codelines = new Array<CodeLine>(), compressed_reginfer = new Array<CodeLineRegInfoInferences>();
         for (let i = 0; i < fcl.length; ++i) {
