@@ -9,75 +9,11 @@ import { ValueInference, NEVER, ANY, inferValues } from "./valueinfer";
 import { valueFold } from "./valuefold";
 import { inferLiveness } from "./livenessinfer";
 import { livenessProne } from "./livenessprone";
+import { compress } from "./compress";
+import { removeBranch } from "./removebranch";
+import { finalizeLabelRef } from "./util";
 
 // FOR INTERMEDIATE CODE GENERATION AND OPTIMIZATION
-
-// remove unnecessary branch(jump)
-function removeBranch(codelines: Array<CodeLine>) {
-    let clen = codelines.length;
-    for (let i = 0; i < clen - 1; ++i) {
-        let cl = codelines[i];
-        let tac = cl.tac;
-        if (tac instanceof t.TAC_branch) {
-            let tidx = tac.label.owner.linenum;
-            if (tidx > i) {
-                let j = i + 1;
-                // if all instructions before the jump target is NOOP, then this jump is unnecessary
-                while (codelines[j].tac instanceof t.TAC_noop && j < tidx)++j;
-                if (j === tidx)
-                    cl.tac = new t.TAC_noop();
-            }
-        }
-    }
-    finalizeLabelRef(codelines);
-}
-
-// remove noop instruction
-function compress(codelines: Array<CodeLine>): Array<number> {
-    let clen = codelines.length, lastcl: CodeLine = null;
-    for (let j = clen - 1; j >= 0; --j) {
-        let cl = codelines[j];
-        let tac = cl.tac;
-        if (tac instanceof t.TAC_noop) {
-            if (cl.label != null) {
-                if (lastcl == null) throw new Error("defensive code, jump to noop till end of code");
-                if (lastcl.label == null) {
-                    lastcl.label = cl.label;
-                    cl.label.owner = lastcl;
-                }
-                else {
-                    for (let ucl of cl.label.upstreams) {
-                        let utac = <t.TAC_branch>ucl.tac;
-                        utac.label = lastcl.label;
-                    }
-                }
-                cl.label = null;
-            }
-        }
-        else lastcl = cl;
-    }
-    finalizeLabelRef(codelines);
-    return codelines.map((cl, idx) => { return { ignore: cl.tac instanceof t.TAC_noop, idx: idx } }).filter(x => !x.ignore).map(x => x.idx);
-}
-
-function finalizeLabelRef(codelines: Array<CodeLine>) {
-    for (let cl of codelines)
-        if (cl.label)
-            cl.label.upstreams = new Array<CodeLine>();
-    for (let cl of codelines) {
-        let tac = cl.tac;
-        if (tac instanceof t.TAC_branch)
-            tac.label.upstreams.push(cl);
-    }
-    for (let cl of codelines) {
-        if (cl.label) {
-            if (cl.label.upstreams.length > 0)
-                cl.label.owner = cl;
-            else
-                cl.label = null;
-        }
-    }
-}
 
 export function generateIntermediateCode(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup): IntermediateCode {
     let code = new IntermediateCode(), labelidgen = new IdGen();

@@ -5,7 +5,7 @@ import * as ic from "./intermediatecode";
 import * as t from "./tac";
 
 //NOTE, THIS FUNCTION WILL MODIFY INPUT (codelines)
-export function regalloc(codelines: Array<ic.CodeLine>, regvinfer: Array<ic.CodeLineRegInfoInferences>, maxtmpregnum: number): { regmap: Map<number, number>, tmpinstack: Map<number, number> } {
+export function regalloc(codelines: Array<ic.CodeLine>, regvinfer: Array<{ bottom_live: Set<number>; top_live: Set<number> }>, maxtmpregnum: number): { regmap: Map<number, number>, tmpinstack: Map<number, number> } {
     let rig = new RIG(), clen = codelines.length;
     for (let i = 0; i < clen; ++i) {
         rig.addRelateRegs([...regvinfer[i].bottom_live]);
@@ -28,9 +28,10 @@ export function regalloc(codelines: Array<ic.CodeLine>, regvinfer: Array<ic.Code
             if (tac.readReg(snum)) {
                 let newreg = tmpregnum++;
                 let newcl = new ic.CodeLine(new t.TAC_lw(util.TMP_REGS_FP, mloc, newreg));
-                let newreginfer = new ic.CodeLineRegInfoInferences(0);
-                newreginfer.top_live = new Set<number>(reginfer.top_live);
-                newreginfer.bottom_live = new Set<number>(reginfer.top_live).add(newreg);
+                let newreginfer = {
+                    top_live: new Set<number>(reginfer.top_live),
+                    bottom_live: new Set<number>(reginfer.top_live).add(newreg)
+                };
                 codelines.splice(i, 0, newcl);
                 regvinfer.splice(i++, 0, newreginfer);
                 if (cl.label != null) {
@@ -46,9 +47,10 @@ export function regalloc(codelines: Array<ic.CodeLine>, regvinfer: Array<ic.Code
             if (tac.writeReg(snum)) {
                 let newreg = tmpregnum++;
                 let newcl = new ic.CodeLine(new t.TAC_sw(util.TMP_REGS_FP, mloc, newreg));
-                let newreginfer = new ic.CodeLineRegInfoInferences(0);
-                newreginfer.bottom_live = new Set<number>(reginfer.bottom_live);
-                newreginfer.top_live = new Set<number>(reginfer.bottom_live).add(newreg);
+                let newreginfer = {
+                    bottom_live: new Set<number>(reginfer.bottom_live),
+                    top_live: new Set<number>(reginfer.bottom_live).add(newreg)
+                };
                 codelines.splice(++i, 0, newcl);
                 regvinfer.splice(i, 0, newreginfer);
                 //ATTENTION, IF WE HAVE INSTRUCTION TO WRITE INTO SOME REGISTER AND BRANCH TO OTHER PC SIMUTANEOUSLY, WE NEED PROCESS THE "BRANCH TARGET" HERE
