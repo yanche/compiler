@@ -16,3 +16,4 @@ throw & catch
 
 tlang:
 merge makeSymbolTable, codePathAnalysis, typeAnalysis into one semanticCheck
+make valueFold do not change input codelines

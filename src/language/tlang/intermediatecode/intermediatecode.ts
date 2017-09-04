@@ -6,34 +6,9 @@ import * as m from "../mipscode";
 //import * as tc from "./typecheck";
 import * as util from "../util";
 import { ValueInference, NEVER, ANY, inferValues } from "./valueinfer";
+import { valueFold } from "./valuefold";
 
 //FOR INTERMEDIATE CODE GENERATION AND OPTIMIZATION
-
-function valueFold(codelines: Array<CodeLine>, regvinfer: Array<Array<ValueInference>>) {
-    let tlen = codelines.length;
-    let newtacs = new Array<t.TAC>(tlen);
-    let stack = [0], stacktop = 1;
-    while (stacktop > 0) {
-        let codeseq = stack[--stacktop];
-        if (newtacs[codeseq] == null) {
-            let cl = codelines[codeseq];
-            let newtac = cl.tac.simplify(regvinfer[codeseq]);
-            newtacs[codeseq] = newtac;
-            if (!(newtac instanceof t.TAC_ret)) {
-                if (newtac instanceof t.TAC_branch) {
-                    //the last TAC must be RET
-                    if (newtac instanceof t.TAC_btrue || newtac instanceof t.TAC_bfalse)
-                        stack[stacktop++] = codeseq + 1;
-                    stack[stacktop++] = newtac.label.owner.linenum;
-                }
-                else
-                    stack[stacktop++] = codeseq + 1;
-            }
-        }
-    }
-    for (let i = 0; i < tlen; ++i)
-        codelines[i].tac = newtacs[i] || new t.TAC_noop();
-}
 
 function livenessInference(codelines: Array<CodeLine>, regvinfer: Array<CodeLineRegInfoInferences>) {
     //from BOTTOM to TOP
