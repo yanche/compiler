@@ -17,7 +17,7 @@ export abstract class TAC {
     toString(): string {
         throw new Error("not implemented");
     }
-    inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
+    inferValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         return null;
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
@@ -107,7 +107,7 @@ export class TAC_loadint extends TAC {
     toString(): string {
         return [reg2str(this.to_reg), "=", this.num].join(" ");
     }
-    inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
+    inferValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         return { regnum: this.to_reg, reginfo: { cons: this.num, type: valueinfer.ValueType.CONST } };
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
@@ -138,7 +138,7 @@ export class TAC_mov extends TAC {
     toString(): string {
         return [reg2str(this.to_reg), "=", reg2str(this.from_reg)].join(" ");
     }
-    inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
+    inferValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         return { regnum: this.to_reg, reginfo: tmpreginfers[this.from_reg] };
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
@@ -230,7 +230,7 @@ export class TAC_allocateint extends TAC {
     toString(): string {
         return [reg2str(this.result_reg), "=", "allocateint", this.num].join(" ");
     }
-    inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
+    inferValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         return { regnum: this.result_reg, reginfo: valueinfer.ANY };
     }
     tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
@@ -263,7 +263,7 @@ export class TAC_allocate extends TAC {
         else if (info.type === valueinfer.ValueType.CONST_TIMES_REG && info.cons === 1) return new TAC_allocate(info.regnum, this.result_reg);
         else return this;
     }
-    inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
+    inferValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         return { regnum: this.result_reg, reginfo: valueinfer.ANY };
     }
     tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
@@ -306,7 +306,7 @@ export class TAC_fncall extends TAC {
     toString(): string {
         return [reg2str(this.result_reg), "=", "call", this.fn.signiture, this.fn.argtypelist.length].join(" ");
     }
-    inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
+    inferValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         return { regnum: this.result_reg, reginfo: valueinfer.ANY };
     }
     tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
@@ -345,7 +345,7 @@ export class TAC_fncall_reg extends TAC {
         if (info.type === valueinfer.ValueType.CONST_TIMES_REG && info.cons === 1) return new TAC_fncall_reg(info.regnum, this.plen, this.result_reg);
         else return this;
     }
-    inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
+    inferValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         return { regnum: this.result_reg, reginfo: valueinfer.ANY };
     }
     tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
@@ -432,7 +432,7 @@ export class TAC_binary extends TAC {
     toString(): string {
         return [reg2str(this.result_reg), "=", reg2str(this.operand1_reg), this.op, reg2str(this.operand2_reg)].join(" ");
     }
-    inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
+    inferValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         let retinfo: ValueInference, oinfo1 = tmpreginfers[this.operand1_reg], oinfo2 = tmpreginfers[this.operand2_reg];
 
         if (oinfo1.type === valueinfer.ValueType.NEVER || oinfo2.type === valueinfer.ValueType.NEVER)
@@ -529,7 +529,7 @@ export class TAC_binary_int extends TAC {
     toString(): string {
         return [reg2str(this.result_reg), "=", reg2str(this.operand_reg), this.op, this.operand_int].join(" ");
     }
-    inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
+    inferValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         let retinfo: ValueInference, oinfo = tmpreginfers[this.operand_reg];
 
         if (oinfo.type === valueinfer.ValueType.NEVER)
@@ -601,7 +601,7 @@ export class TAC_unary extends TAC {
     toString(): string {
         return [reg2str(this.result_reg), "=", this.op, reg2str(this.operand_reg)].join(" ");
     }
-    inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
+    inferValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         let retinfo: ValueInference, oinfo = tmpreginfers[this.operand_reg];
 
         if (oinfo.type === valueinfer.ValueType.NEVER)
@@ -731,7 +731,7 @@ export class TAC_lw extends TAC {
         if (oinfo.type === valueinfer.ValueType.CONST_TIMES_REG && oinfo.cons === 1) return new TAC_lw(oinfo.regnum, this.offset, this.result_reg);
         else return this;
     }
-    inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
+    inferValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         return { regnum: this.result_reg, reginfo: valueinfer.ANY };
     }
     tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
@@ -770,7 +770,7 @@ export class TAC_lb extends TAC {
         if (oinfo.type === valueinfer.ValueType.CONST_TIMES_REG && oinfo.cons === 1) return new TAC_lb(oinfo.regnum, this.offset, this.result_reg);
         else return this;
     }
-    inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
+    inferValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         return { regnum: this.result_reg, reginfo: valueinfer.ANY };
     }
     tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {
@@ -862,7 +862,7 @@ export class TAC_la extends TAC {
     toString(): string {
         return [reg2str(this.to_reg), "=", this.label].join(" ");
     }
-    inferTmpRegValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
+    inferValue(tmpreginfers: Array<ValueInference>): { regnum: number, reginfo: ValueInference } {
         return { regnum: this.to_reg, reginfo: valueinfer.ANY };
     }
     tmpRegLiveness(tmpregbottomlive: Set<number>): Array<{ regnum: number, live: boolean }> {

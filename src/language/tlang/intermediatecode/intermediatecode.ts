@@ -5,66 +5,11 @@ import * as r from "../regallocate";
 import * as m from "../mipscode";
 //import * as tc from "./typecheck";
 import * as util from "../util";
-import { ValueInference, ValueType, merge, NEVER, ANY, equal as valInferEquals } from "./valueinfer";
+import { ValueInference, NEVER, ANY, inferValues } from "./valueinfer";
 
 //FOR INTERMEDIATE CODE GENERATION AND OPTIMIZATION
 
-function inferTopTmpRegValues(from: Array<CodeLineRegInfoInferences>, to: CodeLineRegInfoInferences): boolean {
-    if (from.length === 0) return false;
-    let flen = to.top_val.length, changed = false;
-    for (let i = 0; i < flen; ++i) {
-        let fromslice = from.map(r => r.bottom_val[i]);
-        let mret = merge(to.top_val[i], fromslice);
-        if (!valInferEquals(mret, to.top_val[i])) {
-            changed = true;
-            to.top_val[i] = mret;
-        }
-    }
-    return changed;
-}
-
-function inferBottomTmpRegValues(tac: t.TAC, regvinfer: CodeLineRegInfoInferences): boolean {
-    let o = tac.inferTmpRegValue(regvinfer.top_val), changed = false, rlen = regvinfer.bottom_val.length;
-    for (let i = 0; i < rlen; ++i) {
-        const mret = merge(regvinfer.bottom_val[i], [(!o || o.regnum !== i) ? regvinfer.top_val[i] : o.reginfo]);
-        if (!valInferEquals(mret, regvinfer.bottom_val[i])) {
-            changed = true;
-            regvinfer.bottom_val[i] = mret;
-        }
-    }
-    return changed;
-}
-
-function valueInference(codelines: Array<CodeLine>, regvinfer: Array<CodeLineRegInfoInferences>) {
-    let clen = codelines.length;
-    for (let i = 0; i < clen; ++i)codelines[i].linenum = i;
-    let stack = [0], stacktop = 1, first = true;
-    while (stacktop > 0) {
-        let codeseq = stack[--stacktop];
-        let cl = codelines[codeseq], clregvinfer = regvinfer[codeseq];
-        let from = cl.branchInCL();
-        if (codeseq > 0) from = from.concat(codelines[codeseq - 1]);
-        if (first || inferTopTmpRegValues(from.map(n => regvinfer[n.linenum]), clregvinfer)) {
-            first = false;
-            if (inferBottomTmpRegValues(cl.tac, clregvinfer)) {
-                let extrato = cl.branchToCL();
-                let tocodelines = extrato == null ? [] : [extrato];
-                if (codeseq !== clen - 1)
-                    tocodelines.push(codelines[codeseq + 1]);
-                for (let cl of tocodelines) {
-                    let j = 0, linenum = cl.linenum;
-                    for (; j < stacktop; ++j) {
-                        if (stack[j] === linenum) break;
-                    }
-                    //to be processed
-                    if (j === stacktop) stack[stacktop++] = linenum;
-                }
-            }
-        }
-    }
-}
-
-function valueFold(codelines: Array<CodeLine>, regvinfer: Array<CodeLineRegInfoInferences>) {
+function valueFold(codelines: Array<CodeLine>, regvinfer: Array<Array<ValueInference>>) {
     let tlen = codelines.length;
     let newtacs = new Array<t.TAC>(tlen);
     let stack = [0], stacktop = 1;
@@ -72,7 +17,7 @@ function valueFold(codelines: Array<CodeLine>, regvinfer: Array<CodeLineRegInfoI
         let codeseq = stack[--stacktop];
         if (newtacs[codeseq] == null) {
             let cl = codelines[codeseq];
-            let newtac = cl.tac.simplify(regvinfer[codeseq].top_val);
+            let newtac = cl.tac.simplify(regvinfer[codeseq]);
             newtacs[codeseq] = newtac;
             if (!(newtac instanceof t.TAC_ret)) {
                 if (newtac instanceof t.TAC_branch) {
@@ -245,13 +190,12 @@ export function generateIntermediateCode(classlookup: util.ClassLookup, fnlookup
         let cllen = codelines._arr.length;
         //each code-line would have one reg-info-inference record (one for input one for output)
         let clvalueinfer = new Array<CodeLineRegInfoInferences>(cllen);
-        for (let i = 0; i < cllen; ++i)
+        for (let i = 0; i < cllen; ++i) {
+            codelines._arr[i].linenum = i;
             clvalueinfer[i] = new CodeLineRegInfoInferences(fndef.astnode.tmpRegAssigned);
-        //set the value type of arguments to "ANY"
-        for (let i of fndef.astnode.argTmpRegIdList)
-            clvalueinfer[0].top_val[i] = ANY;
-        valueInference(codelines._arr, clvalueinfer);
-        valueFold(codelines._arr, clvalueinfer); //fold will replace several TAC
+        }
+        let valInfers = inferValues(codelines._arr, fndef.astnode.tmpRegAssigned, fndef.astnode.argTmpRegIdList);
+        valueFold(codelines._arr, valInfers); //fold will replace several TAC
         livenessInference(codelines._arr, clvalueinfer);
         livenessProne(codelines._arr, clvalueinfer); //livenessProne will replace several TAC
         removeBranch(codelines._arr);
@@ -271,16 +215,9 @@ export function generateIntermediateCode(classlookup: util.ClassLookup, fnlookup
 }
 
 export class CodeLineRegInfoInferences {
-    top_val: Array<ValueInference>;
-    bottom_val: Array<ValueInference>;
     top_live: Set<number>;
     bottom_live: Set<number>;
     constructor(regcount: number) {
-        this.top_val = new Array<ValueInference>(regcount);
-        this.bottom_val = new Array<ValueInference>(regcount);
-        for (let i = 0; i < regcount; ++i) {
-            this.bottom_val[i] = this.top_val[i] = NEVER;
-        }
         this.top_live = null;
         this.bottom_live = null;
     }
