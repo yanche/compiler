@@ -1,5 +1,5 @@
 
-import { CodeLine } from "./intermediatecode";
+import { CodeLine } from "./index";
 import { range, initArray, findFirst } from "../../../utility";
 
 export function inferLiveness(codelines: Array<CodeLine>, regcount: number) {

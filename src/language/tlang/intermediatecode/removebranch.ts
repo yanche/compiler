@@ -1,5 +1,5 @@
 
-import { CodeLine } from "./intermediatecode";
+import { CodeLine } from "./index";
 import { TAC_branch, TAC_noop } from "../tac";
 import { finalizeLabelRef } from "./util";
 

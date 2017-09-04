@@ -1,5 +1,5 @@
 
-import { CodeLine } from "./intermediatecode";
+import { CodeLine } from "./index";
 import { TAC_branch } from "../tac";
 
 export function finalizeLabelRef(codelines: Array<CodeLine>) {

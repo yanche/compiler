@@ -1,6 +1,6 @@
 
 
-import { CodeLine } from "./intermediatecode";
+import { CodeLine } from "./index";
 import { ValueInference } from "./valueinfer";
 import { TAC, TAC_ret, TAC_branch, TAC_btrue, TAC_bfalse, TAC_noop } from "../tac";
 

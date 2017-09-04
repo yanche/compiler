@@ -1,7 +1,7 @@
 
 import { inferValues, ValueType } from "../valueinfer";
 import { valueFold } from "../valuefold";
-import { CodeLine } from "../intermediatecode";
+import { CodeLine } from "../index";
 import { CodeLabel } from "../../util";
 import * as t from "../../tac";
 import { IdGen } from "../../../../utility";

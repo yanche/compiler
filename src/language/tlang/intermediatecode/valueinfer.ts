@@ -1,6 +1,6 @@
 
 import { flatten, range, initArray } from "../../../utility";
-import { CodeLine } from "./intermediatecode";
+import { CodeLine } from "./index";
 
 export enum ValueType {
     NEVER,
