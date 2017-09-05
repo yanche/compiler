@@ -2,7 +2,7 @@
 import { ValueInference, ValueType, ANY } from "./intermediatecode";
 import * as util from "./util";
 import * as m from "./mipscode";
-import * as r from "./regallocate";
+import * as r from "./regalloc";
 
 function reg2str(regnum: number): string {
     return "$" + regnum;

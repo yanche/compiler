@@ -104,47 +104,52 @@ export class IntermediateCode {
 
 export class CodePiece {
     toMIPS(asm: m.MIPSAssembly): this {
-        //regalloc will MODIFY the codelines and regliveness
+        // regalloc will MODIFY the codelines and regliveness
         let regallocret = r.regalloc(this._codelines, this._regliveness, this._tmpregcount - 1), regset = new Set<number>();
         for (let x of regallocret.regmap) regset.add(x[1]);
-        //mipsregs is the set of mips registers that will be used in this code block
+        // mipsregs is the set of mips registers that will be used in this code block
         let mipsregs = [...regset].map(rnum => r.regnumToMIPSReg(rnum));
         let rlen = mipsregs.length;
-        //store the $ra
+        // store the $ra (return address)
         asm.addCode(new m.MIPS_sw(m.REGS.ra, new m.MIPSAddr_reg(-4 * rlen, m.REGS.sp)).setComments(this._fndef.signiture.toString()), this._fndef.getMIPSLabel());
-        //store the $fp
+        // store the $fp (frame point)
         asm.addCode(new m.MIPS_sw(m.REGS.fp, new m.MIPSAddr_reg(-4 * rlen - 4, m.REGS.sp)));
         for (let i = 0; i < rlen; ++i) {
-            //save the value of assigned register into stack
+            // save the value of assigned register into stack
             asm.addCode(new m.MIPS_sw(mipsregs[i], new m.MIPSAddr_reg(-4 * i, m.REGS.sp)));
         }
-        //reset $fp
+        // reset $fp to new frame
         asm.addCode(new m.MIPS_add(m.REGS.fp, m.REGS.sp, -4 * rlen - 8));
 
-        //temporary 0 ~ arglen-1 are assigned to parameters;
+        // temporary 0 ~ arglen-1 are assigned to parameters;
         for (let i = 0; i < this._fndef.argtypelist.length; ++i) {
             if (regallocret.regmap.has(i))
                 asm.addCode(new m.MIPS_lw(r.regnumToMIPSReg(regallocret.regmap.get(i)), new m.MIPSAddr_reg(4 + 4 * i, m.REGS.sp)));
             else if (regallocret.tmpinstack.has(i)) {
-                //$t9 is a hard coded temporary register to pass value
+                // $t9 is a hard coded temporary register to pass value
                 asm.addCode(new m.MIPS_lw(m.REGS.v0, new m.MIPSAddr_reg(4 + 4 * i, m.REGS.sp)));
                 asm.addCode(new m.MIPS_sw(m.REGS.v0, new m.MIPSAddr_reg(regallocret.tmpinstack.get(i), m.REGS.fp)))
             }
         }
-        //reset $sp
+        // reset $sp
         asm.addCode(new m.MIPS_add(m.REGS.sp, m.REGS.sp, -4 * rlen - 8 - 4 * regallocret.tmpinstack.size));
-        //function body
+        // function body
         let clen = this._codelines.length;
+        let fnretlabel = this._fndef.getMIPSLabel_return();
         for (let i = 0; i < clen; ++i) {
-            this._codelines[i].toMIPS(asm, regallocret.regmap, i === clen - 1, this._fndef.getMIPSLabel_return());
+            this._codelines[i].toMIPS(asm, regallocret.regmap, i === clen - 1, fnretlabel);
         }
-        asm.addCode(new m.MIPS_lw(m.REGS.ra, new m.MIPSAddr_reg(8, m.REGS.fp)), this._fndef.getMIPSLabel_return());
+        // restore $ra(return address)
+        asm.addCode(new m.MIPS_lw(m.REGS.ra, new m.MIPSAddr_reg(8, m.REGS.fp)), fnretlabel);
         for (let i = 0; i < rlen; ++i) {
-            //restore the callee saved register from stack
+            // restore the callee saved register from stack
             asm.addCode(new m.MIPS_lw(mipsregs[rlen - 1 - i], new m.MIPSAddr_reg(12 + 4 * i, m.REGS.fp)));
         }
+        // restore $sp
         asm.addCode(new m.MIPS_add(m.REGS.sp, m.REGS.fp, -8 - 4 * rlen));
+        // restore $fp
         asm.addCode(new m.MIPS_lw(m.REGS.fp, new m.MIPSAddr_reg(4, m.REGS.fp)));
+        // jump to register $ra
         asm.addCode(new m.MIPS_jr(m.REGS.ra));
         asm.addCode(new m.MIPS_emptyline());
         return this;
