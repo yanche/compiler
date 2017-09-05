@@ -3,7 +3,7 @@ import { Area, Token, ASTNode as ASTNodeBase, SemanticError, noArea } from "../.
 import * as util from "./util";
 import { IdGen, range } from "../../utility";
 import * as tc from "./tac";
-import { CodeLineCollector } from "./intermediatecode";
+import { CodeLine } from "./intermediatecode";
 import { ErrorCode } from "./error";
 import createInvalidTypeReturn = util.createInvalidTypeReturn;
 
@@ -64,9 +64,9 @@ export class ASTNode_functiondef extends ASTNode {
         return this.statementlist.makeSymbolTable(symboltable, classlookup, this._tmpregidgen);
     }
 
-    genIntermediateCode(codelines: CodeLineCollector) {
+    genIntermediateCode(codelines: Array<CodeLine>) {
         this.statementlist.genIntermediateCode(codelines, new util.IcContext(), this._tmpregidgen);
-        codelines.add(new tc.TAC_ret());
+        codelines.push(new CodeLine(new tc.TAC_ret()));
     }
 
     get tmpRegAssigned(): number { return this._tmpregidgen.cur; }
@@ -136,7 +136,7 @@ export abstract class ASTNode_statement extends ASTNode {
         return new util.SemanticCheckReturn();
     }
 
-    genIntermediateCode(codelines: CodeLineCollector, context: util.IcContext, tmpRegIdGen: IdGen) { }
+    genIntermediateCode(codelines: Array<CodeLine>, context: util.IcContext, tmpRegIdGen: IdGen) { }
 }
 
 export class ASTNode_noop extends ASTNode_statement { };
@@ -157,7 +157,7 @@ export class ASTNode_statementblock extends ASTNode_statement {
         return this.statementlist.makeSymbolTable(symboltable.newFrame(), classlookup, tmpRegIdGen);
     }
 
-    genIntermediateCode(codelines: CodeLineCollector, context: util.IcContext, tmpRegIdGen: IdGen) {
+    genIntermediateCode(codelines: Array<CodeLine>, context: util.IcContext, tmpRegIdGen: IdGen) {
         this.statementlist.genIntermediateCode(codelines, context, tmpRegIdGen);
     }
 }
@@ -194,7 +194,7 @@ export class ASTNode_statementlist extends ASTNode_statement {
         return new util.SemanticCheckReturn();
     }
 
-    genIntermediateCode(codelines: CodeLineCollector, context: util.IcContext, tmpRegIdGen: IdGen) {
+    genIntermediateCode(codelines: Array<CodeLine>, context: util.IcContext, tmpRegIdGen: IdGen) {
         for (let c of this.children) c.genIntermediateCode(codelines, context, tmpRegIdGen);
     }
 }
@@ -244,15 +244,15 @@ export class ASTNode_if extends ASTNode_statement {
         return this.elsestat.makeSymbolTable(symboltable.newFrame(), classlookup, tmpRegIdGen);
     }
 
-    genIntermediateCode(codelines: CodeLineCollector, context: util.IcContext, tmpRegIdGen: IdGen) {
+    genIntermediateCode(codelines: Array<CodeLine>, context: util.IcContext, tmpRegIdGen: IdGen) {
         let condreg = this.cond.genIntermediateCode_expr(codelines, tmpRegIdGen);
         let truelabel = new util.CodeLabel(), endlabel = new util.CodeLabel();
-        codelines.add(new tc.TAC_btrue(truelabel, condreg));
+        codelines.push(new CodeLine(new tc.TAC_btrue(truelabel, condreg)));
         this.elsestat.genIntermediateCode(codelines, context, tmpRegIdGen);
-        codelines.add(new tc.TAC_branch(endlabel));
-        codelines.add(new tc.TAC_noop(), truelabel);
+        codelines.push(new CodeLine(new tc.TAC_branch(endlabel)));
+        codelines.push(new CodeLine(new tc.TAC_noop(), truelabel));
         this.thenstat.genIntermediateCode(codelines, context, tmpRegIdGen);
-        codelines.add(new tc.TAC_noop(), endlabel);
+        codelines.push(new CodeLine(new tc.TAC_noop(), endlabel));
     }
 }
 
@@ -280,17 +280,17 @@ export class ASTNode_while extends ASTNode_statement {
         else return this.bodystmt.makeSymbolTable(symboltable.newFrame(), classlookup, tmpRegIdGen);
     }
 
-    genIntermediateCode(codelines: CodeLineCollector, context: util.IcContext, tmpRegIdGen: IdGen) {
+    genIntermediateCode(codelines: Array<CodeLine>, context: util.IcContext, tmpRegIdGen: IdGen) {
         let condlabel = new util.CodeLabel(), endlabel = new util.CodeLabel();
         let old_lelabel = context.loopEndLabel, old_allabel = context.afterLoopLabel;
         context.loopEndLabel = condlabel;
         context.afterLoopLabel = endlabel;
-        codelines.add(new tc.TAC_noop(), condlabel);
+        codelines.push(new CodeLine(new tc.TAC_noop(), condlabel));
         let condreg = this.cond.genIntermediateCode_expr(codelines, tmpRegIdGen);
-        codelines.add(new tc.TAC_bfalse(endlabel, condreg));
+        codelines.push(new CodeLine(new tc.TAC_bfalse(endlabel, condreg)));
         this.bodystmt.genIntermediateCode(codelines, context, tmpRegIdGen);
-        codelines.add(new tc.TAC_branch(condlabel));
-        codelines.add(new tc.TAC_noop(), endlabel);
+        codelines.push(new CodeLine(new tc.TAC_branch(condlabel)));
+        codelines.push(new CodeLine(new tc.TAC_noop(), endlabel));
         //restore the old label context
         context.loopEndLabel = old_lelabel;
         context.afterLoopLabel = old_allabel;
@@ -303,16 +303,16 @@ export class ASTNode_dowhile extends ASTNode_while {
         return this.bodystmt.codepathAnalysis(true);
     }
 
-    genIntermediateCode(codelines: CodeLineCollector, context: util.IcContext, tmpRegIdGen: IdGen) {
+    genIntermediateCode(codelines: Array<CodeLine>, context: util.IcContext, tmpRegIdGen: IdGen) {
         let startlabel = new util.CodeLabel(), endlabel = new util.CodeLabel();
         let old_lelabel = context.loopEndLabel, old_allabel = context.afterLoopLabel;
         context.loopEndLabel = startlabel;
         context.afterLoopLabel = endlabel;
-        codelines.add(new tc.TAC_noop(), startlabel);
+        codelines.push(new CodeLine(new tc.TAC_noop(), startlabel));
         this.bodystmt.genIntermediateCode(codelines, context, tmpRegIdGen);
         let condreg = this.cond.genIntermediateCode_expr(codelines, tmpRegIdGen);
-        codelines.add(new tc.TAC_btrue(startlabel, condreg));
-        codelines.add(new tc.TAC_noop(), endlabel);
+        codelines.push(new CodeLine(new tc.TAC_btrue(startlabel, condreg)));
+        codelines.push(new CodeLine(new tc.TAC_noop(), endlabel));
         //restore the old label context
         context.loopEndLabel = old_lelabel;
         context.afterLoopLabel = old_allabel;
@@ -357,20 +357,20 @@ export class ASTNode_for extends ASTNode_statement {
         return this.bodystmt.makeSymbolTable(symboltable.newFrame(), classlookup, tmpRegIdGen);
     }
 
-    genIntermediateCode(codelines: CodeLineCollector, context: util.IcContext, tmpRegIdGen: IdGen) {
+    genIntermediateCode(codelines: Array<CodeLine>, context: util.IcContext, tmpRegIdGen: IdGen) {
         let condlabel = new util.CodeLabel(), loopendlabel = new util.CodeLabel(), afterlooplabel = new util.CodeLabel();
         this.initstmt.genIntermediateCode(codelines, context, tmpRegIdGen);
         let old_lelabel = context.loopEndLabel, old_allabel = context.afterLoopLabel;
         context.loopEndLabel = loopendlabel;
         context.afterLoopLabel = afterlooplabel;
-        codelines.add(new tc.TAC_noop(), condlabel);
+        codelines.push(new CodeLine(new tc.TAC_noop(), condlabel));
         let condreg = this.cond.genIntermediateCode_expr(codelines, tmpRegIdGen);
-        codelines.add(new tc.TAC_bfalse(afterlooplabel, condreg));
+        codelines.push(new CodeLine(new tc.TAC_bfalse(afterlooplabel, condreg)));
         this.bodystmt.genIntermediateCode(codelines, context, tmpRegIdGen);
-        codelines.add(new tc.TAC_noop(), loopendlabel);
+        codelines.push(new CodeLine(new tc.TAC_noop(), loopendlabel));
         this.endstmt.genIntermediateCode(codelines, context, tmpRegIdGen);
-        codelines.add(new tc.TAC_branch(condlabel));
-        codelines.add(new tc.TAC_noop(), afterlooplabel);
+        codelines.push(new CodeLine(new tc.TAC_branch(condlabel)));
+        codelines.push(new CodeLine(new tc.TAC_noop(), afterlooplabel));
         //restore the old context labels
         context.loopEndLabel = old_lelabel;
         context.afterLoopLabel = old_allabel;
@@ -399,8 +399,8 @@ export class ASTNode_return extends ASTNode_statement {
         return this.retexp.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
     }
 
-    genIntermediateCode(codelines: CodeLineCollector, context: util.IcContext, tmpRegIdGen: IdGen) {
-        codelines.add(new tc.TAC_retreg(this.retexp.genIntermediateCode_expr(codelines, tmpRegIdGen)));
+    genIntermediateCode(codelines: Array<CodeLine>, context: util.IcContext, tmpRegIdGen: IdGen) {
+        codelines.push(new CodeLine(new tc.TAC_retreg(this.retexp.genIntermediateCode_expr(codelines, tmpRegIdGen))));
     }
 }
 
@@ -416,14 +416,14 @@ export class ASTNode_returnvoid extends ASTNode_statement {
         return new util.SemanticCheckReturn().setReturns();
     }
 
-    genIntermediateCode(codelines: CodeLineCollector, context: util.IcContext, tmpRegIdGen: IdGen) {
-        codelines.add(new tc.TAC_ret());
+    genIntermediateCode(codelines: Array<CodeLine>, context: util.IcContext, tmpRegIdGen: IdGen) {
+        codelines.push(new CodeLine(new tc.TAC_ret()));
     }
 }
 
 export class ASTNode_break extends ASTNode_statement {
-    genIntermediateCode(codelines: CodeLineCollector, context: util.IcContext, tmpRegIdGen: IdGen) {
-        codelines.add(new tc.TAC_branch(context.afterLoopLabel));
+    genIntermediateCode(codelines: Array<CodeLine>, context: util.IcContext, tmpRegIdGen: IdGen) {
+        codelines.push(new CodeLine(new tc.TAC_branch(context.afterLoopLabel)));
     }
 
     codepathAnalysis(inloop: boolean): util.SemanticCheckReturn {
@@ -433,8 +433,8 @@ export class ASTNode_break extends ASTNode_statement {
 }
 
 export class ASTNode_continue extends ASTNode_statement {
-    genIntermediateCode(codelines: CodeLineCollector, context: util.IcContext, tmpRegIdGen: IdGen) {
-        codelines.add(new tc.TAC_branch(context.loopEndLabel));
+    genIntermediateCode(codelines: Array<CodeLine>, context: util.IcContext, tmpRegIdGen: IdGen) {
+        codelines.push(new CodeLine(new tc.TAC_branch(context.loopEndLabel)));
     }
 
     codepathAnalysis(inloop: boolean): util.SemanticCheckReturn {
@@ -466,20 +466,20 @@ export class ASTNode_vardefine extends ASTNode_statement {
         return new util.SemanticCheckReturn();
     }
 
-    genIntermediateCode(codelines: CodeLineCollector, context: util.IcContext, tmpRegIdGen: IdGen) {
+    genIntermediateCode(codelines: Array<CodeLine>, context: util.IcContext, tmpRegIdGen: IdGen) {
         let exprreg = this.expr.genIntermediateCode_expr(codelines, tmpRegIdGen);
-        codelines.add(new tc.TAC_mov(exprreg, this._symboltable.find(this.name.rawstr).tmpRegId));
+        codelines.push(new CodeLine(new tc.TAC_mov(exprreg, this._symboltable.find(this.name.rawstr).tmpRegId)));
     }
 }
 
 
 //EXPRESSION
 export abstract class ASTNode_expr extends ASTNode_statement {
-    genIntermediateCode_expr(codelines: CodeLineCollector, tmpRegIdGen: IdGen): number {
+    genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
         throw new Error("not implemented");
     }
 
-    genIntermediateCode(codelines: CodeLineCollector, context: util.IcContext, tmpRegIdGen: IdGen) {
+    genIntermediateCode(codelines: Array<CodeLine>, context: util.IcContext, tmpRegIdGen: IdGen) {
         this.genIntermediateCode_expr(codelines, tmpRegIdGen);
     }
 }
@@ -503,17 +503,17 @@ export class ASTNode_assignment extends ASTNode_expr {
         return this.expr.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
     }
 
-    genIntermediateCode_expr(codelines: CodeLineCollector, tmpRegIdGen: IdGen): number {
+    genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
         let exprreg = this.expr.genIntermediateCode_expr(codelines, tmpRegIdGen);
         let lvalret = this.lval.genIntermediateCode_lval(codelines, tmpRegIdGen);
         if (lvalret.directReg) {
-            codelines.add(new tc.TAC_mov(exprreg, lvalret.reg));
+            codelines.push(new CodeLine(new tc.TAC_mov(exprreg, lvalret.reg)));
         }
         else {
             if (lvalret.isbyte)
-                codelines.add(new tc.TAC_sb(lvalret.reg, lvalret.offset, exprreg));
+                codelines.push(new CodeLine(new tc.TAC_sb(lvalret.reg, lvalret.offset, exprreg)));
             else
-                codelines.add(new tc.TAC_sw(lvalret.reg, lvalret.offset, exprreg));
+                codelines.push(new CodeLine(new tc.TAC_sw(lvalret.reg, lvalret.offset, exprreg)));
         }
         return exprreg;
     }
@@ -575,11 +575,11 @@ export class ASTNode_opexpr extends ASTNode_expr {
         return this.expr2.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
     }
 
-    genIntermediateCode_expr(codelines: CodeLineCollector, tmpRegIdGen: IdGen): number {
+    genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
         let exprreg1 = this.expr1.genIntermediateCode_expr(codelines, tmpRegIdGen);
         let exprreg2 = this.expr2.genIntermediateCode_expr(codelines, tmpRegIdGen);
         let retreg = tmpRegIdGen.next();
-        codelines.add(new tc.TAC_binary(this.op.rawstr, exprreg1, exprreg2, retreg));
+        codelines.push(new CodeLine(new tc.TAC_binary(this.op.rawstr, exprreg1, exprreg2, retreg)));
         return retreg;
     }
 }
@@ -619,7 +619,7 @@ export class ASTNode_fncall extends ASTNode_expr {
         return new util.SemanticCheckReturn();
     }
 
-    genIntermediateCode_expr(codelines: CodeLineCollector, tmpRegIdGen: IdGen): number {
+    genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
         //this._fndef is null means the function is a super-call but base class has no constructor, so it's safe to ignore this expression
         if (!this._fndef) return null;
         //TODO, if no constructor, ignore fncall
@@ -628,12 +628,12 @@ export class ASTNode_fncall extends ASTNode_expr {
             pregs.push(p.genIntermediateCode_expr(codelines, tmpRegIdGen));
         }
         for (let p of pregs.reverse()) {
-            codelines.add(new tc.TAC_param(p));
+            codelines.push(new CodeLine(new tc.TAC_param(p)));
         }
         if (this._fndef.name === util.ClassLookup.constructorFnName) //if this is a super-call
-            codelines.add(new tc.TAC_param(this._symboltable.find("this").tmpRegId));
+            codelines.push(new CodeLine(new tc.TAC_param(this._symboltable.find("this").tmpRegId)));
         let retreg = tmpRegIdGen.next();
-        codelines.add(new tc.TAC_fncall(this._fndef, retreg));
+        codelines.push(new CodeLine(new tc.TAC_fncall(this._fndef, retreg)));
         return retreg;
     }
 }
@@ -684,7 +684,7 @@ export class ASTNode_methodcall extends ASTNode_expr {
         return this.obj.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
     }
 
-    genIntermediateCode_expr(codelines: CodeLineCollector, tmpRegIdGen: IdGen): number {
+    genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
         //value of "this"
         let objreg = this.obj.genIntermediateCode_expr(codelines, tmpRegIdGen);
         let pregs = [objreg];
@@ -692,18 +692,18 @@ export class ASTNode_methodcall extends ASTNode_expr {
             pregs.push(p.genIntermediateCode_expr(codelines, tmpRegIdGen));
         }
         for (let p of pregs.reverse()) {
-            codelines.add(new tc.TAC_param(p));
+            codelines.push(new CodeLine(new tc.TAC_param(p)));
         }
         let retreg = tmpRegIdGen.next();
         //now retreg has the address of vtable
-        codelines.add(new tc.TAC_lw(objreg, 0, retreg));
+        codelines.push(new CodeLine(new tc.TAC_lw(objreg, 0, retreg)));
         //now retreg has the runtime address of method
         if (this._vtable_seq > 0)
-            codelines.add(new tc.TAC_binary_int("+", retreg, this._vtable_seq * 4, retreg));
+            codelines.push(new CodeLine(new tc.TAC_binary_int("+", retreg, this._vtable_seq * 4, retreg)));
         //load the method address into retreg
-        codelines.add(new tc.TAC_lw(retreg, 0, retreg));
+        codelines.push(new CodeLine(new tc.TAC_lw(retreg, 0, retreg)));
         //call the method
-        codelines.add(new tc.TAC_fncall_reg(retreg, pregs.length, retreg));
+        codelines.push(new CodeLine(new tc.TAC_fncall_reg(retreg, pregs.length, retreg)));
         return retreg;
     }
 }
@@ -720,7 +720,7 @@ class LVALICReturn {
 
 export abstract class ASTNode_leftval extends ASTNode_expr {
     //for write into
-    genIntermediateCode_lval(codelines: CodeLineCollector, tmpRegIdGen: IdGen): LVALICReturn {
+    genIntermediateCode_lval(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): LVALICReturn {
         throw new Error("not implemented");
     }
 }
@@ -738,12 +738,12 @@ export class ASTNode_varref extends ASTNode_leftval {
     }
 
     //for read
-    genIntermediateCode_expr(codelines: CodeLineCollector, tmpRegIdGen: IdGen): number {
+    genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
         return this._symboltable.find(this.token.rawstr).tmpRegId;
     }
 
     //for write into
-    genIntermediateCode_lval(codelines: CodeLineCollector, tmpRegIdGen: IdGen): LVALICReturn {
+    genIntermediateCode_lval(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): LVALICReturn {
         return new LVALICReturn(true, this.genIntermediateCode_expr(codelines, tmpRegIdGen), null, null);
     }
 }
@@ -766,12 +766,12 @@ export class ASTNode_arrderef extends ASTNode_leftval {
     }
 
     //storage address register
-    private _addr_reg(codelines: CodeLineCollector, tmpRegIdGen: IdGen): number {
+    private _addr_reg(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
         let basereg = this.expr.genIntermediateCode_expr(codelines, tmpRegIdGen);
         let indexreg = this.indexexpr.genIntermediateCode_expr(codelines, tmpRegIdGen);
         let addrreg = tmpRegIdGen.next();
-        codelines.add(new tc.TAC_binary_int("*", indexreg, this._itemisbyte ? 1 : 4, addrreg));
-        codelines.add(new tc.TAC_binary("+", basereg, addrreg, addrreg));
+        codelines.push(new CodeLine(new tc.TAC_binary_int("*", indexreg, this._itemisbyte ? 1 : 4, addrreg)));
+        codelines.push(new CodeLine(new tc.TAC_binary("+", basereg, addrreg, addrreg)));
         return addrreg;
     }
 
@@ -783,14 +783,14 @@ export class ASTNode_arrderef extends ASTNode_leftval {
     }
 
     //for read
-    genIntermediateCode_expr(codelines: CodeLineCollector, tmpRegIdGen: IdGen): number {
+    genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
         let retreg = tmpRegIdGen.next();
-        codelines.add(new tc.TAC_lw(this._addr_reg(codelines, tmpRegIdGen), 0, retreg));
+        codelines.push(new CodeLine(new tc.TAC_lw(this._addr_reg(codelines, tmpRegIdGen), 0, retreg)));
         return retreg;
     }
 
     //for write into
-    genIntermediateCode_lval(codelines: CodeLineCollector, tmpRegIdGen: IdGen): LVALICReturn {
+    genIntermediateCode_lval(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): LVALICReturn {
         return new LVALICReturn(false, this._addr_reg(codelines, tmpRegIdGen), 0, this._itemisbyte);
     }
 }
@@ -820,25 +820,25 @@ export class ASTNode_fieldref extends ASTNode_leftval {
     }
 
     //storage address register
-    private _addr_reg(codelines: CodeLineCollector, tmpRegIdGen: IdGen): number {
+    private _addr_reg(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
         let basereg = this.expr.genIntermediateCode_expr(codelines, tmpRegIdGen);
         let addrreg = tmpRegIdGen.next();
-        codelines.add(new tc.TAC_binary_int("+", basereg, this._fieldoffset, addrreg));
+        codelines.push(new CodeLine(new tc.TAC_binary_int("+", basereg, this._fieldoffset, addrreg)));
         return addrreg;
     }
 
     //for read
-    genIntermediateCode_expr(codelines: CodeLineCollector, tmpRegIdGen: IdGen): number {
+    genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
         let addrreg = this._addr_reg(codelines, tmpRegIdGen), retreg = tmpRegIdGen.next();
         if (this._fieldisbyte)
-            codelines.add(new tc.TAC_lb(addrreg, 0, retreg));
+            codelines.push(new CodeLine(new tc.TAC_lb(addrreg, 0, retreg)));
         else
-            codelines.add(new tc.TAC_lw(addrreg, 0, retreg));
+            codelines.push(new CodeLine(new tc.TAC_lw(addrreg, 0, retreg)));
         return retreg;
     }
 
     //for write into
-    genIntermediateCode_lval(codelines: CodeLineCollector, tmpRegIdGen: IdGen): LVALICReturn {
+    genIntermediateCode_lval(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): LVALICReturn {
         return new LVALICReturn(false, this._addr_reg(codelines, tmpRegIdGen), 0, this._fieldisbyte);
     }
 }
@@ -852,9 +852,9 @@ export class ASTNode_literal_integer extends ASTNode_literal {
         return new util.SemanticCheckReturn().setType(util.Type.intType(0));
     }
 
-    genIntermediateCode_expr(codelines: CodeLineCollector, tmpRegIdGen: IdGen): number {
+    genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
         let retreg = tmpRegIdGen.next();
-        codelines.add(new tc.TAC_loadint(Number(this.literal.rawstr), retreg));
+        codelines.push(new CodeLine(new tc.TAC_loadint(Number(this.literal.rawstr), retreg)));
         return retreg;
     }
 }
@@ -866,9 +866,9 @@ export class ASTNode_literal_boolean extends ASTNode_literal {
         return new util.SemanticCheckReturn().setType(util.Type.boolType(0));
     }
 
-    genIntermediateCode_expr(codelines: CodeLineCollector, tmpRegIdGen: IdGen): number {
+    genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
         let retreg = tmpRegIdGen.next();
-        codelines.add(new tc.TAC_loadint(this.literal.rawstr.toLowerCase() === "true" ? 1 : 0, retreg));
+        codelines.push(new CodeLine(new tc.TAC_loadint(this.literal.rawstr.toLowerCase() === "true" ? 1 : 0, retreg)));
         return retreg;
     }
 }
@@ -878,9 +878,9 @@ export class ASTNode_literal_null extends ASTNode_literal {
         return new util.SemanticCheckReturn().setType(util.Type.null);
     }
 
-    genIntermediateCode_expr(codelines: CodeLineCollector, tmpRegIdGen: IdGen): number {
+    genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
         let retreg = tmpRegIdGen.next();
-        codelines.add(new tc.TAC_loadint(0, retreg));
+        codelines.push(new CodeLine(new tc.TAC_loadint(0, retreg)));
         return retreg;
     }
 }
@@ -920,23 +920,23 @@ export class ASTNode_newinstance extends ASTNode_expr {
         return new util.SemanticCheckReturn();
     }
 
-    genIntermediateCode_expr(codelines: CodeLineCollector, tmpRegIdGen: IdGen): number {
+    genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
         let objreg = tmpRegIdGen.next(), tmpreg = tmpRegIdGen.next();
-        codelines.add(new tc.TAC_loadint(this._classdef.byteLength, objreg));
-        codelines.add(new tc.TAC_allocate(objreg, objreg));
-        codelines.add(new tc.TAC_la(tmpreg, this._classdef.getMIPSVTableLabel()));
-        codelines.add(new tc.TAC_sw(objreg, 0, tmpreg));
+        codelines.push(new CodeLine(new tc.TAC_loadint(this._classdef.byteLength, objreg)));
+        codelines.push(new CodeLine(new tc.TAC_allocate(objreg, objreg)));
+        codelines.push(new CodeLine(new tc.TAC_la(tmpreg, this._classdef.getMIPSVTableLabel())));
+        codelines.push(new CodeLine(new tc.TAC_sw(objreg, 0, tmpreg)));
         if (this._constructfndef) {
             let pregs = new Array<number>();
             for (let p of this.parameters.children) {
                 pregs.push(p.genIntermediateCode_expr(codelines, tmpRegIdGen));
             }
             for (let p of pregs.reverse()) {
-                codelines.add(new tc.TAC_param(p));
+                codelines.push(new CodeLine(new tc.TAC_param(p)));
             }
             // value of "this"
-            codelines.add(new tc.TAC_param(objreg));
-            codelines.add(new tc.TAC_procedurecall(this._constructfndef));
+            codelines.push(new CodeLine(new tc.TAC_param(objreg)));
+            codelines.push(new CodeLine(new tc.TAC_procedurecall(this._constructfndef)));
         }
         return objreg;
     }
@@ -967,11 +967,11 @@ export class ASTNode_newarray extends ASTNode_expr {
         return new util.SemanticCheckReturn();
     }
 
-    genIntermediateCode_expr(codelines: CodeLineCollector, tmpRegIdGen: IdGen): number {
+    genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
         let exprreg = this.exprlist.children[0].genIntermediateCode_expr(codelines, tmpRegIdGen);
         let objreg = tmpRegIdGen.next();
-        codelines.add(new tc.TAC_binary_int("*", exprreg, this._itembyte ? 1 : 4, objreg));
-        codelines.add(new tc.TAC_allocate(objreg, objreg));
+        codelines.push(new CodeLine(new tc.TAC_binary_int("*", exprreg, this._itembyte ? 1 : 4, objreg)));
+        codelines.push(new CodeLine(new tc.TAC_allocate(objreg, objreg)));
         return objreg;
     }
 }
@@ -1000,10 +1000,10 @@ export class ASTNode_unaryopexpr extends ASTNode_expr {
         return this.expr.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
     }
 
-    genIntermediateCode_expr(codelines: CodeLineCollector, tmpRegIdGen: IdGen): number {
+    genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
         let exprreg = this.expr.genIntermediateCode_expr(codelines, tmpRegIdGen);
         let retreg = tmpRegIdGen.next();
-        codelines.add(new tc.TAC_unary(this.token.rawstr, exprreg, retreg));
+        codelines.push(new CodeLine(new tc.TAC_unary(this.token.rawstr, exprreg, retreg)));
         return retreg;
     }
 }

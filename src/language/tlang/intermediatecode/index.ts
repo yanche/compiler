@@ -1,7 +1,7 @@
 
 import { IdGen, flatten } from "../../../utility";
 import * as t from "../tac";
-import * as r from "../regallocate";
+import * as r from "../regalloc";
 import * as m from "../mipscode";
 //import * as tc from "./typecheck";
 import * as util from "../util";
@@ -13,7 +13,7 @@ import { compress } from "./compress";
 import { removeBranch } from "./removebranch";
 import { finalizeLabelRef } from "./util";
 
-export { ValueInference, ValueType, ANY };
+export { ValueInference, ValueType, ANY, LivenessInfo };
 
 // FOR INTERMEDIATE CODE GENERATION AND OPTIMIZATION
 
@@ -22,42 +22,28 @@ export function generateIntermediateCode(classlookup: util.ClassLookup, fnlookup
     code.addVtableGData(classlookup);
     for (let fndef of flatten([fnlookup.allFn(), flatten(classlookup.getAllClasses().map(c => flatten([fnlookup.findMethods(c), fnlookup.findConstructors(c)])))])) {
         if (fndef.predefined) continue;
-        let codelines = new CodeLineCollector();
+        let codelines = new Array<CodeLine>();
         fndef.astnode.genIntermediateCode(codelines);
-        finalizeLabelRef(codelines._arr);
-        let cllen = codelines._arr.length;
+        finalizeLabelRef(codelines);
+        let cllen = codelines.length;
         for (let i = 0; i < cllen; ++i) {
-            codelines._arr[i].linenum = i;
+            codelines[i].linenum = i;
         }
-        let valInfers = inferValues(codelines._arr, fndef.astnode.tmpRegAssigned, fndef.astnode.argTmpRegIdList);
-        valueFold(codelines._arr, valInfers); // fold will replace several TAC
-        let liveInfers = inferLiveness(codelines._arr, fndef.astnode.tmpRegAssigned);
-        livenessProne(codelines._arr, liveInfers); // livenessProne will replace several TAC
-        removeBranch(codelines._arr);
+        let valInfers = inferValues(codelines, fndef.astnode.tmpRegAssigned, fndef.astnode.argTmpRegIdList);
+        valueFold(codelines, valInfers); // fold will replace several TAC
+        let liveInfers = inferLiveness(codelines, fndef.astnode.tmpRegAssigned);
+        livenessProne(codelines, liveInfers); // livenessProne will replace several TAC
+        removeBranch(codelines);
         // final code-lines
-        let compressed = compress(codelines._arr, liveInfers);
+        let compressed = compress(codelines, liveInfers);
         code.newCodePiece(fndef, fndef.astnode.tmpRegAssigned, compressed.codelines, compressed.regliveness);
     }
     return code;
 }
 
-export class CodeLineCollector {
-    _arr: Array<CodeLine>;
-
-    add(tac: t.TAC, label?: util.CodeLabel): this {
-        this._arr.push(new CodeLine(tac, label));
-        return this;
-    }
-
-    constructor() {
-        this._arr = new Array<CodeLine>();
-    }
-}
-
 export class IntermediateCode {
     private _codepieces: Array<CodePiece>;
     private _gdatapieces: Array<GDATA>;
-    private _labelidgen: IdGen;
 
     toMIPS(asm: m.MIPSAssembly): this {
         for (let gd of this._gdatapieces)
@@ -67,8 +53,8 @@ export class IntermediateCode {
         return this;
     }
 
-    newCodePiece(fndef: util.FunctionDefinition, tmpregcount: number, codelines: Array<CodeLine>, tmpreginfer: Array<CodeLineRegInfoInferences>): this {
-        this._codepieces.push(new CodePiece(fndef, tmpregcount, codelines, tmpreginfer));
+    newCodePiece(fndef: util.FunctionDefinition, tmpregcount: number, codelines: Array<CodeLine>, regliveness: Array<LivenessInfo>): this {
+        this._codepieces.push(new CodePiece(fndef, tmpregcount, codelines, regliveness));
         return this;
     }
 
@@ -93,7 +79,6 @@ export class IntermediateCode {
     constructor() {
         this._codepieces = new Array<CodePiece>();
         this._gdatapieces = new Array<GDATA>();
-        this._labelidgen = new IdGen();
     }
 }
 
@@ -119,8 +104,8 @@ export class IntermediateCode {
 
 export class CodePiece {
     toMIPS(asm: m.MIPSAssembly): this {
-        //regalloc will MODIFY the codelines and tmpreginfer
-        let regallocret = r.regalloc(this._codelines, this._tmpreginfer, this._tmpregcount - 1), regset = new Set<number>();
+        //regalloc will MODIFY the codelines and regliveness
+        let regallocret = r.regalloc(this._codelines, this._regliveness, this._tmpregcount - 1), regset = new Set<number>();
         for (let x of regallocret.regmap) regset.add(x[1]);
         //mipsregs is the set of mips registers that will be used in this code block
         let mipsregs = [...regset].map(rnum => r.regnumToMIPSReg(rnum));
@@ -172,12 +157,12 @@ export class CodePiece {
     private _fndef: util.FunctionDefinition;
     private _tmpregcount: number;
     private _codelines: Array<CodeLine>;
-    private _tmpreginfer: Array<CodeLineRegInfoInferences>;
+    private _regliveness: Array<LivenessInfo>;
 
-    constructor(fndef: util.FunctionDefinition, tmpregcount: number, codelines: Array<CodeLine>, tmpreginfer: Array<CodeLineRegInfoInferences>) {
+    constructor(fndef: util.FunctionDefinition, tmpregcount: number, codelines: Array<CodeLine>, regliveness: Array<LivenessInfo>) {
         this._fndef = fndef;
         this._tmpregcount = tmpregcount;
-        this._tmpreginfer = tmpreginfer;
+        this._regliveness = regliveness;
         this._codelines = codelines;
     }
 }

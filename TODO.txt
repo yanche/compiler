@@ -18,3 +18,4 @@ tlang:
 merge makeSymbolTable, codePathAnalysis, typeAnalysis into one semanticCheck
 make valueFold do not change input codelines
 branchToCL integrate with codeseq+1
+make TAC and CODELINE into one ?

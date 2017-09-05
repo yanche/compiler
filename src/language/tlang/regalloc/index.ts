@@ -1,15 +1,32 @@
 
-import * as m from "./mipscode";
-import * as util from "./util";
-import * as ic from "./intermediatecode";
-import * as t from "./tac";
+import * as m from "../mipscode";
+import * as util from "../util";
+import { CodeLine, LivenessInfo } from "../intermediatecode";
+import * as t from "../tac";
+
+function convLivenessToSet(regliveness: Array<boolean>): Set<number> {
+    let rlen = regliveness.length;
+    let ret = new Set<number>();
+    for (let i = 0; i < rlen; ++i) {
+        if (regliveness[i]) {
+            ret.add(i);
+        }
+    }
+    return ret;
+}
 
 //NOTE, THIS FUNCTION WILL MODIFY INPUT (codelines)
-export function regalloc(codelines: Array<ic.CodeLine>, regvinfer: Array<{ bottom_live: Set<number>; top_live: Set<number> }>, maxtmpregnum: number): { regmap: Map<number, number>, tmpinstack: Map<number, number> } {
+export function regalloc(codelines: Array<CodeLine>, regliveness: Array<LivenessInfo>, maxtmpregnum: number): { regmap: Map<number, number>, tmpinstack: Map<number, number> } {
     let rig = new RIG(), clen = codelines.length;
+    let reglivesets = regliveness.map(r=>{
+        return {
+            regbtmlive: convLivenessToSet(r.regbtmlive),
+            regtoplive: convLivenessToSet(r.regtoplive),
+        };
+    })
     for (let i = 0; i < clen; ++i) {
-        rig.addRelateRegs([...regvinfer[i].bottom_live]);
-        rig.addRelateRegs([...regvinfer[i].top_live]);
+        rig.addRelateRegs([...reglivesets[i].regbtmlive]);
+        rig.addRelateRegs([...reglivesets[i].regtoplive]);
     }
     let allo = rig.allocate(), fpoffset = 0, stackoffsetmap = new Map<number, number>(), tmpregnum = maxtmpregnum + 1;
     while (!allo.succeed) {
@@ -21,19 +38,21 @@ export function regalloc(codelines: Array<ic.CodeLine>, regvinfer: Array<{ botto
         rig.removeReg(snum);
         for (; i < codelines.length; ++i) {
             //remove spilled tmp-register in every lines
-            let reginfer = regvinfer[i], cl = codelines[i];
-            reginfer.bottom_live.delete(snum);
-            reginfer.top_live.delete(snum);
+            let reginfer = reglivesets[i], cl = codelines[i];
+            reginfer.regbtmlive.delete(snum);
+            reginfer.regtoplive.delete(snum);
             let tac = cl.tac;
             if (tac.readReg(snum)) {
                 let newreg = tmpregnum++;
-                let newcl = new ic.CodeLine(new t.TAC_lw(util.TMP_REGS_FP, mloc, newreg));
+                let newcl = new CodeLine(new t.TAC_lw(util.TMP_REGS_FP, mloc, newreg));
                 let newreginfer = {
-                    top_live: new Set<number>(reginfer.top_live),
-                    bottom_live: new Set<number>(reginfer.top_live).add(newreg)
+                    regtoplive: new Set<number>(reginfer.regtoplive),
+                    regbtmlive: new Set<number>(reginfer.regtoplive).add(newreg)
                 };
+                // insert code line
                 codelines.splice(i, 0, newcl);
-                regvinfer.splice(i++, 0, newreginfer);
+                reglivesets.splice(i++, 0, newreginfer);
+                // move label
                 if (cl.label != null) {
                     let lb = cl.label;
                     cl.label = null;
@@ -41,23 +60,23 @@ export function regalloc(codelines: Array<ic.CodeLine>, regvinfer: Array<{ botto
                     lb.owner = newcl;
                 }
                 tac.replReadReg(snum, newreg);
-                rig.addRelateRegsForOne(newreg, [...reginfer.top_live]);
-                reginfer.top_live.add(newreg);
+                rig.addRelateRegsForOne(newreg, [...reginfer.regtoplive]);
+                reginfer.regtoplive.add(newreg);
             }
             if (tac.writeReg(snum)) {
                 let newreg = tmpregnum++;
-                let newcl = new ic.CodeLine(new t.TAC_sw(util.TMP_REGS_FP, mloc, newreg));
+                let newcl = new CodeLine(new t.TAC_sw(util.TMP_REGS_FP, mloc, newreg));
                 let newreginfer = {
-                    bottom_live: new Set<number>(reginfer.bottom_live),
-                    top_live: new Set<number>(reginfer.bottom_live).add(newreg)
+                    regbtmlive: new Set<number>(reginfer.regbtmlive),
+                    regtoplive: new Set<number>(reginfer.regbtmlive).add(newreg)
                 };
                 codelines.splice(++i, 0, newcl);
-                regvinfer.splice(i, 0, newreginfer);
-                //ATTENTION, IF WE HAVE INSTRUCTION TO WRITE INTO SOME REGISTER AND BRANCH TO OTHER PC SIMUTANEOUSLY, WE NEED PROCESS THE "BRANCH TARGET" HERE
-                //MIPS DOES NOT HAVE THESE INSTRUCTIONS
+                reglivesets.splice(i, 0, newreginfer);
+                // ATTENTION, IF WE HAVE INSTRUCTION TO WRITE INTO SOME REGISTER AND BRANCH TO OTHER PC SIMUTANEOUSLY, WE NEED PROCESS THE "BRANCH TARGET" HERE
+                // MIPS DOES NOT HAVE THESE INSTRUCTIONS
                 tac.replWriteReg(snum, newreg);
-                rig.addRelateRegsForOne(newreg, [...reginfer.bottom_live]);
-                reginfer.bottom_live.add(newreg);
+                rig.addRelateRegsForOne(newreg, [...reginfer.regbtmlive]);
+                reginfer.regbtmlive.add(newreg);
             }
         }
         allo = rig.allocate(); //try allocate register again
@@ -67,6 +86,8 @@ export function regalloc(codelines: Array<ic.CodeLine>, regvinfer: Array<{ botto
 
 //register interference graph
 class RIG {
+    // link between temp registers, so they cannot be assigned with same real register
+    // because their values are "live" at same time
     private _map: Map<number, Set<number>>;
 
     removeReg(regnum: number): this {
@@ -78,6 +99,7 @@ class RIG {
         }
         return this;
     }
+
     //complete linkage
     addRelateRegs(regnums: Array<number>): this {
         let rlen = regnums.length;
@@ -93,6 +115,7 @@ class RIG {
         }
         return this;
     }
+
     //1->many link
     addRelateRegsForOne(regnum: number, regnums: Array<number>): this {
         if (regnums.length === 0) this._getOrCreateSet(regnum);
@@ -104,6 +127,7 @@ class RIG {
         }
         return this;
     }
+
     private _addRelatedRegs(regnum1: number, regnum2: number): this {
         if (regnum1 !== regnum2) {
             this._getOrCreateSet(regnum1).add(regnum2);
@@ -111,6 +135,7 @@ class RIG {
         }
         return this;
     }
+
     private _getOrCreateSet(regnum: number) {
         let s = this._map.get(regnum);
         if (s == null) {
@@ -119,6 +144,7 @@ class RIG {
         }
         return s;
     }
+
     allocate(): { succeed: boolean, spill?: number, map?: Map<number, number> } {
         let removables = new Array<number>(), unremovable = new Set<number>(), rarr = new Array<number>(), tmpcount = this._map.size, tmpmap = new Map<number, Set<number>>();
         for (let x of this._map) {
@@ -130,6 +156,7 @@ class RIG {
             tmpmap.set(x[0], tset);
         }
         while (true) {
+            // remove nodes from graph marked by "removables"
             while (removables.length > 0) {
                 let rnum = removables.pop();
                 rarr.push(rnum);
@@ -154,6 +181,7 @@ class RIG {
                     }
                 }
                 if (maxnum === -1 || maxsize === -1) throw new Error("defensive code, impossible code path");
+                // find the node with most neighbors and mark it as "removable"
                 removables.push(maxnum);
                 unremovable.delete(maxnum);
             }
@@ -163,6 +191,7 @@ class RIG {
         while (i >= 0) {
             let rnum = rarr[i];
             let nei = this._map.get(rnum);
+            // assignedneibor: list of neighbor nodes that already got real register allocation
             let assignedneibor = new Array<number>(), regs = new Array<boolean>(regCount);
             for (let j = i + 1; j < rarr.length; ++j) {
                 if (nei.has(rarr[j]))
@@ -172,18 +201,19 @@ class RIG {
             let j = 0;
             for (; j < regCount; ++j) {
                 if (regs[j] !== true) {
-                    //assign the register to temporary
+                    // assign the register to temporary
                     regmap.set(rnum, j);
                     break;
                 }
             }
-            //if no valid assignment
+            // if no valid assignment
             if (j === regCount)
                 return { succeed: false, spill: rnum };
             --i;
         }
         return { succeed: true, map: regmap };
     }
+
     constructor() {
         this._map = new Map<number, Set<number>>();
     }
