@@ -7,7 +7,7 @@ import * as m from "../mipscode";
 import * as util from "../util";
 import { ValueInference, NEVER, ANY, inferValues, ValueType } from "./valueinfer";
 import { valueFold } from "./valuefold";
-import { inferLiveness } from "./livenessinfer";
+import { inferLiveness, LivenessInfo } from "./livenessinfer";
 import { livenessProne } from "./livenessprone";
 import { compress } from "./compress";
 import { removeBranch } from "./removebranch";
@@ -18,7 +18,7 @@ export { ValueInference, ValueType, ANY };
 // FOR INTERMEDIATE CODE GENERATION AND OPTIMIZATION
 
 export function generateIntermediateCode(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup): IntermediateCode {
-    let code = new IntermediateCode(), labelidgen = new IdGen();
+    let code = new IntermediateCode();
     code.addVtableGData(classlookup);
     for (let fndef of flatten([fnlookup.allFn(), flatten(classlookup.getAllClasses().map(c => flatten([fnlookup.findMethods(c), fnlookup.findConstructors(c)])))])) {
         if (fndef.predefined) continue;
@@ -35,16 +35,8 @@ export function generateIntermediateCode(classlookup: util.ClassLookup, fnlookup
         livenessProne(codelines._arr, liveInfers); // livenessProne will replace several TAC
         removeBranch(codelines._arr);
         // final code-lines
-        let fcl = compress(codelines._arr);
-        let compressed_codelines = new Array<CodeLine>(), compressed_reginfer = new Array<CodeLineRegInfoInferences>();
-        for (let i = 0; i < fcl.length; ++i) {
-            let idx = fcl[i];
-            let cl = codelines._arr[idx];
-            if (cl.label != null) cl.label.num = labelidgen.next();
-            compressed_codelines.push(cl);
-            compressed_reginfer.push(clvalueinfer[idx]);
-        }
-        code.newCodePiece(fndef, fndef.astnode.tmpRegAssigned, compressed_codelines, compressed_reginfer);
+        let compressed = compress(codelines._arr, liveInfers);
+        code.newCodePiece(fndef, fndef.astnode.tmpRegAssigned, compressed.codelines, compressed.regliveness);
     }
     return code;
 }
@@ -172,7 +164,7 @@ export class CodePiece {
         asm.addCode(new m.MIPS_emptyline());
         return this;
     }
-    
+
     toString(): string {
         return this._fndef.signiture + "\r\n" + this._codelines.join("\r\n");
     }

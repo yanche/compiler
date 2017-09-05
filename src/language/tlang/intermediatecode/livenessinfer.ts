@@ -2,22 +2,28 @@
 import { CodeLine } from "./index";
 import { range, initArray, findFirst } from "../../../utility";
 
-export function inferLiveness(codelines: Array<CodeLine>, regcount: number) {
+export interface LivenessInfo {
+    regtoplive: Array<boolean>;
+    regbtmlive: Array<boolean>;
+}
+
+export function inferLiveness(codelines: Array<CodeLine>, regcount: number): Array<LivenessInfo> {
     // from BOTTOM to TOP
     let clen = codelines.length;
     // store the top-liveness of each code line
-    let regtopliveness = range(0, clen).map(() => initArray(regcount, false));
     let stack = range(0, clen);
+    let regliveness: Array<LivenessInfo> = stack.map(() => { return { regtoplive: initArray(regcount, false), regbtmlive: initArray(regcount, false) }; });
     let stacktop = stack.length;
     while (stacktop > 0) {
         let codeseq = stack[--stacktop];
         let cl = codelines[codeseq];
-        let bliveness = makeBottomLiveness(regtopliveness, cl, clen, regcount);
+        let bliveness = makeBottomLiveness(regliveness, cl, clen, regcount);
+        regliveness[codeseq].regbtmlive = bliveness;
         let livechangeinfo = cl.tac.liveness(bliveness);
         let newtoplive = newTopLiveness(bliveness, livechangeinfo, regcount);
-        let oldtoplive = regtopliveness[codeseq];
+        let oldtoplive = regliveness[codeseq].regtoplive;
         if (newtoplive.some((l, idx) => l !== oldtoplive[idx])) {
-            regtopliveness[codeseq] = newtoplive;
+            regliveness[codeseq].regtoplive = newtoplive;
             let upstream = (codeseq === 0 ? [] : [codeseq - 1]).concat(cl.branchInCL().map(l => l.linenum));
             for (let s of upstream) {
                 let i = 0;
@@ -29,14 +35,14 @@ export function inferLiveness(codelines: Array<CodeLine>, regcount: number) {
         }
     }
     // bottom-liveness of each code line
-    return range(0, clen).map(i => makeBottomLiveness(regtopliveness, codelines[i], clen, regcount));
+    return regliveness;
 }
 
-function makeBottomLiveness(regtoplive: Array<Array<boolean>>, codeline: CodeLine, totalcodeline: number, regcount: number): Array<boolean> {
+function makeBottomLiveness(regliveness: Array<LivenessInfo>, codeline: CodeLine, totalcodeline: number, regcount: number): Array<boolean> {
     let extrato = codeline.branchToCL();
     let nexts = extrato ? [extrato.linenum] : [];
     if (codeline.linenum !== totalcodeline - 1) nexts.push(codeline.linenum + 1);
-    return mergeLiveness(nexts.map(i => regtoplive[i]), regcount);
+    return mergeLiveness(nexts.map(i => regliveness[i].regtoplive), regcount);
 }
 
 function newTopLiveness(btm: Array<boolean>, tacliveinfo: Array<{ regnum: number; live: boolean; }>, regcount: number): Array<boolean> {
