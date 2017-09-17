@@ -6,6 +6,7 @@ import { IdGen } from "../../../../utility";
 import * as assert from "assert";
 import { CodeLabel } from "../../util";
 import { finalizeLabelRef } from "../util";
+import { genCodeLines } from "./util";
 
 describe("live-ness inference test", () => {
     it("live-ness on assignment", () => {
@@ -92,15 +93,6 @@ describe("live-ness inference test", () => {
         }]);
     });
 });
-
-// no branch code
-function genCodeLines(tac: t.TAC[]): CodeLine[] {
-    return tac.map((t, idx) => {
-        let cl = new CodeLine(t);
-        cl.linenum = idx;
-        return cl;
-    });
-}
 
 function sameBoolArray(actual: Array<boolean>, expected: Array<boolean>) {
     assert.strictEqual(actual.length, expected.length);
