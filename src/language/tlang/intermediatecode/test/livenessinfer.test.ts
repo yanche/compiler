@@ -6,7 +6,7 @@ import { IdGen } from "../../../../utility";
 import * as assert from "assert";
 import { CodeLabel } from "../../util";
 import { finalizeLabelRef } from "../util";
-import { genCodeLines } from "./util";
+import { genCodeLines, assignLineNums } from "./util";
 
 describe("live-ness inference test", () => {
     it("live-ness on assignment", () => {
@@ -58,10 +58,8 @@ describe("live-ness inference test", () => {
         let cl1 = new CodeLine(new t.TAC_btrue(label, r1));
         let cl2 = new CodeLine(new t.TAC_binary("+", r2, r3, r1));
         let cl3 = new CodeLine(new t.TAC_retreg(r1), label);
-        cl1.linenum = 0;
-        cl2.linenum = 1;
-        cl3.linenum = 2;
         let codelines = [cl1, cl2, cl3];
+        assignLineNums(codelines);
         finalizeLabelRef(codelines);
         let liveness = inferLiveness(codelines, regId.cur);
         livenessVerify(liveness, <LivenessInfo[]>[{

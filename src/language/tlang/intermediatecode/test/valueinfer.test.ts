@@ -5,6 +5,8 @@ import { CodeLine } from "../index";
 import { CodeLabel } from "../../util";
 import * as t from "../../tac";
 import { IdGen } from "../../../../utility";
+import { assignLineNums, genCodeLines } from "./util";
+import { finalizeLabelRef } from "../util";
 
 describe("type always goes up, from NEVER to ANY", () => {
     (<{
@@ -148,27 +150,19 @@ describe("value infer code test", () => {
     it("num const", () => {
         let num = 10, regId = new IdGen();
         let r1 = regId.next();
-        let c1 = new CodeLine(new t.TAC_loadint(num, r1));
-        c1.linenum = 0;
-        let c2 = new CodeLine(new t.TAC_ret());
-        c2.linenum = 1;
-        let inferRet = inferValues([c1, c2], regId.cur, []);
+        let codelines = genCodeLines([new t.TAC_loadint(num, r1), new t.TAC_ret()]);
+        let inferRet = inferValues(codelines, regId.cur, []);
         assert.strictEqual(inferRet.length, 2);
         assert.strictEqual(inferRet[1][r1].type, ValueType.CONST);
         assert.strictEqual(inferRet[1][r1].cons, num);
     });
-    
+
     it("const times register", () => {
         let num = 10, regId = new IdGen();
         let r1 = regId.next();
         let r2 = regId.next();
-        let c1 = new CodeLine(new t.TAC_loadint(num, r1));
-        c1.linenum = 0;
-        let c2 = new CodeLine(new t.TAC_binary("*", r1, r2, r1));
-        c2.linenum = 1;
-        let c3 = new CodeLine(new t.TAC_ret());
-        c3.linenum = 2;
-        let inferRet = inferValues([c1, c2, c3], regId.cur, [r2]);
+        let codelines = genCodeLines([new t.TAC_loadint(num, r1), new t.TAC_binary("*", r1, r2, r1), new t.TAC_ret()]);
+        let inferRet = inferValues(codelines, regId.cur, [r2]);
         assert.strictEqual(inferRet.length, 3);
         assert.strictEqual(inferRet[1][r1].type, ValueType.CONST);
         assert.strictEqual(inferRet[1][r1].cons, num);
@@ -178,19 +172,16 @@ describe("value infer code test", () => {
     });
 
     it("all code line must run at least once", () => {
-        let num = 10, regId = new IdGen(), labelId = new IdGen();
+        let num = 10, regId = new IdGen();
         let r1 = regId.next();
         let l1 = new CodeLabel();
-        l1.num = labelId.next();
         let c1 = new CodeLine(new t.TAC_branch(l1));
-        c1.linenum = 0;
         let c2 = new CodeLine(new t.TAC_loadint(num, r1), l1);
-        c2.linenum = 1;
         let c3 = new CodeLine(new t.TAC_ret());
-        c3.linenum = 2;
-        l1.owner = c2;
-        l1.upstreams = [c1];
-        let inferRet = inferValues([c1, c2, c3], regId.cur, []);
+        let codelines = [c1, c2, c3];
+        assignLineNums(codelines);
+        finalizeLabelRef(codelines);
+        let inferRet = inferValues(codelines, regId.cur, []);
         assert.strictEqual(inferRet.length, 3);
         assert.strictEqual(inferRet[2][r1].type, ValueType.CONST);
         assert.strictEqual(inferRet[2][r1].cons, num);

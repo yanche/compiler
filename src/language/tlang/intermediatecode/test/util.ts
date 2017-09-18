@@ -10,3 +10,7 @@ export function genCodeLines(tac: t.TAC[]): CodeLine[] {
         return cl;
     });
 }
+
+export function assignLineNums(codelines: CodeLine[]) {
+    codelines.forEach((b, idx) => b.linenum = idx);
+}
