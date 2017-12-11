@@ -19,7 +19,7 @@ describe("compress code lines test", () => {
             new t.TAC_retreg(r1)
         ]);
         let liveness = inferLiveness(codelines, regId.cur);
-        let cret = compress(codelines, liveness);
+        let cret = compress(codelines, liveness, new IdGen());
         assert.strictEqual(cret.codelines.length, 2);
         assert.strictEqual(cret.codelines[0].tac instanceof t.TAC_loadint, true);
         assert.strictEqual(cret.codelines[1].tac instanceof t.TAC_retreg, true);
@@ -37,7 +37,7 @@ describe("compress code lines test", () => {
         finalizeLabelRef(codelines);
         assignLineNums(codelines);
         let liveness = inferLiveness(codelines, regId.cur);
-        let cret = compress(codelines, liveness);
+        let cret = compress(codelines, liveness, new IdGen());
         assert.strictEqual(cret.codelines.length, 3);
         assert.strictEqual(cret.codelines[0].tac instanceof t.TAC_btrue, true);
         assert.strictEqual(cret.codelines[1].tac instanceof t.TAC_loadint, true);
@@ -60,7 +60,7 @@ describe("compress code lines test", () => {
         finalizeLabelRef(codelines);
         assignLineNums(codelines);
         let liveness = inferLiveness(codelines, regId.cur);
-        let cret = compress(codelines, liveness);
+        let cret = compress(codelines, liveness, new IdGen());
         assert.strictEqual(cret.codelines.length, 4);
         assert.strictEqual(cret.codelines[0].tac instanceof t.TAC_btrue, true);
         assert.strictEqual(cret.codelines[1].tac instanceof t.TAC_btrue, true);

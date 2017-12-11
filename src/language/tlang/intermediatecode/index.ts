@@ -20,6 +20,7 @@ export { ValueInference, ValueType, ANY, LivenessInfo };
 export function generateIntermediateCode(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup): IntermediateCode {
     let code = new IntermediateCode();
     code.addVtableGData(classlookup);
+    const labelIdGen = new IdGen();
     for (let fndef of flatten([fnlookup.allFn(), flatten(classlookup.getAllClasses().map(c => flatten([fnlookup.findMethods(c), fnlookup.findConstructors(c)])))])) {
         if (fndef.predefined) continue;
         let codelines = new Array<CodeLine>();
@@ -35,7 +36,7 @@ export function generateIntermediateCode(classlookup: util.ClassLookup, fnlookup
         livenessProne(codelines, liveInfers); // livenessProne will replace several TAC
         removeBranch(codelines);
         // final code-lines
-        let compressed = compress(codelines, liveInfers);
+        let compressed = compress(codelines, liveInfers, labelIdGen);
         code.newCodePiece(fndef, fndef.astnode.tmpRegAssigned, compressed.codelines, compressed.regliveness);
     }
     return code;

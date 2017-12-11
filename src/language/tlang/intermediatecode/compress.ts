@@ -6,7 +6,7 @@ import { finalizeLabelRef } from "./util";
 import { LivenessInfo } from "./livenessinfer";
 
 // remove noop instruction
-export function compress(codelines: Array<CodeLine>, liveInfers: Array<LivenessInfo>) {
+export function compress(codelines: Array<CodeLine>, liveInfers: Array<LivenessInfo>, labelIdGen: IdGen) {
     let clen = codelines.length, lastcl: CodeLine = null;
     // move the LABEL on tac.noop to its next following tac
     for (let j = clen - 1; j >= 0; --j) {
@@ -34,12 +34,11 @@ export function compress(codelines: Array<CodeLine>, liveInfers: Array<LivenessI
     // keep the non tac.noop instructions
     let keepCLidx = codelines.map((cl, idx) => { return { ignore: cl.tac instanceof TAC_noop, idx: idx } }).filter(x => !x.ignore).map(x => x.idx);
     let compressedCodelines = new Array<CodeLine>(keepCLidx.length), compressedRegLiveness = new Array<LivenessInfo>(keepCLidx.length);
-    let labelidgen = new IdGen();
     for (let i = 0; i < keepCLidx.length; ++i) {
         let idx = keepCLidx[i];
         let cl = codelines[idx];
         // reset the number on labels
-        if (cl.label) cl.label.num = labelidgen.next();
+        if (cl.label) cl.label.num = labelIdGen.next();
         compressedCodelines[i] = cl;
         compressedRegLiveness[i] = liveInfers[idx];
     }
