@@ -46,9 +46,11 @@ export function inferValues(codelines: Array<CodeLine>, regcount: number, initAn
         clValInfers[i] = initArray(regcount, NEVER);
     }
     let line1Init = new Array<ValueInference>(regcount);
-    for (let i = 0; i < regcount; ++i)line1Init[i] = NEVER;
+    // for (let i = 0; i < regcount; ++i)line1Init[i] = NEVER;
     // set the value type of arguments to "ANY"
-    for (let i of initAnyValRegs) line1Init[i] = ANY;
+    // for (let i of initAnyValRegs) line1Init[i] = ANY;
+    // set every value type to ANY
+    for (let i = 0; i < regcount; ++i)line1Init[i] = ANY;
     let stack = range(0, clen).reverse(), stacktop = clen;
     while (stacktop > 0) {
         let codeseq = stack[--stacktop];
