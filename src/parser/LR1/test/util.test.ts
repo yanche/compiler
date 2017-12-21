@@ -4,7 +4,7 @@ import * as assert from 'assert';
 import { ProdSet } from "../../../productions";
 
 
-interface ExpectedData {
+export interface ExpectedData {
     symstr: string;
     mid: boolean;
     children?: Array<ExpectedData>;

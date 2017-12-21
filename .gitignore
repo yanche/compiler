@@ -5,3 +5,5 @@
 *.log
 *.ic
 *.asm
+*.d.ts
+*.tgz

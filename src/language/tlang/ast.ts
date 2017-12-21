@@ -708,7 +708,7 @@ export class ASTNode_methodcall extends ASTNode_expr {
     }
 }
 
-class LVALICReturn {
+export class LVALICReturn {
     constructor(
         public directReg: boolean,
         //the register number of value if directReg is true

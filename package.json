@@ -1,8 +1,7 @@
 {
-  "name": "compiler",
-  "version": "1.0.0",
+  "name": "@belongs/compiler",
+  "version": "0.0.0",
   "description": "",
-  "main": "index.js",
   "dependencies": {},
   "scripts": {
     "test": "mocha **/*.test.js"
@@ -12,5 +11,8 @@
     "url": "git@yanchegit.chinacloudapp.cn:opt/git/compiler"
   },
   "author": "",
-  "license": "ISC"
+  "license": "MIT",
+  "devDependencies": {
+    "mocha": "^4.0.1"
+  }
 }

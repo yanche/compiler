@@ -219,7 +219,7 @@ export class CodeLine {
 
 
 //global data block
-abstract class GDATA {
+export abstract class GDATA {
     toString(): string {
         throw new Error("not implemented");
     }

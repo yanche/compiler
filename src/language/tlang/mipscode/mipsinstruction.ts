@@ -32,7 +32,7 @@ export class MIPS_emptyline extends MIPSInstruction {
     constructor() { super(""); }
 }
 
-abstract class MIPSInstruction_1Src extends MIPSInstruction {
+export abstract class MIPSInstruction_1Src extends MIPSInstruction {
     private _desreg: MIPSRegister;
     private _srcreg: MIPSRegister;
 
@@ -47,7 +47,7 @@ abstract class MIPSInstruction_1Src extends MIPSInstruction {
     }
 }
 
-abstract class MIPSInstruction_2Src extends MIPSInstruction {
+export abstract class MIPSInstruction_2Src extends MIPSInstruction {
     private _desreg: MIPSRegister;
     private _src1reg: MIPSRegister;
     private _src2reg: MIPSRegister | number;
@@ -262,7 +262,7 @@ export class MIPS_sltu extends MIPSInstruction_2Src {
     }
 }
 
-abstract class MIPSInstruction_b extends MIPSInstruction {
+export abstract class MIPSInstruction_b extends MIPSInstruction {
     private _label: string;
 
     toStringWithoutComments(): string {
@@ -287,7 +287,7 @@ export class MIPS_j extends MIPSInstruction_b {
     }
 }
 
-abstract class MIPSInstruction_1Src0Des extends MIPSInstruction {
+export abstract class MIPSInstruction_1Src0Des extends MIPSInstruction {
     private _srcreg: MIPSRegister;
 
     toStringWithoutComments(): string {
@@ -318,7 +318,7 @@ export class MIPS_jalr extends MIPSInstruction_1Src0Des {
     }
 }
 
-abstract class MIPSInstruction_2Src_b extends MIPSInstruction {
+export abstract class MIPSInstruction_2Src_b extends MIPSInstruction {
     private _label: string;
     private _src1reg: MIPSRegister;
     private _src2reg: MIPSRegister | number;
@@ -395,7 +395,7 @@ export class MIPS_bltu extends MIPSInstruction_2Src_b {
     }
 }
 
-abstract class MIPSInstruction_1Src_b extends MIPSInstruction {
+export abstract class MIPSInstruction_1Src_b extends MIPSInstruction {
     private _label: string;
     private _srcreg: MIPSRegister;
 
@@ -464,7 +464,7 @@ export class MIPS_bltzal extends MIPSInstruction_1Src_b {
     }
 }
 
-abstract class MIPSInstruction_ls extends MIPSInstruction {
+export abstract class MIPSInstruction_ls extends MIPSInstruction {
     private _addr: MIPSAddress;
     private _reg: MIPSRegister;
 

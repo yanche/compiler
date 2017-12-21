@@ -486,7 +486,7 @@ export class CodeLabel {
     }
 }
 
-class PredefinedFunction {
+export class PredefinedFunction {
     mipslabel: string;
     constructor(public name: string, public rettype: Type, public argtypelist: Array<Type>) { }
 }
