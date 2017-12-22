@@ -1,6 +1,5 @@
 
  import { assert } from "chai";
-import * as utility from "../../../utility";
 import { createSLR1Parser } from "../index";
 import { validate } from "./util.test";
 import { Token, noArea } from "../../../compile";

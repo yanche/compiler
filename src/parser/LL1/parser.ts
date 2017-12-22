@@ -1,7 +1,6 @@
 
-import * as utility from "../../utility";
 import { ProdSet } from "../../productions";
-import { ParseTreeNode, Token, ParseTreeMidNode, ParseTreeTermNode, ParseReturn, noArea, Parser } from "../../compile";
+import { ParseTreeNode, Token, ParseTreeMidNode, ParseTreeTermNode, ParseReturn, Parser } from "../../compile";
 import { NeedMoreTokensError, TooManyTokensError, NotAcceptableError } from "../error";
 
 export default class LL1Parser extends Parser {

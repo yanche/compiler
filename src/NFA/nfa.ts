@@ -35,7 +35,6 @@ class State {
 
 export default class NFA {
     private _statemap: Map<number, State>;
-    private _startset: Set<number>;
     private _terminalset: Set<number>;
     private _epsilonclosuremap: Map<number, utility.closure.Closure>;
     private _startclosure: Set<number>;
@@ -78,7 +77,6 @@ export default class NFA {
         if (terminalset.size === 0) throw new Error('no terminal state in NFA');
 
         this._statemap = statemap;
-        this._startset = startset;
         this._terminalset = terminalset;
         this._epsilonclosuremap = utility.closure.calcClosure(epsilontrans);
         this._startclosure = this.epsilonClosureOfStates(startset);

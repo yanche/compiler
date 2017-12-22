@@ -1,6 +1,5 @@
 
 export class MIPSRegister {
-    private _num: number;
     private _name: string;
 
     toString(): string {
@@ -9,7 +8,6 @@ export class MIPSRegister {
 
     constructor(num: number, name: string) {
         this._name = name;
-        this._num = num;
     }
 }
 

@@ -1,7 +1,7 @@
 
 import lex from "../../lex";
 import { prodSet } from "../../syntax";
- import { assert } from "chai";
+import { assert } from "chai";
 import { Area } from "../../../../compile";
 
 describe("token area test", () => {
@@ -10,7 +10,6 @@ describe("token area test", () => {
         assert.ok(lexRet.accept);
         let tokens = lexRet.tokens;
         assert.strictEqual(tokens.length, 2);
-        let area = tokens[0].area;
         compareArea(tokens[0].area, { row: 1, col: 1 }, { row: 1, col: 3 });
     });
 
@@ -19,7 +18,6 @@ describe("token area test", () => {
         assert.ok(lexRet.accept);
         let tokens = lexRet.tokens;
         assert.strictEqual(tokens.length, 3);
-        let area = tokens[0].area;
         compareArea(tokens[0].area, { row: 1, col: 1 }, { row: 1, col: 3 });
         compareArea(tokens[1].area, { row: 1, col: 5 }, { row: 1, col: 7 });
     });
@@ -29,7 +27,6 @@ describe("token area test", () => {
         assert.ok(lexRet.accept);
         let tokens = lexRet.tokens;
         assert.strictEqual(tokens.length, 2);
-        let area = tokens[0].area;
         compareArea(tokens[0].area, { row: 1, col: 6 }, { row: 1, col: 8 });
     });
 
@@ -39,7 +36,6 @@ describe("token area test", () => {
         assert.ok(lexRet.accept);
         let tokens = lexRet.tokens;
         assert.strictEqual(tokens.length, 2);
-        let area = tokens[0].area;
         compareArea(tokens[0].area, { row: 2, col: 3 }, { row: 2, col: 5 });
     });
 
@@ -49,7 +45,6 @@ describe("token area test", () => {
         assert.ok(lexRet.accept);
         let tokens = lexRet.tokens;
         assert.strictEqual(tokens.length, 2);
-        let area = tokens[0].area;
         compareArea(tokens[0].area, { row: 2, col: 3 }, { row: 2, col: 5 });
     });
 });

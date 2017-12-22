@@ -1,6 +1,5 @@
 
 import { livenessProne } from "../livenessprone";
-import { CodeLine } from "../index";
 import * as t from "../../tac";
 import { IdGen } from "../../../../utility";
  import { assert } from "chai";

@@ -284,7 +284,7 @@ function leftFactoring(lstr: string, rhsarr: Array<Array<Symbol>>, lfidx: number
         let rights = lfmap.get(lfname);
         if (rights.length === 1) prods.push(new Production(lsymbol, lfidx > 0 ? rights[0].slice(lfidx) : rights[0]));
         else {
-            let goahead = false, i = 1, lfidx0 = lfidx, anchor: string;
+            let i = 1, lfidx0 = lfidx, anchor: string;
             lfidx -= 1;
             do {
                 // any deeper left factor, we can skip this do-while loop because leftFactoring does the same thing

@@ -5,7 +5,7 @@ import * as r from "../regalloc";
 import * as m from "../mipscode";
 //import * as tc from "./typecheck";
 import * as util from "../util";
-import { ValueInference, NEVER, ANY, inferValues, ValueType } from "./valueinfer";
+import { ValueInference, ANY, inferValues, ValueType } from "./valueinfer";
 import { valueFold } from "./valuefold";
 import { inferLiveness, LivenessInfo } from "./livenessinfer";
 import { livenessProne } from "./livenessprone";

@@ -2,9 +2,8 @@
 
 import * as closure from "./closure";
 import * as automata from "./automata";
-import * as file from "./file";
 
-export { closure, automata, file };
+export { closure, automata };
 
 export function isNonNeg(num: number, int?: boolean): boolean {
     return num >= 0 && (!int || Math.ceil(num) === num);

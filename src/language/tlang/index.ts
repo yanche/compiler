@@ -1,13 +1,11 @@
 
 import lex from "./lex";
 import { astConverter, parser, prodSet } from "./syntax";
-import { CompileReturn, CompileError } from "../../compile";
+import { CompileError } from "../../compile";
 import { semanticAnalysize, buildGlobalTypes } from "./semantic";
 import { ASTNode_globaldefs } from "./ast";
-import { file } from "../../utility";
 import { generateIntermediateCode } from "./intermediatecode";
 import { generateMIPSCode } from "./mipscode";
-import { ClassLookup, FunctionLookup } from "./util";
 
 export enum CompileOutputFlag {
     IntermediateCode = 1,
@@ -42,21 +40,4 @@ export function compile(input: string, flag: CompileOutputFlag): {
         icAfterRegAlloc: icafterregallo,
         mips: mipscode
     };
-}
-
-export function compileFromFile(srcfilepath: string): Promise<CompileReturn> {
-    return file.readFile(srcfilepath)
-        .then((data: Buffer) => {
-            const compret = compile(data.toString("utf8"), CompileOutputFlag.ICAfterRegAlloc | CompileOutputFlag.IntermediateCode | CompileOutputFlag.MIPS);
-            if (compret.error) {
-                return new CompileReturn(compret.error);
-            } else {
-                return Promise.all([
-                    file.writeFile(srcfilepath + ".optimized.ic", compret.intermediateCode),
-                    file.writeFile(srcfilepath + ".optimized.regallocated.ic", compret.icAfterRegAlloc),
-                    file.writeFile(srcfilepath + ".asm", compret.mips)
-                ])
-                    .then(() => new CompileReturn());
-            }
-        });
 }

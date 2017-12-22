@@ -1,6 +1,5 @@
 
-import { noArea, Area, SemanticCheckReturn as BaseSemanticCheckReturn, SemanticError } from "../../compile";
-import * as util from "./util";
+import { Area, SemanticCheckReturn as BaseSemanticCheckReturn, SemanticError } from "../../compile";
 import * as a from "./ast";
 import * as i from "./intermediatecode";
 import { IdGen, flatten } from "../../utility";

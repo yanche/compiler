@@ -1,10 +1,6 @@
 
 import * as prod from "../../productions";
-import * as utility from "../../utility";
-import * as dfa from "../../DFA";
-import * as nfa from "../../NFA";
 import { LR0DFA, LRParser } from "./util";
-import * as stm from "stream";
 
 
 // function itemInStr(item: LR0Item, prodset: prod.ProdSet): string {

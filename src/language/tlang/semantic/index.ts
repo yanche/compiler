@@ -1,5 +1,5 @@
 
-import { ASTNode_globaldefs, ASTNode_classdef, ASTNode_vardeclare, ASTNode_argumentlist, ASTNode_constructordef, ASTNode_functiondef } from "../ast";
+import { ASTNode_globaldefs, ASTNode_classdef, ASTNode_vardeclare, ASTNode_argumentlist, ASTNode_constructordef } from "../ast";
 import { noArea, SemanticError, Area } from "../../../compile";
 import { predefinedFn, ClassLookup, FunctionLookup, SemanticCheckReturn, isType, isFnRet, Type, FunctionDefinition, ClassDefinition, Field, SemContext, createInvalidTypeReturn } from "../util";
 import { ErrorCode } from "../error";

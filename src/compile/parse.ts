@@ -1,5 +1,4 @@
 
-import * as prod from "../productions";
 import { Area, Token, noArea } from "./lex";
 import { ProdSet } from '../productions';
 import { ParseReturn } from './ret';

@@ -31,7 +31,7 @@ export class ASTNode_globaldefs extends ASTNode {
 }
 
 export class ASTNode_functiondef extends ASTNode {
-    private _symboltable: util.SymbolFrame;
+    // private _symboltable: util.SymbolFrame;
     private _tmpregidgen: IdGen;
     private _argtmpregidupper: number;
 
@@ -50,7 +50,7 @@ export class ASTNode_functiondef extends ASTNode {
 
     makeSymbolTable(classname: string, classlookup: util.ClassLookup): util.SemanticCheckReturn {
         let symboltable = new util.SymbolFrame(null);
-        this._symboltable = symboltable;
+        // this._symboltable = symboltable;
         this._tmpregidgen = new IdGen();
         if (classname) {
             // for method
