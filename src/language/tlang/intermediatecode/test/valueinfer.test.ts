@@ -1,5 +1,5 @@
 
-import * as assert from "assert";
+ import { assert } from "chai";
 import { ValueInference, ValueType, merge, ANY, NEVER, equal, inferValues } from "../valueinfer";
 import { CodeLine } from "../index";
 import { CodeLabel } from "../../util";

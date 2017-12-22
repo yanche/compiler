@@ -5,7 +5,7 @@ import { CodeLine } from "../index";
 import { CodeLabel } from "../../util";
 import * as t from "../../tac";
 import { IdGen } from "../../../../utility";
-import * as assert from "assert";
+ import { assert } from "chai";
 import { assignLineNums, genCodeLines } from "./util";
 import { finalizeLabelRef } from "../util";
 

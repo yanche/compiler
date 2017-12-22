@@ -1,7 +1,7 @@
 
-import * as assert from 'assert';
+import { assert } from 'chai';
 import * as utility from '../../utility';
-import {createDFA} from '../index';
+import { createDFA } from '../index';
 import DFA from '../dfa';
 
 interface AcceptValidor {

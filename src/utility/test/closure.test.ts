@@ -1,5 +1,5 @@
 
-import * as assert from 'assert';
+import { assert } from 'chai';
 import * as closure from '../closure';
 import {Edge} from '../../utility';
 

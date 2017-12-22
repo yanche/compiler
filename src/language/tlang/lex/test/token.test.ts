@@ -3,7 +3,7 @@ import lex from "../../lex";
 import { prodSet } from "../../syntax";
 import { flatten } from "../../../../utility";
 import { LexErrorCode } from "../../../../compile";
-import * as assert from "assert";
+ import { assert } from "chai";
 
 describe("token test", () => {
     it("keyword & special tokens", () => {

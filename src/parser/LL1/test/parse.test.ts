@@ -1,5 +1,5 @@
 
-import * as assert from "assert";
+ import { assert } from "chai";
 import { createLL1Parser } from "../index";
 import { Token, noArea } from "../../../compile";
 import { createProdSetWithSplitter } from "../../../productions";

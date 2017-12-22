@@ -1,5 +1,5 @@
 
-import * as assert from "assert";
+ import { assert } from "chai";
 import { createLALR1Parser } from "../index";
 import { validate } from "./util.test";
 import { Token, noArea } from "../../../compile";

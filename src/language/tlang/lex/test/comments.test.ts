@@ -1,7 +1,7 @@
 
 import lex from "../../lex";
 import { prodSet } from "../../syntax";
-import * as assert from "assert";
+ import { assert } from "chai";
 
 describe("comments test", () => {
     it("comments, inline", () => {

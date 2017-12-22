@@ -1,6 +1,6 @@
 
 import * as c from '../../../compile';
-import * as assert from 'assert';
+import { assert } from 'chai';
 import { ProdSet } from "../../../productions";
 
 

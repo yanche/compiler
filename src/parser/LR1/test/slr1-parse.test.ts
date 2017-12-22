@@ -1,5 +1,5 @@
 
-import * as assert from "assert";
+ import { assert } from "chai";
 import * as utility from "../../../utility";
 import { createSLR1Parser } from "../index";
 import { validate } from "./util.test";

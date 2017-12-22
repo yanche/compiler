@@ -1,5 +1,5 @@
 
-import * as assert from 'assert';
+import { assert } from 'chai';
 import { range } from "../index";
 
 function arrayEqual<T>(arr1: Array<T>, arr2: Array<T>): boolean {

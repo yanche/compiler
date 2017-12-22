@@ -1,5 +1,5 @@
 
-import * as assert from "assert";
+import { assert } from "chai";
 import * as utility from "../../../utility";
 import RegEx from "../regex";
 

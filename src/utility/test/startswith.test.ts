@@ -1,5 +1,5 @@
 
-import * as assert from 'assert';
+import { assert } from 'chai';
 import { startsWith } from "../index";
 
 describe("startsWith test", () => {

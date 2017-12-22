@@ -4,7 +4,7 @@ import { buildGlobalTypes, semanticAnalysize } from "../index";
 import { SemanticCheckReturn } from "../../util";
 import { parser, prodSet, astConverter } from "../../syntax";
 import lex from "../../lex";
-import * as assert from "assert";
+ import { assert } from "chai";
 
 export function getSemanticResult(code: string): SemanticCheckReturn {
     let lexRet = lex(code, prodSet);
