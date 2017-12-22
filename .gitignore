@@ -8,3 +8,4 @@
 *.d.ts
 *.tgz
 package-lock.json
+!/src/language/tlang/samples/makeall.js
