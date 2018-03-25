@@ -91,15 +91,15 @@ export default function lex(input: string, prodset: ProdSet): LexReturn {
             continue;
         }
 
-        if (tripples.some(c => c === next3)) { tokens.push(new Token(next3, prodset.getSymNum(next3), areaWithColNext(posi, 3))); col += 2; i += 2; }
-        else if (doubles.some(c => c === next2)) { tokens.push(new Token(next2, prodset.getSymNum(next2), areaWithColNext(posi, 2))); col++; i++; }
-        else if (singles.some(c => c === ch)) tokens.push(new Token(ch, prodset.getSymNum(ch), areaWithColNext(posi, 1)));
+        if (tripples.some(c => c === next3)) { tokens.push(new Token(next3, prodset.getSymId(next3), areaWithColNext(posi, 3))); col += 2; i += 2; }
+        else if (doubles.some(c => c === next2)) { tokens.push(new Token(next2, prodset.getSymId(next2), areaWithColNext(posi, 2))); col++; i++; }
+        else if (singles.some(c => c === ch)) tokens.push(new Token(ch, prodset.getSymId(ch), areaWithColNext(posi, 1)));
         else if (isDigitChCode(chcode)) {
             let startpos = i;
             ++i;
             while (i < len && isDigitChCode(input.charCodeAt(i)))++i;
             let rawstr = input.slice(startpos, i--);
-            tokens.push(new Token(rawstr, prodset.getSymNum("integer"), areaWithColNext(posi, rawstr.length)));
+            tokens.push(new Token(rawstr, prodset.getSymId("integer"), areaWithColNext(posi, rawstr.length)));
             col += i - startpos;
         }
         else if (isIdStartChCode(chcode)) {
@@ -109,15 +109,15 @@ export default function lex(input: string, prodset: ProdSet): LexReturn {
             let idstr = input.slice(startpos, i--);
             col += i - startpos;
             if (idstr === "true" || idstr === "false")
-                tokens.push(new Token(idstr, prodset.getSymNum("boolean"), areaWithColNext(posi, idstr.length)));
+                tokens.push(new Token(idstr, prodset.getSymId("boolean"), areaWithColNext(posi, idstr.length)));
             else
-                tokens.push(new Token(idstr, keywords.some(c => c === idstr) ? prodset.getSymNum(idstr) : prodset.getSymNum("id"), areaWithColNext(posi, idstr.length)));
+                tokens.push(new Token(idstr, keywords.some(c => c === idstr) ? prodset.getSymId(idstr) : prodset.getSymId("id"), areaWithColNext(posi, idstr.length)));
         }
         else return new LexReturn(null, new InvalidTokenError(ch, posi));
 
         ++i;
         ++col;
     }
-    tokens.push(new Token("", prodset.getSymNum("$"), noArea));
+    tokens.push(new Token("", prodset.getSymId("$"), noArea));
     return new LexReturn(tokens);
 }

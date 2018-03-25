@@ -12,7 +12,7 @@ export class InvalidTokenError extends LexError {
 }
 
 export class Token {
-    constructor(public rawstr: string, public symnum: number, public area: Area) { };
+    constructor(public rawstr: string, public symId: number, public area: Area) { };
 }
 
 export class Posi {

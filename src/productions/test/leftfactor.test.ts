@@ -10,12 +10,12 @@ function validate(pset: prod.ProdSet, expected: Array<{ lhs: string, rhsArr: Arr
     assert.equal(true, utility.arrayEquivalent([...allLHS], expected.map(e => e.lhs)));
     for (let i = 0; i < expected.length; ++i) {
         let item = expected[i];
-        assert.equal(true, utility.arrayEquivalent(item.rhsArr, pset.getProds(pset.getSymNum(item.lhs)).map(p => pset.getProdRef(p).rnums), function (test, real) {
+        assert.equal(true, utility.arrayEquivalent(item.rhsArr, pset.getProds(pset.getSymId(item.lhs)).map(p => pset.getProdRef(p).rnums), function (test, real) {
             //test and real are both array
             if (test.length !== real.length) return false;
             for (let q = 0; q < test.length; ++q) {
-                let titem = test[q], symnum = real[q];
-                if (pset.getSymNum(titem.str) !== symnum || titem.terminal !== pset.isSymNumTerminal(symnum)) return false;
+                let titem = test[q], symId = real[q];
+                if (pset.getSymId(titem.str) !== symId || titem.terminal !== pset.isSymIdTerminal(symId)) return false;
             }
             return true;
         }));
@@ -30,8 +30,8 @@ describe("production set left factoring", function () {
             "T -> int | int * T | ( E )"
         ]);
         let lfprodset = pset.leftFactoredProdSet();
-        let new1 = lfprodset.getSymInStr(lfprodset.getProdRef(lfprodset.getProds(lfprodset.getSymNum("E"))[0]).rnums[1]);
-        let trhsarr = lfprodset.getProds(lfprodset.getSymNum("T"));
+        let new1 = lfprodset.getSymInStr(lfprodset.getProdRef(lfprodset.getProds(lfprodset.getSymId("E"))[0]).rnums[1]);
+        let trhsarr = lfprodset.getProds(lfprodset.getSymId("T"));
         let new2 = lfprodset.getSymInStr(lfprodset.getProdRef(trhsarr[lfprodset.getProdRef(trhsarr[0]).rnums.length == 2 ? 0 : 1]).rnums[1]);
         validate(lfprodset, [
             {
@@ -91,17 +91,17 @@ describe("production set left factoring", function () {
             "Q -> u"
         ]);
         let lfprodset = pset.leftFactoredProdSet();
-        let Erhsarr = lfprodset.getProds(lfprodset.getSymNum("E"));
+        let Erhsarr = lfprodset.getProds(lfprodset.getSymId("E"));
         let new1: string, new2: string, new3: string;
         for (let i = 0; i < 3; ++i) {
             let rhs = lfprodset.getProdRef(Erhsarr[i]).rnums;
             if (rhs.length === 2) {
                 let r1sym = lfprodset.getSymInStr(rhs[1]);
-                if (rhs[0] === lfprodset.getSymNum("T")) new1 = r1sym;
+                if (rhs[0] === lfprodset.getSymId("T")) new1 = r1sym;
                 else new2 = r1sym;
             }
         }
-        let Trhsarr = lfprodset.getProds(lfprodset.getSymNum("T"));
+        let Trhsarr = lfprodset.getProds(lfprodset.getSymId("T"));
         new3 = lfprodset.getSymInStr(lfprodset.getProdRef(Trhsarr[lfprodset.getProdRef(Trhsarr[0]).rnums.length == 2 ? 0 : 1]).rnums[1]);
         validate(lfprodset, [
             {

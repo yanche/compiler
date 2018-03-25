@@ -2,7 +2,7 @@
 import { ProdSet, ProductionRef } from "../../productions";
 import { DFA } from "../../DFA";
 import { ParseReturn, ParseTreeMidNode, ParseTreeTermNode, ParseTreeNode, Token, Parser } from "../../compile";
-import { IdGen, range, automata } from "../../utility";
+import { range, automata } from "../../utility";
 import { createNFA } from '../../NFA';
 import { NeedMoreTokensError, TooManyTokensError, NotAcceptableError } from "../error";
 
@@ -12,63 +12,65 @@ class ShiftAction extends Action {
     constructor(public toStateNum: number) { super(); }
 }
 class ReduceAction extends Action {
-    constructor(public nont: number, public rhslen: number, public prodid: number) { super(); }
+    constructor(public nonTerminal: number, public rhsLen: number, public prodId: number) { super(); }
 }
 class AcceptAction extends Action { }
 
 export interface LR0Item {
-    prodid: number;
+    prodId: number;
     dot: number;
     prod: ProductionRef;
-    itemnum: number;
+    itemId: number;
 }
 
 export class LR0ItemsPack {
-    private _proditemsmap: Array<Array<number>>;
-    private _numitemmap: Array<LR0Item>;
-    private _startitems: Array<number>;
+    private _prodItemsMap: Array<Array<number>>;
+    private _idItemMap: Array<LR0Item>;
+    private _startItems: Array<number>;
 
-    get size(): number { return this._numitemmap.length; }
+    get size(): number { return this._idItemMap.length; }
 
-    getItemNumsByProdId(prodid: number): Array<number> { return this._proditemsmap[prodid]; }
+    getItemIdsByProdId(prodid: number): Array<number> { return this._prodItemsMap[prodid]; }
 
-    getStartItemNums(): Array<number> { return this._startitems; }
+    getStartItemIds(): Array<number> { return this._startItems; }
 
-    getItem(itemnum: number): LR0Item { return this._numitemmap[itemnum]; }
+    getItem(itemId: number): LR0Item { return this._idItemMap[itemId]; }
 
     constructor(prodset: ProdSet) {
-        let prodids = prodset.getProdIds(), startnontnum = prodset.getStartNonTerminal(), proditemsmap = new Array<Array<number>>(prodids.length);
-        let itemidgen = new IdGen(), numitemmap = new Array<LR0Item>();
+        const prodIds = prodset.getProdIds();
+        const prodItemsMap = new Array<Array<number>>(prodIds.length);
+        const idItemMap = new Array<LR0Item>();
 
         //prodid from 0 -> prodsize - 1
-        //build the item num mapping
-        for (let prodid of prodids) {
-            let prod = prodset.getProdRef(prodid);
-            let arr = new Array<number>(prod.rnums.length + 1);
+        //build the item id mapping
+        for (let prodId of prodIds) {
+            const prod = prodset.getProdRef(prodId);
+            const arr = new Array<number>(prod.rnums.length + 1);
             for (let i = 0; i <= prod.rnums.length; ++i) {
-                let itemid = itemidgen.next();
-                arr[i] = itemid;
-                numitemmap.push({ prodid: prodid, dot: i, prod: prod, itemnum: itemid });
+                const itemId = idItemMap.length;
+                arr[i] = itemId;
+                idItemMap.push({ prodId: prodId, dot: i, prod: prod, itemId: itemId });
             }
-            proditemsmap[prodid] = arr;
+            prodItemsMap[prodId] = arr;
         }
 
-        this._proditemsmap = proditemsmap;
-        this._numitemmap = numitemmap;
-        this._startitems = prodset.getProds(startnontnum).map(p => proditemsmap[p][0]);
+        this._prodItemsMap = prodItemsMap;
+        this._idItemMap = idItemMap;
+        this._startItems = prodset.getProds(prodset.getStartNonTerminal()).map(p => prodItemsMap[p][0]);
     }
 }
 
 export abstract class LRParser extends Parser {
+    // parsing table
     private _ptable: Map<number, Map<number, Array<Action>>>;
-    private _ambcells: Map<number, Set<number>>;
-    protected _startstate: number;
+    private _ambCells: Map<number, Set<number>>;
+    protected _startState: number;
 
     constructor(prodset: ProdSet) {
         super(prodset);
         this._ptable = new Map<number, Map<number, Array<Action>>>();
-        this._ambcells = new Map<number, Set<number>>();
-        this._startstate = null;
+        this._ambCells = new Map<number, Set<number>>();
+        this._startState = null;
     }
 
     // stringifyAmbCells(): string {
@@ -80,93 +82,94 @@ export abstract class LRParser extends Parser {
     // }
 
     // abstract stringifyDFA(): string;
-    // abstract stringify1DFA(dfastatenum: number): string;
+    // abstract stringify1DFA(dfaStateId: number): string;
 
-    // get startState(): number { return this._startstate; }
-    // set startState(val: number) { this._startstate = val; }
+    // get startState(): number { return this._startState; }
+    // set startState(val: number) { this._startState = val; }
 
-    protected addAcceptAction(dfastatenum: number, symnum: number): this {
-        return this._addAction(dfastatenum, symnum, new AcceptAction());
+    protected addAcceptAction(dfaStateId: number, symId: number): this {
+        return this._addAction(dfaStateId, symId, new AcceptAction());
     }
 
-    protected addShiftAction(dfastatenum: number, symnum: number, tgtdfanum: number): this {
-        return this._addAction(dfastatenum, symnum, new ShiftAction(tgtdfanum));
+    protected addShiftAction(dfaStateId: number, symId: number, toDFAStateId: number): this {
+        return this._addAction(dfaStateId, symId, new ShiftAction(toDFAStateId));
     }
 
-    protected addReduceAction(dfastatenum: number, symnum: number, lnum: number, reducecount: number, prodid: number) {
-        this._addAction(dfastatenum, symnum, new ReduceAction(lnum, reducecount, prodid));
-        return this;
+    protected addReduceAction(dfaStateId: number, symId: number, lnum: number, reducecount: number, prodid: number): this {
+        return this._addAction(dfaStateId, symId, new ReduceAction(lnum, reducecount, prodid));
     }
 
-    private _addAction(dfastatenum: number, symnum: number, action: Action): this {
-        let row = this._initRow(dfastatenum);
-        let acts = row.get(symnum);
-        if (!acts) row.set(symnum, [action]);
+    private _addAction(dfaStateId: number, symId: number, action: Action): this {
+        const row = this._initRow(dfaStateId);
+        let acts = row.get(symId);
+        if (!acts) row.set(symId, [action]);
         else {
             acts.push(action);
-            this._markAmbiguousCell(dfastatenum, symnum);
+            this._markAmbiguousCell(dfaStateId, symId);
         }
         return this;
     }
 
-    private _markAmbiguousCell(dfastatenum: number, symnum: number): this {
-        if (this._ambcells.has(dfastatenum)) this._ambcells.get(dfastatenum).add(symnum);
-        else this._ambcells.set(dfastatenum, new Set<number>().add(symnum));
+    private _markAmbiguousCell(dfaStateId: number, symId: number): this {
+        if (this._ambCells.has(dfaStateId)) this._ambCells.get(dfaStateId).add(symId);
+        else this._ambCells.set(dfaStateId, new Set<number>().add(symId));
         return this;
     }
 
-    private _initRow(dfastatenum: number): Map<number, Array<Action>> {
-        let ret = this._ptable.get(dfastatenum);
+    private _initRow(dfaStateId: number): Map<number, Array<Action>> {
+        let ret = this._ptable.get(dfaStateId);
         if (!ret) {
             ret = new Map<number, Array<Action>>()
-            this._ptable.set(dfastatenum, ret);
+            this._ptable.set(dfaStateId, ret);
         }
         return ret;
     }
 
     parse(tokens: Array<Token>): ParseReturn {
-        if (tokens.length === 0 || tokens[tokens.length - 1].symnum !== 0) throw new Error("the last token must be '$', stands for the end of tokens");
-        if (!this.isValid()) throw new Error("the grammar is not valid");
-        if (this._startstate == null) throw new Error("start state is not specified");
-        let stack = new Array<{ tnode: ParseTreeNode, state: number }>(), i = 0, len = tokens.length;
-        stack.push({ tnode: null, state: this._startstate });
-        let stacktop = 0;
+        if (tokens.length === 0 || tokens[tokens.length - 1].symId !== 0) throw new Error("the last token must be '$', stands for the end of tokens");
+        if (!this.valid) throw new Error("the grammar is not valid");
+        if (this._startState == null) throw new Error("start state is not specified");
+
+        const stack: { tnode: ParseTreeNode, state: number }[] = [{ tnode: null, state: this._startState }];
+        const len = tokens.length;
+        let i = 0, stackTop = 0;
         while (i < len) {
-            let token = tokens[i], stackitem = stack[stacktop];
-            let acts = this._ptable.get(stackitem.state).get(token.symnum);
-            if (!acts || acts.length === 0) return new ParseReturn(null, new NotAcceptableError(`input not acceptable: ${this._prodset.getSymInStr(token.symnum)} at ${token.area}`));
-            let act = acts[0];
+            const token = tokens[i];
+            const stackItem = stack[stackTop];
+            const acts = this._ptable.get(stackItem.state).get(token.symId) || [];
+            if (acts.length === 0) return new ParseReturn(null, new NotAcceptableError(`input not acceptable: ${this._prodset.getSymInStr(token.symId)} at ${token.area}`));
+            const act = acts[0];
             if (act instanceof ShiftAction) {
-                stack[++stacktop] = { tnode: new ParseTreeTermNode(token.symnum, token), state: act.toStateNum };
+                stack[++stackTop] = { tnode: new ParseTreeTermNode(token.symId, token), state: act.toStateNum };
                 ++i;
             }
             else if (act instanceof ReduceAction) {
-                let newstacktop = stacktop - act.rhslen;
-                let midnode = new ParseTreeMidNode(act.nont, act.prodid, stack.slice(newstacktop + 1, stacktop + 1).map(x => x.tnode));
-                let newact = this._ptable.get(stack[newstacktop].state).get(act.nont)[0];
+                let newStackTop = stackTop - act.rhsLen;
+                const midnode = new ParseTreeMidNode(act.nonTerminal, act.prodId, stack.slice(newStackTop + 1, stackTop + 1).map(x => x.tnode));
+                const newact = this._ptable.get(stack[newStackTop].state).get(act.nonTerminal)[0];
                 if (newact instanceof ShiftAction) {
-                    stack[++newstacktop] = { tnode: midnode, state: newact.toStateNum };
-                    stacktop = newstacktop;
+                    stack[++newStackTop] = { tnode: midnode, state: newact.toStateNum };
+                    stackTop = newStackTop;
                 }
-                else throw new Error("impossible code path"); //reserved code path, should be no possible here
+                else throw new Error("impossible code path, something wrong with parsing table"); //reserved code path, should be no possible here
             }
             else if (act instanceof AcceptAction) {
                 if (i !== len - 1) return new ParseReturn(null, new TooManyTokensError());
-                else if (stacktop !== 1) return new ParseReturn(null, new NeedMoreTokensError());
-                else return new ParseReturn(<ParseTreeMidNode>stackitem.tnode);
+                else if (stackTop !== 1) return new ParseReturn(null, new NeedMoreTokensError());
+                else return new ParseReturn(<ParseTreeMidNode>stackItem.tnode);
             }
             else throw new Error("impossible code path, 2"); //reserved code path, should be no possible here
         }
         throw new Error("impossible code path, 3"); //reserved code path, should be no possible here
     }
 
-    isValid(): boolean {
-        return this._ambcells.size === 0;
+    get valid(): boolean {
+        return this._ambCells.size === 0;
     }
 
     // ambCells(): Set<number> {
     //     let dfastates = new Set<number>();
-    //     for (let amb of this._ambcells) {
+    //     for (let amb of this._ambCells) {
     //         dfastates.add(amb[0]);
     //     }
     //     return dfastates;
@@ -174,13 +177,13 @@ export abstract class LRParser extends Parser {
 
     // stringifyAmbCells(): string {
     //     let strarr = new Array<string>();
-    //     for (let amb of this._ambcells) {
-    //         let dfastatenum = amb[0], syms = amb[1];
-    //         strarr.push("dfa state: " + dfastatenum);
-    //         let row = this._ptable.get(dfastatenum);
-    //         for (let symnum of syms) {
-    //             strarr.push("    on terminal symbol: " + this._prodset.getSymInStr(symnum));
-    //             for (let act of row.get(symnum)) {
+    //     for (let amb of this._ambCells) {
+    //         let dfaStateId = amb[0], syms = amb[1];
+    //         strarr.push("dfa state: " + dfaStateId);
+    //         let row = this._ptable.get(dfaStateId);
+    //         for (let symId of syms) {
+    //             strarr.push("    on terminal symbol: " + this._prodset.getSymInStr(symId));
+    //             for (let act of row.get(symId)) {
     //                 if (act instanceof AcceptAction) {
     //                     strarr.push("        accept");
     //                 }
@@ -201,7 +204,7 @@ export abstract class LRParser extends Parser {
     // }
 }
 
-// export function itemInStr(bitem: LR0Item, symnums: Array<number>, prodset: prod.ProdSet): string {
+// export function itemInStr(bitem: LR0Item, symIds: Array<number>, prodset: prod.ProdSet): string {
 //     let rnums = bitem.prod.rnums;
 //     let arr = new Array<string>(), i = 0, len = rnums.length;
 //     while (i <= len) {
@@ -210,54 +213,67 @@ export abstract class LRParser extends Parser {
 //         else arr[i] = prodset.getSymInStr(rnums[i]);
 //         ++i;
 //     }
-//     return prodset.getSymInStr(bitem.prod.lnum) + " -> " + arr.join(" ") + " , LA:" + symnums.map(x => prodset.getSymInStr(x)).join(",");
+//     return prodset.getSymInStr(bitem.prod.lnum) + " -> " + arr.join(" ") + " , LA:" + symIds.map(x => prodset.getSymInStr(x)).join(",");
 // }
 
 
-//PRIVATE CLASS, represent the DFA of SLR1 parser
+// PRIVATE CLASS, represent the DFA of SLR1 parser
 export class LR0DFA extends DFA {
-    private _lr0itempack: LR0ItemsPack;
-    private _dfaitemsmap: Map<number, Set<number>>;
+    private _lr0ItemsPack: LR0ItemsPack;
+    private _dfaItemsMap: Map<number, Set<number>>;
     private _acceptableDFAState: number;
 
-    getItemsInState(statenum: number): Array<LR0Item> {
-        return [...this._dfaitemsmap.get(statenum)].map(itemnum => this._lr0itempack.getItem(itemnum));
+    getItemsInState(stateId: number): Array<LR0Item> {
+        return [...this._dfaItemsMap.get(stateId)].map(itemId => this._lr0ItemsPack.getItem(itemId));
     }
 
-    get lr0ItemPack(): LR0ItemsPack { return this._lr0itempack; }
+    get lr0ItemsPack(): LR0ItemsPack { return this._lr0ItemsPack; }
 
     get acceptableDFAState(): number { return this._acceptableDFAState; }
 
     constructor(prodset: ProdSet) {
-        let nfatrans = new Array<automata.Transition>();
-
         //number of item, is the number of NFA
-        let lr0itempack = new LR0ItemsPack(prodset);
+        const lr0ItemsPack = new LR0ItemsPack(prodset);
+        const nfsTrans = makeLR0ItemNFA(lr0ItemsPack, prodset);
+        // WHY? range(lr0ItemsPack.size)
+        const dfat = createNFA(nfsTrans, lr0ItemsPack.getStartItemIds(), range(lr0ItemsPack.size)).getDFATrans();
 
-        for (let prodid of prodset.getProdIds()) {
-            let prod = prodset.getProdRef(prodid), itemnumarr = lr0itempack.getItemNumsByProdId(prodid);
-            for (let i = 0; i < prod.rnums.length; ++i) {
-                let rnum = prod.rnums[i], curitem = itemnumarr[i];
-                let rsymstr = prodset.getSymInStr(rnum);
-                nfatrans.push(new automata.Transition(curitem, itemnumarr[i + 1], rsymstr));
-                if (!prodset.isSymNumTerminal(rnum)) {
-                    for (let prodid2 of prodset.getProds(rnum)) {
-                        nfatrans.push(new automata.Transition(curitem, lr0itempack.getItemNumsByProdId(prodid2)[0], ''));
-                    }
+        super(dfat.dfaTrans, dfat.startid, dfat.terminals);
+
+        this._dfaItemsMap = dfat.dfa2nfaStateMap;
+        this._lr0ItemsPack = lr0ItemsPack;
+
+        const startProds = prodset.getProds(prodset.getSymId(ProdSet.reservedStartNonTerminal));
+        if (startProds.length !== 1) throw new Error(`defensive code, only one start production from: ${ProdSet.reservedStartNonTerminal} should be`);
+
+        const startProdLR0Items = lr0ItemsPack.getItemIdsByProdId(startProds[0]);
+        if (startProdLR0Items.length !== 2) throw new Error(`defensive code, only two start production LR0 items from: ${ProdSet.reservedStartNonTerminal} should be`);
+
+        const startDFA = dfat.nfa2dfaStateMap.get(startProdLR0Items[1]);
+        if (!startDFA || startDFA.size !== 1) throw new Error("defensive code, DFA state not found or more than 1");
+        
+        this._acceptableDFAState = [...startDFA][0];
+    }
+}
+
+function makeLR0ItemNFA(lr0ItemsPack: LR0ItemsPack, prodset: ProdSet): automata.Transition[] {
+    const nfaTrans: automata.Transition[] = [];
+
+    for (let prodid of prodset.getProdIds()) {
+        const prod = prodset.getProdRef(prodid);
+        const itemIdArr = lr0ItemsPack.getItemIdsByProdId(prodid);
+        for (let i = 0; i < prod.rnums.length; ++i) {
+            const rnum = prod.rnums[i];
+            const curitem = itemIdArr[i];
+            const rsymstr = prodset.getSymInStr(rnum);
+            nfaTrans.push(new automata.Transition(curitem, itemIdArr[i + 1], rsymstr));
+            if (!prodset.isSymIdTerminal(rnum)) {
+                for (let prodId2 of prodset.getProds(rnum)) {
+                    nfaTrans.push(new automata.Transition(curitem, lr0ItemsPack.getItemIdsByProdId(prodId2)[0], ""));
                 }
             }
         }
-
-        let dfat = createNFA(nfatrans, lr0itempack.getStartItemNums(), range(lr0itempack.size)).getDFATrans();
-        super(dfat.dfaTrans, dfat.startid, dfat.terminals);
-        this._dfaitemsmap = dfat.dfa2nfaStateMap;
-        this._lr0itempack = lr0itempack;
-        const startProds = prodset.getProds(prodset.getSymNum(ProdSet.reservedStartNonTerminal));
-        if (startProds.length !== 1) throw new Error(`defensive code, only one start production from: ${ProdSet.reservedStartNonTerminal} should be`);
-        const startProdLR0Items = lr0itempack.getItemNumsByProdId(startProds[0]);
-        if (startProdLR0Items.length !== 2) throw new Error(`defensive code, only two start production LR0 items from: ${ProdSet.reservedStartNonTerminal} should be`);
-        const startDFA = dfat.nfa2dfaStateMap.get(startProdLR0Items[1]);
-        if (!startDFA || startDFA.size !== 1) throw new Error("defensive code, DFA state not found or more than 1");
-        this._acceptableDFAState = [...startDFA][0];
     }
+
+    return nfaTrans;
 }

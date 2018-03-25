@@ -17,22 +17,22 @@ export default class LR1Parser extends LRParser {
         super(prodset);
         let processeditems = new Set<number>(), nfatrans = new Array<automata.Transition>();
         let ctlookaheadsym = prodset.getTerminals().length + 1, firstsets = prodset.firstSet(), nullableterminals = prodset.nullableNonTerminals();
-        let finsymnum = prodset.getSymNum("$");
+        let finsymnum = prodset.getSymId("$");
 
         //number of item, is the number of NFA
         let lr0itemspack = new LR0ItemsPack(prodset);
 
-        let startitems = lr0itemspack.getStartItemNums().map(x => { let itemnum = x * ctlookaheadsym + finsymnum; processeditems.add(itemnum); return itemnum; }); //start items
+        let startitems = lr0itemspack.getStartItemIds().map(x => { let itemnum = x * ctlookaheadsym + finsymnum; processeditems.add(itemnum); return itemnum; }); //start items
         let itemqueue = new Array<number>().concat(startitems);
         while (itemqueue.length > 0) {
             let itemnum = itemqueue.pop();
-            let lr0itemnum = Math.floor(itemnum / ctlookaheadsym), lasymnum = itemnum % ctlookaheadsym; //symnum: the lookahead symbol of item of LR(1)
+            let lr0itemnum = Math.floor(itemnum / ctlookaheadsym), lasymnum = itemnum % ctlookaheadsym; //symId: the lookahead symbol of item of LR(1)
             let lr0item = lr0itemspack.getItem(lr0itemnum);
             let rnums = lr0item.prod.rnums;
             if (lr0item.dot < rnums.length) {
                 let dotsym = rnums[lr0item.dot];
-                addNFATran(new automata.Transition(itemnum, lr0itemspack.getItemNumsByProdId(lr0item.prodid)[lr0item.dot + 1] * ctlookaheadsym + lasymnum, prodset.getSymInStr(dotsym)), nfatrans, itemqueue, processeditems);
-                if (!prodset.isSymNumTerminal(dotsym)) {
+                addNFATran(new automata.Transition(itemnum, lr0itemspack.getItemIdsByProdId(lr0item.prodId)[lr0item.dot + 1] * ctlookaheadsym + lasymnum, prodset.getSymInStr(dotsym)), nfatrans, itemqueue, processeditems);
+                if (!prodset.isSymIdTerminal(dotsym)) {
                     let firsts = new Set<number>(), dot = lr0item.dot + 1, gonull = true;
                     while (dot < rnums.length && gonull) {
                         let rnum = rnums[dot++];
@@ -41,7 +41,7 @@ export default class LR1Parser extends LRParser {
                     }
                     if (gonull) firsts.add(lasymnum);
                     for (let prodid of prodset.getProds(dotsym)) {
-                        let lr0itemid = lr0itemspack.getItemNumsByProdId(prodid)[0];
+                        let lr0itemid = lr0itemspack.getItemIdsByProdId(prodid)[0];
                         for (let f of firsts)
                             addNFATran(new automata.Transition(itemnum, lr0itemid * ctlookaheadsym + f, ""), nfatrans, itemqueue, processeditems);
                     }
@@ -58,11 +58,11 @@ export default class LR1Parser extends LRParser {
         // this._lr0itemspack = lr0itemspack;
 
         //construct parsing table SLR(1)
-        this._startstate = dfa.getStartState();
+        this._startState = dfa.getStartState();
 
-        const startProds = prodset.getProds(prodset.getSymNum(ProdSet.reservedStartNonTerminal));
+        const startProds = prodset.getProds(prodset.getSymId(ProdSet.reservedStartNonTerminal));
         if (startProds.length !== 1) throw new Error(`defensive code, only one start production from: ${ProdSet.reservedStartNonTerminal} should be`);
-        const startProdLR0Items = lr0itemspack.getItemNumsByProdId(startProds[0]);
+        const startProdLR0Items = lr0itemspack.getItemIdsByProdId(startProds[0]);
         if (startProdLR0Items.length !== 2) throw new Error(`defensive code, only two start production LR0 items from: ${ProdSet.reservedStartNonTerminal} should be`);
         const startDFA = dfaret.nfa2dfaStateMap.get(startProdLR0Items[1] * ctlookaheadsym + finsymnum);
         if (!startDFA || startDFA.size !== 1) throw new Error("defensive code, DFA state not found or more than 1");
@@ -73,14 +73,14 @@ export default class LR1Parser extends LRParser {
         for (let dstate of dfaret.dfa2nfaStateMap) {
             let dfanum = dstate[0], lr1itemnums = dstate[1];
             for (let tran of dfa.getTransitionMap(dfanum)) {
-                this.addShiftAction(dfanum, prodset.getSymNum(tran[0]), tran[1]);
+                this.addShiftAction(dfanum, prodset.getSymId(tran[0]), tran[1]);
             }
             for (let lr1itemnum of lr1itemnums) {
                 // state number of NFA is the number of item
                 let lr0item = lr0itemspack.getItem(Math.floor(lr1itemnum / ctlookaheadsym));
                 if (lr0item.dot === lr0item.prod.rnums.length && lr0item.prod.lnum !== startnontnum) {
                     // reduce item
-                    this.addReduceAction(dfanum, lr1itemnum % ctlookaheadsym, lr0item.prod.lnum, lr0item.dot, lr0item.prodid);
+                    this.addReduceAction(dfanum, lr1itemnum % ctlookaheadsym, lr0item.prod.lnum, lr0item.dot, lr0item.prodId);
                 }
             }
         }
@@ -92,9 +92,9 @@ export default class LR1Parser extends LRParser {
     //     }
     //     return strarr.join("\r\n");
     // }
-    // stringify1DFA(dfastatenum: number): string {
-    //     let lr1itemnums = this._dfaitemmap.get(dfastatenum);
-    //     let strarr = ["DFA state " + dfastatenum + " contains items: "];
+    // stringify1DFA(dfaStateId: number): string {
+    //     let lr1itemnums = this._dfaitemmap.get(dfaStateId);
+    //     let strarr = ["DFA state " + dfaStateId + " contains items: "];
     //     let map = new Map<number, Array<number>>();
     //     for (let lr1itemnum of lr1itemnums) {
     //         let lr0itemnum = Math.floor(lr1itemnum / this._ctlookaheadsym), lasymnum = lr1itemnum % this._ctlookaheadsym;

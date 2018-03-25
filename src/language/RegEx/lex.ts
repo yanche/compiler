@@ -14,7 +14,7 @@ export default function lex(input: string, prodset: ProdSet): LexReturn {
     while (i < len) {
         let ch = input[i];
         if (ch !== " ") {
-            let symnum: number = 0;
+            let symId: number = 0;
             switch (ch) {
                 case "|":
                 case "*":
@@ -26,23 +26,23 @@ export default function lex(input: string, prodset: ProdSet): LexReturn {
                 case "[":
                 case "]":
                 case "-":
-                    symnum = prodset.getSymNum(ch);
+                    symId = prodset.getSymId(ch);
                     break;
                 default:
                     let chnum = ch.charCodeAt(0);
                     if (chnum >= chnum_a && chnum <= chnum_z)
-                        symnum = prodset.getSymNum("l_letter");
+                        symId = prodset.getSymId("l_letter");
                     else if (chnum >= chnum_A && chnum <= chnum_Z)
-                        symnum = prodset.getSymNum("u_letter");
+                        symId = prodset.getSymId("u_letter");
                     else if (chnum >= chnum_0 && chnum <= chnum_9)
-                        symnum = prodset.getSymNum("digit");
+                        symId = prodset.getSymId("digit");
                     else
                         return new LexReturn(null, new InvalidTokenError(ch, new Posi(1, i + 1)));
             }
-            tokens.push(new Token(ch, symnum, new Area(new Posi(1, i + 1), new Posi(1, i + 2))));
+            tokens.push(new Token(ch, symId, new Area(new Posi(1, i + 1), new Posi(1, i + 2))));
         }
         ++i;
     }
-    tokens.push(new Token("", prodset.getSymNum("$"), noArea));
+    tokens.push(new Token("", prodset.getSymId("$"), noArea));
     return new LexReturn(tokens);
 }

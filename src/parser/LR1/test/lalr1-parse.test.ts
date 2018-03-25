@@ -14,7 +14,7 @@ describe("LALR(1) parse", function () {
             "F -> e"
         ]));
         //lalr1parser.print();
-        assert.equal(false, lalr1parser.isValid());
+        assert.equal(false, lalr1parser.valid);
     });
 
     it("valid LALR(1), valid SLR(1)", function () {
@@ -23,7 +23,7 @@ describe("LALR(1) parse", function () {
             "T -> int | int * T | ( E )"
         ]));
         //lalr1parser.print();
-        assert.equal(true, lalr1parser.isValid());
+        assert.equal(true, lalr1parser.valid);
     });
 
     it("valid LALR(1), invalid SLR(1)", function () {
@@ -32,8 +32,8 @@ describe("LALR(1) parse", function () {
             "A -> d"
         ]));
         // lalr1parser.print();
-        // console.log(lalr1parser.isValid());
-        assert.equal(true, lalr1parser.isValid());
+        // console.log(lalr1parser.valid);
+        assert.equal(true, lalr1parser.valid);
     });
 
     it("simple 1", function () {
@@ -43,12 +43,12 @@ describe("LALR(1) parse", function () {
         ])
         let lalr1parser = createLALR1Parser(prodset);
         let parseret = lalr1parser.parse([
-            new Token("1", prodset.getSymNum("int"), noArea),
-            new Token("+", prodset.getSymNum("+"), noArea),
-            new Token("2", prodset.getSymNum("int"), noArea),
-            new Token("*", prodset.getSymNum("*"), noArea),
-            new Token("3", prodset.getSymNum("int"), noArea),
-            new Token("$", prodset.getSymNum("$"), noArea)
+            new Token("1", prodset.getSymId("int"), noArea),
+            new Token("+", prodset.getSymId("+"), noArea),
+            new Token("2", prodset.getSymId("int"), noArea),
+            new Token("*", prodset.getSymId("*"), noArea),
+            new Token("3", prodset.getSymId("int"), noArea),
+            new Token("$", prodset.getSymId("$"), noArea)
         ]);
         assert.equal(true, parseret.accept);
         validate(prodset, parseret.root, {

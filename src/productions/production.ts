@@ -101,9 +101,9 @@ export class ProdSet {
 
     getSymInStr(num: number): string { return this._symbolIdMap.getSymbol(num); }
 
-    getSymNum(sym: string): number { return this._symbolIdMap.getId(sym); }
+    getSymId(sym: string): number { return this._symbolIdMap.getId(sym); }
 
-    isSymNumTerminal(num: number): boolean { return num <= this._terminalsCount; }
+    isSymIdTerminal(id: number): boolean { return id <= this._terminalsCount; }
 
     getProds(lsymnum: number): Array<number> { return this._nonTerminalProdMap.get(lsymnum); }
 
@@ -127,7 +127,7 @@ export class ProdSet {
                 let genepsilon = true, i = 0;
                 while (i < prodref.rnums.length && genepsilon) {
                     const rnum = prodref.rnums[i++];
-                    if (this.isSymNumTerminal(rnum)) {
+                    if (this.isSymIdTerminal(rnum)) {
                         retmap[nont].add(rnum);
                         genepsilon = false;
                     }
@@ -202,7 +202,7 @@ export class ProdSet {
                     }
                     break;
                 }
-                if (this.isSymNumTerminal(rnums[0])) continue;
+                if (this.isSymIdTerminal(rnums[0])) continue;
                 // if for symbol rnums[0] becomes nullable, then lnum has a change to become nullable
                 addToMapOfArr(dependencyMap, rnums[0], { rnums: rnums, next: 1, lnum: nont });
             }
@@ -221,11 +221,11 @@ export class ProdSet {
                     nonTerminalsToProcess.push(dependentItem.lnum);
                 }
                 else {
-                    const symnum = dependentItem.rnums[next];
+                    const symId = dependentItem.rnums[next];
                     // if blocked by terminal symbol, never get a change to be nullable
-                    if (this.isSymNumTerminal(symnum)) continue;
-                    // now the "able to produce nullable" depends on symbol "symnum"
-                    addToMapOfArr(dependencyMap, symnum, { rnums: dependentItem.rnums, next: next + 1, lnum: dependentItem.lnum });
+                    if (this.isSymIdTerminal(symId)) continue;
+                    // now the "able to produce nullable" depends on symbol "symId"
+                    addToMapOfArr(dependencyMap, symId, { rnums: dependentItem.rnums, next: next + 1, lnum: dependentItem.lnum });
                 }
             }
         }

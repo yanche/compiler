@@ -5,11 +5,11 @@ import {createProdSetWithSplitter, ProdSet} from "../index";
 
 function validate(prodset: ProdSet, expected: Array<{ symbol: string, follow: Array<string> }>) {
     let startsymnum = prodset.getStartNonTerminal();
-    let finsymnum = prodset.getSymNum("$");
+    let finsymnum = prodset.getSymId("$");
     let followsets = prodset.followSet();
     let testedset = followsets.filter((x, idx) => idx !== startsymnum && idx !== finsymnum);
     assert.equal(true, utility.arrayEquivalent(testedset, expected, function (f, e) {
-        return f === followsets[prodset.getSymNum(e.symbol)] && utility.arrayEquivalent([...f], e.follow.map(x => prodset.getSymNum(x)));
+        return f === followsets[prodset.getSymId(e.symbol)] && utility.arrayEquivalent([...f], e.follow.map(x => prodset.getSymId(x)));
     }));
 };
 

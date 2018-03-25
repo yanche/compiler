@@ -4,17 +4,17 @@ import { ProdSet } from '../productions';
 import { ParseReturn } from './ret';
 
 export abstract class ParseTreeNode {
-    protected _symnum: number;
+    protected _symId: number;
     // private _prodset: prod.ProdSet;
 
-    get symnum(): number { return this._symnum; }
+    get symId(): number { return this._symId; }
 
-    // get symstr(): string { return this._prodset.getSymInStr(this._symnum); }
+    // get symstr(): string { return this._prodset.getSymInStr(this._symId); }
 
     abstract area(): Area;
 
     constructor(sym: number) {
-        this._symnum = sym;
+        this._symId = sym;
         // this._prodset = prodset;
     }
 }
@@ -24,8 +24,8 @@ export class ParseTreeMidNode extends ParseTreeNode {
     private _area: Area;
     public prodId: number;
 
-    constructor(symnum: number, prodid?: number, children?: Array<ParseTreeNode>) {
-        super(symnum);
+    constructor(symId: number, prodid?: number, children?: Array<ParseTreeNode>) {
+        super(symId);
         this._children = children;
         this.prodId = prodid;
     }
@@ -53,8 +53,8 @@ export class ParseTreeMidNode extends ParseTreeNode {
 export class ParseTreeTermNode extends ParseTreeNode {
     private _token: Token;
 
-    constructor(symnum: number, token?: Token) {
-        super(symnum);
+    constructor(symId: number, token?: Token) {
+        super(symId);
         if (token)
             this.token = token;
     }
@@ -64,7 +64,7 @@ export class ParseTreeTermNode extends ParseTreeNode {
     }
 
     set token(t: Token) {
-        if (this._symnum !== t.symnum) throw new Error(`symbol does not match: ${this._symnum}, ${t.symnum}`);
+        if (this._symId !== t.symId) throw new Error(`symbol does not match: ${this._symId}, ${t.symId}`);
         this._token = t;
     }
 
@@ -82,7 +82,5 @@ export abstract class Parser {
 
     abstract parse(tokens: Array<Token>): ParseReturn;
 
-    abstract isValid(): boolean;
-
-    // get prodset(): ProdSet { return this._prodset; }
+    abstract get valid(): boolean;
 }

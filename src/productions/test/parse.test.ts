@@ -11,12 +11,12 @@ function validate(pset: ProdSet, expected: Array<{ lhs: string, rhsArr: Array<Ar
     assert.equal(true, utility.arrayEquivalent([...allLHS], expected.map(e => e.lhs)));
     for (let i = 0; i < expected.length; ++i) {
         let item = expected[i];
-        assert.equal(true, utility.arrayEquivalent(item.rhsArr, pset.getProds(pset.getSymNum(item.lhs)).map(p => pset.getProdRef(p).rnums), function (test, real): boolean {
+        assert.equal(true, utility.arrayEquivalent(item.rhsArr, pset.getProds(pset.getSymId(item.lhs)).map(p => pset.getProdRef(p).rnums), function (test, real): boolean {
             //test and real are both array
             if (test.length !== real.length) return false;
             for (let q = 0; q < test.length; ++q) {
-                let titem = test[q], symnum = real[q];
-                if (pset.getSymNum(titem.str) !== symnum || titem.terminal !== pset.isSymNumTerminal(symnum)) return false;
+                let titem = test[q], symId = real[q];
+                if (pset.getSymId(titem.str) !== symId || titem.terminal !== pset.isSymIdTerminal(symId)) return false;
             }
             return true;
         }));

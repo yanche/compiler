@@ -50,7 +50,7 @@ export function arrayEquivalent<T1, T2>(arr1: Array<T1>, arr2: Array<T2>, compar
     return true;
 };
 
-// [start, end), step is 1
+// [start, end), step is 1t
 export function range(start: number, end?: number): Array<number> {
     if (end === undefined) {
         end = start;

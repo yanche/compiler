@@ -21,27 +21,31 @@ export default class SLR1Parser extends LRParser {
 
     constructor(prodset: prod.ProdSet) {
         super(prodset);
-        this._lr0dfa = new LR0DFA(prodset);
-        let followsets = prodset.followSet(), startnontnum = prodset.getStartNonTerminal();
         this._isLR0 = true;
-        //construct parsing table SLR(1)
-        this._startstate = this._lr0dfa.getStartState();
-        this.addAcceptAction(this._lr0dfa.acceptableDFAState, prodset.getSymNum("$"));
-        for (let dfanum of this._lr0dfa.getStateNums()) {
-            for (let tran of this._lr0dfa.getTransitionMap(dfanum)) {
-                this.addShiftAction(dfanum, prodset.getSymNum(tran[0]), tran[1]);
+        this._lr0dfa = new LR0DFA(prodset);
+
+        const followsets = prodset.followSet();
+        const startNonTerminalId = prodset.getStartNonTerminal();
+        // construct parsing table SLR(1)
+        this._startState = this._lr0dfa.getStartState();
+        this.addAcceptAction(this._lr0dfa.acceptableDFAState, prodset.getSymId("$"));
+        for (let dfaId of this._lr0dfa.getStateNums()) {
+            // add shift actions
+            for (let tran of this._lr0dfa.getTransitionMap(dfaId)) {
+                this.addShiftAction(dfaId, prodset.getSymId(tran[0]), tran[1]);
             }
-            let hasreducemove = false;
-            let dfaitems = this._lr0dfa.getItemsInState(dfanum);
-            for (let item of dfaitems) {
-                //state number of NFA is the number of item
-                if (item.dot === item.prod.rnums.length && item.prod.lnum !== startnontnum) {
-                    hasreducemove = true;
+            // figure out reduce action
+            let hasReduceMove = false;
+            const lr0Items = this._lr0dfa.getItemsInState(dfaId);
+            for (let item of lr0Items) {
+                // state id of NFA is the id of item
+                if (item.dot === item.prod.rnums.length && item.prod.lnum !== startNonTerminalId) {
+                    hasReduceMove = true;
                     for (let f of followsets[item.prod.lnum])
-                        this.addReduceAction(dfanum, f, item.prod.lnum, item.dot, item.prodid);
+                        this.addReduceAction(dfaId, f, item.prod.lnum, item.prod.rnums.length, item.prodId);
                 }
             }
-            if (this._isLR0 && hasreducemove && dfaitems.length > 1)
+            if (this._isLR0 && hasReduceMove && lr0Items.length > 1)
                 this._isLR0 = false;
         }
     }
@@ -50,15 +54,15 @@ export default class SLR1Parser extends LRParser {
 
     // stringifyDFA(): string {
     //     let strarr = ["DFA:", this._lr0dfa.toString()];
-    //     for (let dfanum of this._lr0dfa.getStateNums()) {
-    //         strarr.push(this.stringify1DFA(dfanum));
+    //     for (let dfaId of this._lr0dfa.getStateNums()) {
+    //         strarr.push(this.stringify1DFA(dfaId));
     //     }
     //     return strarr.join("\r\n");
     // }
 
-    // stringify1DFA(dfastatenum: number): string {
-    //     let strarr = ["DFA state " + dfastatenum + " contains items: "];
-    //     for (let item of this._lr0dfa.getItemsInState(dfastatenum)) {
+    // stringify1DFA(dfaStateId: number): string {
+    //     let strarr = ["DFA state " + dfaStateId + " contains items: "];
+    //     for (let item of this._lr0dfa.getItemsInState(dfaStateId)) {
     //         strarr.push(itemInStr(item, this._prodset));
     //     }
     //     return strarr.join("\r\n");

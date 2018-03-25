@@ -12,7 +12,7 @@ export interface ExpectedData {
 }
 
 export function validate(prodset: ProdSet, tnode: c.ParseTreeNode, expected: ExpectedData) {
-    assert.equal(tnode.symnum, prodset.getSymNum(expected.symstr));
+    assert.equal(tnode.symId, prodset.getSymId(expected.symstr));
     if (tnode instanceof c.ParseTreeMidNode) {
         assert.equal(expected.mid, true);
         let c1 = tnode.children, c2 = expected.children;

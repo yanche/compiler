@@ -17,10 +17,10 @@ describe("token test", () => {
         assert.strictEqual(lexRet.tokens.length - 1, all.length);
         let lastToken = lexRet.tokens[lexRet.tokens.length - 1];
         assert.strictEqual(lastToken.rawstr, "");
-        assert.strictEqual(lastToken.symnum, prodSet.getSymNum("$"));
+        assert.strictEqual(lastToken.symId, prodSet.getSymId("$"));
         lexRet.tokens.slice(0, -1).forEach((t, idx) => {
             assert.strictEqual(t.rawstr, all[idx]);
-            assert.strictEqual(t.symnum, prodSet.getSymNum(all[idx]));
+            assert.strictEqual(t.symId, prodSet.getSymId(all[idx]));
         });
     });
 
@@ -29,10 +29,10 @@ describe("token test", () => {
         assert.ok(lexRet.accept);
         let tokens = lexRet.tokens;
         assert.strictEqual(tokens.length, 5);
-        assert.strictEqual(tokens[0].symnum, prodSet.getSymNum("boolean"));
-        assert.strictEqual(tokens[1].symnum, prodSet.getSymNum("boolean"));
-        assert.strictEqual(tokens[2].symnum, prodSet.getSymNum("id"));
-        assert.strictEqual(tokens[3].symnum, prodSet.getSymNum("id"));
+        assert.strictEqual(tokens[0].symId, prodSet.getSymId("boolean"));
+        assert.strictEqual(tokens[1].symId, prodSet.getSymId("boolean"));
+        assert.strictEqual(tokens[2].symId, prodSet.getSymId("id"));
+        assert.strictEqual(tokens[3].symId, prodSet.getSymId("id"));
     });
 
     it("primitive types, integer", () => {
@@ -40,7 +40,7 @@ describe("token test", () => {
         assert.ok(lexRet.accept);
         let tokens = lexRet.tokens;
         assert.strictEqual(tokens.length, 4);
-        tokens.slice(0, -1).forEach(t => assert.strictEqual(t.symnum, prodSet.getSymNum("integer")));
+        tokens.slice(0, -1).forEach(t => assert.strictEqual(t.symId, prodSet.getSymId("integer")));
     });
 
     it("primitive types, negative integer", () => {
@@ -48,10 +48,10 @@ describe("token test", () => {
         assert.ok(lexRet.accept);
         let tokens = lexRet.tokens;
         assert.strictEqual(tokens.length, 5);
-        assert.strictEqual(tokens[0].symnum, prodSet.getSymNum("-"));
-        assert.strictEqual(tokens[1].symnum, prodSet.getSymNum("integer"));
-        assert.strictEqual(tokens[2].symnum, prodSet.getSymNum("-"));
-        assert.strictEqual(tokens[3].symnum, prodSet.getSymNum("integer"));
+        assert.strictEqual(tokens[0].symId, prodSet.getSymId("-"));
+        assert.strictEqual(tokens[1].symId, prodSet.getSymId("integer"));
+        assert.strictEqual(tokens[2].symId, prodSet.getSymId("-"));
+        assert.strictEqual(tokens[3].symId, prodSet.getSymId("integer"));
     });
 
     it("primitive types, string", () => {
@@ -65,6 +65,6 @@ describe("token test", () => {
         assert.ok(lexRet.accept);
         let tokens = lexRet.tokens;
         assert.strictEqual(tokens.length, 7);
-        tokens.slice(0, -1).forEach(t => assert.strictEqual(t.symnum, prodSet.getSymNum("id")));
+        tokens.slice(0, -1).forEach(t => assert.strictEqual(t.symId, prodSet.getSymId("id")));
     });
 });
