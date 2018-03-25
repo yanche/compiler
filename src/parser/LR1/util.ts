@@ -252,10 +252,10 @@ export class LR0DFA extends DFA {
         super(dfat.dfaTrans, dfat.startid, dfat.terminals);
         this._dfaitemsmap = dfat.dfa2nfaStateMap;
         this._lr0itempack = lr0itempack;
-        const startProds = prodset.getProds(prodset.getSymNum(ProdSet.preservedStartNont));
-        if (startProds.length !== 1) throw new Error(`defensive code, only one start production from: ${ProdSet.preservedStartNont} should be`);
+        const startProds = prodset.getProds(prodset.getSymNum(ProdSet.reservedStartNonTerminal));
+        if (startProds.length !== 1) throw new Error(`defensive code, only one start production from: ${ProdSet.reservedStartNonTerminal} should be`);
         const startProdLR0Items = lr0itempack.getItemNumsByProdId(startProds[0]);
-        if (startProdLR0Items.length !== 2) throw new Error(`defensive code, only two start production LR0 items from: ${ProdSet.preservedStartNont} should be`);
+        if (startProdLR0Items.length !== 2) throw new Error(`defensive code, only two start production LR0 items from: ${ProdSet.reservedStartNonTerminal} should be`);
         const startDFA = dfat.nfa2dfaStateMap.get(startProdLR0Items[1]);
         if (!startDFA || startDFA.size !== 1) throw new Error("defensive code, DFA state not found or more than 1");
         this._acceptableDFAState = [...startDFA][0];

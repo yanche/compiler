@@ -1,5 +1,5 @@
 
-import { closure, Edge, IdGen, range, BidirectMap } from "../utility";
+import { closure, Edge, IdGen, range } from "../utility";
 
 //terminal symbol or non-terminal symbol, used in productions
 export class Symbol {
@@ -55,141 +55,109 @@ export interface ProductionRef {
 //a group of productions, will assign an integer to each symbol, "$" takes 0, then terminals, then non-terminals
 //also an integer will be assigned to each production, starts from 0
 export class ProdSet {
-    private _startnontnum: number; //integer for start symbol
-    // private _prodliteralmap: Map<string, number>;
-    private _nontprodmap: Map<number, Array<number>>; //integer of non-terminal -> array of id of productions by it as lhs
-    private _numprodmap: Array<ProductionRef>;  //production id -> production
-    private _symnummap: BidirectMap<string>; //integer of symbol <--> string of symbol
-    private _termict: number;       //count of terminal symbols
-    private _totalsymct: number;    //count of total symbols
+    private _startNonTerminalId: number; //integer for start symbol
+    private _nonTerminalProdMap: Map<number, Array<number>>; //integer of non-terminal -> array of id of productions by it as lhs
+    private _idProdMap: Array<ProductionRef>;  //production id -> production
+    private _symbolIdMap: SymbolIdMap; //integer of symbol <--> string of symbol
+    private _terminalsCount: number;       //count of terminal symbols
     private _nullableNonTerminals: Set<number>; //set of integer of non-terminal symbols which could produce epsilon
     private _firstSet: Array<Set<number>>; //integer of symbol -> first set (epsilon is not included)
     private _followSet: Array<Set<number>>; //integer of symbol -> follow set
-    private _prodcount: number;
 
     static preservedNonTerminalPrefix: string = "D__";
-    static preservedStartNont: string = "D__START";
+    static reservedStartNonTerminal: string = "D__START";
 
-    constructor(prods: Iterable<Production>) {
-        let termict = 0, nonterminals = new Set<string>(), symnummap = new BidirectMap<string>();
-        let numprodmap = new Array<ProductionRef>(), nontprodmap = new Map<number, Array<number>>(); //map from number of non-terminal to number its productions
-        let reachedges: Array<Edge> = [], firstNonTSym: Symbol = null;
-        //in the first scan loop, assign an integer to all symbols, terminals first then non-terminals
-        //0 is the end-of-input symbol
-        symnummap.getOrCreateNum("$");
-        for (let prod of prods) {
-            if (firstNonTSym === null) firstNonTSym = prod.getLHS();
-            prodSymCollect(prod);
-        }
-        // new start symbol and root production
-        const initProd = new Production(new Symbol(false, ProdSet.preservedStartNont), [firstNonTSym]);
-        prodSymCollect(initProd);
-        termict = symnummap.size - 1;
-        for (let nont of nonterminals) symnummap.getOrCreateNum(nont);
-        const startnontnum = symnummap.getNum(ProdSet.preservedStartNont);
+    constructor(prods: Production[]) {
+        // include the reserved non-terminal symbol as a start production
+        prods = prods.concat(new Production(new Symbol(false, ProdSet.reservedStartNonTerminal), [prods[0].getLHS()]));
 
-        let curprodid = 0;
-        for (let prod of prods) {
-            prodProcess(prod);
-        }
-        prodProcess(initProd);
-        if (nontprodmap.size !== nonterminals.size) throw new Error("not all non-terminals appear at LHS");
-        if (closure.calcClosureOfOneNode(reachedges, startnontnum).size !== nonterminals.size) throw new Error("some non-terminals are unreachable from start symbol");
+        const { symbolIdMap, terminalsCount, nonTerminalsCount } = makeSymbolIdMap(prods);
+        const { linkToNonTerminal, idProdMap, nonTerminalProdMap } = prodProcess(prods, symbolIdMap);
 
-        this._startnontnum = startnontnum;
-        this._prodcount = curprodid;
-        // this._prodliteralmap = prodliteralmap;
-        this._nontprodmap = nontprodmap;
-        this._numprodmap = numprodmap;
-        this._symnummap = symnummap;
-        this._termict = termict;
-        this._totalsymct = symnummap.size - 1;
+        this._startNonTerminalId = symbolIdMap.getId(ProdSet.reservedStartNonTerminal);
 
-        function prodSymCollect(prod: Production) {
-            nonterminals.add(prod.getLHS().getName());
-            for (let sym of prod.getRHS()) {
-                if (sym.isTerminal()) symnummap.getOrCreateNum(sym.getName());
-                else nonterminals.add(sym.getName());
-            }
-        }
-        function prodProcess(prod: Production) {
-            let lnum = symnummap.getNum(prod.getLHS().getName()), rhs = prod.getRHS();
-            numprodmap.push({
-                prodid: curprodid,
-                prod: prod,
-                lnum: lnum,
-                rnums: rhs.map(s => {
-                    let rnum = symnummap.getNum(s.getName());
-                    if (!s.isTerminal()) reachedges.push({ src: lnum, tgt: rnum });
-                    return rnum;
-                })
-            });
-            addToMapOfArr(nontprodmap, lnum, curprodid);
-            ++curprodid;
-        }
+        if (nonTerminalProdMap.size !== nonTerminalsCount) throw new Error("not all non-terminals appear at LHS");
+        if (closure.calcClosureOfOneNode(linkToNonTerminal, this._startNonTerminalId).size !== nonTerminalsCount) throw new Error("some non-terminals are unreachable from start symbol");
+
+        this._nonTerminalProdMap = nonTerminalProdMap;
+        this._idProdMap = idProdMap;
+        this._symbolIdMap = symbolIdMap;
+        this._terminalsCount = terminalsCount;
     }
 
-    getStartNonTerminal(): number { return this._startnontnum; }
+    private get _totalSymbolCount(): number {
+        return this._symbolIdMap.size - 1;
+    }
 
-    getNonTerminals(): Array<number> { return range(this._termict + 1, this._totalsymct + 1); }
+    private get _prodCount(): number {
+        return this._idProdMap.length;
+    }
 
-    // getNonTerminalsInStr(): Array<string> { return this.getNonTerminals().map(n => this.getSymInStr(n)); }
+    getStartNonTerminal(): number { return this._startNonTerminalId; }
 
-    getTerminals(): Array<number> { return range(1, this._termict + 1); }
+    getNonTerminals(): Array<number> { return range(this._terminalsCount + 1, this._totalSymbolCount + 1); }
 
-    // getTerminalsInStr(): Array<string> { return this.getTerminals().map(n => this.getSymInStr(n)); }
+    getTerminals(): Array<number> { return range(1, this._terminalsCount + 1); }
 
-    getSymInStr(num: number): string { return this._symnummap.getT(num); }
+    getSymInStr(num: number): string { return this._symbolIdMap.getSymbol(num); }
 
-    getSymNum(sym: string): number { return this._symnummap.getNum(sym); }
+    getSymNum(sym: string): number { return this._symbolIdMap.getId(sym); }
 
-    isSymNumTerminal(num: number): boolean { return num <= this._termict; }
+    isSymNumTerminal(num: number): boolean { return num <= this._terminalsCount; }
 
-    getProds(lsymnum: number): Array<number> { return this._nontprodmap.get(lsymnum); }
+    getProds(lsymnum: number): Array<number> { return this._nonTerminalProdMap.get(lsymnum); }
 
     //from 0 -> n-1, n is the size of productions
-    getProdIds(): Array<number> { return range(this._numprodmap.length); }
+    getProdIds(): Array<number> { return range(this._idProdMap.length); }
 
-    getProdRef(prodnum: number): ProductionRef { return this._numprodmap[prodnum]; }
-
-    //getProdIdByLiteral(prodliteral: string): number { return this._prodliteralmap.get(prodliteral); }
-
-    //getProdSize(): number { return this._numprodmap.length; }
-
-    //getAllProds(): Array<number> { return range(this.getProdSize()); }
+    getProdRef(prodnum: number): ProductionRef { return this._idProdMap[prodnum]; }
 
     firstSet(): Array<Set<number>> {
         if (this._firstSet) return this._firstSet;
-        let nullablenont = this.nullableNonTerminals(), retmap = new Array<Set<number>>(this._totalsymct + 1);
-        let edges: Array<Edge> = [], nonterminals = this.getNonTerminals();
-        for (let nont of nonterminals) {
+
+        const nullableNonTerminals = this.nullableNonTerminals();
+        const retmap = new Array<Set<number>>(this._totalSymbolCount + 1);
+        const edges: Edge[] = [];
+        const nonTerminals = this.getNonTerminals();
+
+        for (let nont of nonTerminals) {
             retmap[nont] = new Set<number>();
             for (let prodid of this.getProds(nont)) {
-                let prodref = this.getProdRef(prodid);
-                let genepsilon = true, loc = 0;
-                while (loc < prodref.rnums.length && genepsilon) {
-                    let rnum = prodref.rnums[loc];
+                const prodref = this.getProdRef(prodid);
+                let genepsilon = true, i = 0;
+                while (i < prodref.rnums.length && genepsilon) {
+                    const rnum = prodref.rnums[i++];
                     if (this.isSymNumTerminal(rnum)) {
                         retmap[nont].add(rnum);
                         genepsilon = false;
                     }
                     else {
-                        edges.push({ src: nont, tgt: rnum }); //could have dup edge, it"s fine
-                        genepsilon = nullablenont.has(rnum);
+                        // could have dup edge, but it's fine
+                        // first set of rnum(non-terminal) is subset of first set of nont here.
+                        edges.push({ src: nont, tgt: rnum });
+                        genepsilon = nullableNonTerminals.has(rnum);
                     }
-                    ++loc;
                 }
             }
         }
-        mergeClosureSet(nonterminals, closure.calcClosure(edges), retmap);
+
+        mergeClosureSet(nonTerminals, closure.calcClosure(edges), retmap);
+
         for (let t of this.getTerminals()) retmap[t] = new Set<number>().add(t);
+
         return this._firstSet = retmap;
     }
 
     followSet(): Array<Set<number>> {
         if (this._followSet) return this._followSet;
-        let retmap = new Array<Set<number>>(this._totalsymct + 1), firstSetMap = this.firstSet(), nullablenonterminals = this.nullableNonTerminals(), edges: Array<Edge> = [];
-        retmap[this._startnontnum] = new Set().add(0);
+
+        const retmap = new Array<Set<number>>(this._totalSymbolCount + 1);
+        const firstSetMap = this.firstSet();
+        const nullableNonTerminals = this.nullableNonTerminals();
+        const edges: Edge[] = [];
+        // 0 is the id of "$"
+        retmap[this._startNonTerminalId] = new Set().add(0);
+
         for (let nont of this.getNonTerminals()) {
             if (retmap[nont] == null) retmap[nont] = new Set<number>();
             for (let prodid of this.getProds(nont)) {
@@ -197,74 +165,85 @@ export class ProdSet {
                 if (rnums.length === 0) continue;
                 let i = 1, j = 0;
                 while (i < rnums.length) {
-                    let rnum = rnums[i];
-                    let fset = firstSetMap[rnum];
+                    const rnum = rnums[i];
+                    const fset = firstSetMap[rnum];
                     let s = j;
                     while (s < i) addRangeToArrayOfSet(retmap, rnums[s++], fset);
-                    if (!nullablenonterminals.has(rnum)) j = i;
+                    if (!nullableNonTerminals.has(rnum)) j = i;
                     ++i;
                 }
                 while (j < i) {
-                    let rnum = rnums[j];
-                    if (rnum != nont) edges.push({ src: rnum, tgt: nont });
-                    ++j;
+                    const rnum = rnums[j++];
+                    // follow set of LHS would be subset of last symbol(s) (if last symbol is nullable, then more than 1) in this production
+                    if (rnum !== nont) edges.push({ src: rnum, tgt: nont });
                 }
             }
         }
-        mergeClosureSet(range(1, this._totalsymct + 1), closure.calcClosure(edges), retmap);
+
+        mergeClosureSet(range(1, this._totalSymbolCount + 1), closure.calcClosure(edges), retmap);
+
         return this._followSet = retmap;
     }
 
-    // nullableNonTerminalsInStr(): Array<string> {
-    //     return [...this.nullableNonTerminals()].map(n => this.getSymInStr(n));
-    // }
-
     nullableNonTerminals(): Set<number> {
         if (this._nullableNonTerminals) return this._nullableNonTerminals;
-        let retset = new Set<number>(), queue: Array<number> = [];
-        let map = new Map<number, Array<{ rnums: Array<number>, next: number, lnum: number }>>(); //for symbol S becomes nullable, which other symbols may be affected
+
+        const retset = new Set<number>(), nonTerminalsToProcess: Array<number> = [];
+        const dependencyMap = new Map<number, Array<{ rnums: Array<number>, next: number, lnum: number }>>();
+
         for (let nont of this.getNonTerminals()) {
             for (let prodid of this.getProds(nont)) {
                 let rnums = this.getProdRef(prodid).rnums;
                 if (rnums.length === 0) {
+                    // no right hand side, nullable
                     if (!retset.has(nont)) {
                         retset.add(nont);
-                        queue.push(nont);
+                        nonTerminalsToProcess.push(nont);
                     }
                     break;
                 }
                 if (this.isSymNumTerminal(rnums[0])) continue;
-                addToMapOfArr(map, rnums[0], { rnums: rnums, next: 1, lnum: nont });
+                // if for symbol rnums[0] becomes nullable, then lnum has a change to become nullable
+                addToMapOfArr(dependencyMap, rnums[0], { rnums: rnums, next: 1, lnum: nont });
             }
         }
-        while (queue.length > 0) {
-            let lnum = queue.pop();
-            for (let ditem of (map.get(lnum) || [])) {
-                if (retset.has(ditem.lnum)) continue;
-                let next = ditem.next;
-                while (next < ditem.rnums.length && retset.has(ditem.rnums[next]))++next;
-                if (next === ditem.rnums.length) {
-                    retset.add(ditem.lnum);
-                    queue.push(ditem.lnum);
+
+        while (nonTerminalsToProcess.length > 0) {
+            const lnum = nonTerminalsToProcess.pop();
+            for (let dependentItem of (dependencyMap.get(lnum) || [])) {
+                // the non-terminal symbol of dependentItem is already marked as nullable, no further action required
+                if (retset.has(dependentItem.lnum)) continue;
+                let next = dependentItem.next;
+                while (next < dependentItem.rnums.length && retset.has(dependentItem.rnums[next]))++next;
+                // reach the end of production, means this production can produce null, symbol at LHS is nullable
+                if (next === dependentItem.rnums.length) {
+                    retset.add(dependentItem.lnum);
+                    nonTerminalsToProcess.push(dependentItem.lnum);
                 }
                 else {
-                    let symnum = ditem.rnums[next];
+                    const symnum = dependentItem.rnums[next];
+                    // if blocked by terminal symbol, never get a change to be nullable
                     if (this.isSymNumTerminal(symnum)) continue;
-                    addToMapOfArr(map, symnum, { rnums: ditem.rnums, next: next + 1, lnum: ditem.lnum }); //now the "able to produce nullable" depends on symbol "symnum"
+                    // now the "able to produce nullable" depends on symbol "symnum"
+                    addToMapOfArr(dependencyMap, symnum, { rnums: dependentItem.rnums, next: next + 1, lnum: dependentItem.lnum });
                 }
             }
         }
+
         return this._nullableNonTerminals = retset;
     }
 
     leftFactoredProdSet(): ProdSet {
-        let prods: Array<Production> = [], idgen = new IdGen();
+        const prods: Production[] = [];
+        const idgen = new IdGen();
+        
         for (let nont of this.getNonTerminals()) {
             // start non-terminal is added programmatically
-            if (nont === this._startnontnum) continue;
+            if (nont === this._startNonTerminalId) continue;
             leftFactoring(this.getSymInStr(nont), this.getProds(nont).map(p => this.getProdRef(p)).map(p => p.prod.getRHS()), 0, prods, idgen);
         }
-        return prods.length === (this._prodcount - 1) ? this : new ProdSet(prods);
+
+        return prods.length === (this._prodCount - 1) ? this : new ProdSet(prods);
     }
 }
 
@@ -314,18 +293,116 @@ function addRangeToArrayOfSet<T>(map: Array<Set<T>>, key: number, item: Iterable
     for (let s of item) set.add(s);
 }
 
-function mergeClosureSet(symnums: Iterable<number>, closuremap: Map<number, closure.Closure>, map: Array<Set<number>>) {
-    for (let symnum of symnums) {
-        let closure = closuremap.get(symnum);
+function mergeClosureSet(symIds: Iterable<number>, closuremap: Map<number, closure.Closure>, map: Array<Set<number>>) {
+    for (let symId of symIds) {
+        const closure = closuremap.get(symId);
         if (!closure) continue;
         for (let num of closure.getNodes()) {
-            if (num === symnum) continue;
-            let symset = map[num];
+            if (num === symId) continue;
+            const symset = map[num];
             if (!symset) continue;
-            let set = map[symnum];
+            let set = map[symId];
             if (!set)
-                set = map[symnum] = new Set<number>();
+                set = map[symId] = new Set<number>();
             for (let s of symset) set.add(s);
         };
     };
+}
+
+function collectProdSymbols(prods: Iterable<Production>): {
+    terminals: Set<string>;
+    nonTerminals: Set<string>;
+} {
+    const nonTerminals = new Set<string>();
+    const terminals = new Set<string>();
+    for (let prod of prods) {
+        // left hand side symbol must be non-terminal
+        nonTerminals.add(prod.getLHS().getName());
+        for (let sym of prod.getRHS()) {
+            // right hand side
+            (sym.isTerminal() ? terminals : nonTerminals).add(sym.getName());
+        }
+    }
+    return { terminals, nonTerminals };
+}
+
+// $, terminals, non-terminals
+function makeSymbolIdMap(prods: Production[]): {
+    symbolIdMap: SymbolIdMap;
+    terminalsCount: number;
+    nonTerminalsCount: number;
+} {
+    const symbolIdMap = new SymbolIdMap();
+    const { terminals, nonTerminals } = collectProdSymbols(prods);
+    //0 is the end-of-input symbol
+    symbolIdMap.createSymbolsIfNotYet("$");
+    // terminal symbols first
+    symbolIdMap.createSymbolsIfNotYet(...terminals);
+    const terminalsCount = symbolIdMap.size - 1;
+    // then non-terminal symbol and reserved start symbol
+    symbolIdMap.createSymbolsIfNotYet(...nonTerminals);
+    const nonTerminalsCount = symbolIdMap.size - 1 - terminalsCount;
+    return { symbolIdMap, terminalsCount, nonTerminalsCount };
+}
+
+function prodProcess(prods: Production[], symbolIdMap: SymbolIdMap): {
+    idProdMap: ProductionRef[];
+    linkToNonTerminal: Edge[];
+    nonTerminalProdMap: Map<number, number[]>;
+} {
+    const idProdMap: ProductionRef[] = [];
+    const linkToNonTerminal: Edge[] = [];
+    const nonTerminalProdMap = new Map<number, number[]>();
+    for (let prod of prods) {
+        const lnum = symbolIdMap.getId(prod.getLHS().getName()), rhs = prod.getRHS();
+        const prodId = idProdMap.length;
+        idProdMap.push({
+            prodid: prodId,
+            prod: prod,
+            lnum: lnum,
+            rnums: rhs.map(s => {
+                let rnum = symbolIdMap.getId(s.getName());
+                if (!s.isTerminal()) linkToNonTerminal.push({ src: lnum, tgt: rnum });
+                return rnum;
+            })
+        });
+        addToMapOfArr(nonTerminalProdMap, lnum, prodId);
+    }
+    return { idProdMap, linkToNonTerminal, nonTerminalProdMap };
+}
+
+class SymbolIdMap {
+    private _idmap: Map<string, number>;
+    private _symmap: Array<string>;
+
+    constructor() {
+        this._idmap = new Map<string, number>();
+        this._symmap = [];
+    }
+
+    // id starts from 0
+    createSymbolsIfNotYet(...symbols: string[]): void {
+        for (let symbol of symbols) {
+            if (!this._idmap.has(symbol)) {
+                const id = this._symmap.length;
+                this._idmap.set(symbol, id);
+                this._symmap.push(symbol);
+            }
+        }
+    }
+
+    getId(symbol: string): number {
+        if (!this._idmap.has(symbol)) {
+            throw new Error(`unexpected, SymbolIdMap does not have symbol: ${symbol}`);
+        }
+        return this._idmap.get(symbol);
+    }
+
+    getSymbol(id: number): string {
+        return this._symmap[id];
+    }
+
+    get size(): number {
+        return this._symmap.length;
+    }
 }

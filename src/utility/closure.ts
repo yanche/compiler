@@ -23,7 +23,7 @@ export class Closure {
     getOwnerNodes(): Set<number> {
         return this._owners;
     }
-    
+
     constructor() {
         this._set = new Set<number>();
         this._owners = new Set<number>();
@@ -45,10 +45,12 @@ function createGraph(arr: Iterable<utility.Edge>): DirectedGraph {
     let map = new Map<number, Set<number>>(), allnodes = new Set<number>();
     for (let edge of arr) {
         let srcnum = edge.src, tgtnum = edge.tgt;
-        let edgeset = map.get(srcnum);
-        if (edgeset === undefined) {
+        let edgeset: Set<number>;
+        if (!map.has(srcnum)) {
             edgeset = new Set<number>();
             map.set(srcnum, edgeset);
+        } else {
+            edgeset = map.get(srcnum);
         }
         edgeset.add(tgtnum);
         allnodes.add(tgtnum).add(srcnum);

@@ -9,40 +9,6 @@ export function isNonNeg(num: number, int?: boolean): boolean {
     return num >= 0 && (!int || Math.ceil(num) === num);
 }
 
-export class BidirectMap<T> {
-    private _nummap: Map<T, number>;
-    private _tmap: Array<T>;
-    private _idgen: IdGen;
-
-    constructor() {
-        this._nummap = new Map<T, number>();
-        this._tmap = new Array<T>();
-        this._idgen = new IdGen();
-    }
-
-    getOrCreateNum(input: T): number {
-        if (this._nummap.has(input)) return this._nummap.get(input);
-        else {
-            let num = this._idgen.next();
-            this._nummap.set(input, num);
-            this._tmap.push(input);
-            return num;
-        }
-    }
-
-    getNum(input: T): number {
-        return this._nummap.get(input);
-    }
-
-    getT(num: number): T {
-        return this._tmap[num];
-    }
-
-    get size(): number {
-        return this._nummap.size;
-    }
-}
-
 export class IdGen {
     private _cur: number;
 

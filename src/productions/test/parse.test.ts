@@ -29,7 +29,7 @@ describe("parse string into structured production set", function () {
             "E -> T + E | T",
             "T -> int | int * T | ( E )"
         ]);
-        assert.equal(ProdSet.preservedStartNont, pset.getSymInStr(pset.getStartNonTerminal()));
+        assert.equal(ProdSet.reservedStartNonTerminal, pset.getSymInStr(pset.getStartNonTerminal()));
         validate(pset, [
             {
                 lhs: "E",
@@ -68,7 +68,7 @@ describe("parse string into structured production set", function () {
         let pset = createProdSetWithSplitter([
             "E -> int + int | "
         ]);
-        assert.equal(ProdSet.preservedStartNont, pset.getSymInStr(pset.getStartNonTerminal()));
+        assert.equal(ProdSet.reservedStartNonTerminal, pset.getSymInStr(pset.getStartNonTerminal()));
         validate(pset, [
             {
                 lhs: "E",
