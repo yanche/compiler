@@ -50,7 +50,7 @@ function createGraph(arr: Iterable<utility.Edge>): DirectedGraph {
             edgeset = new Set<number>();
             map.set(srcnum, edgeset);
         } else {
-            edgeset = map.get(srcnum);
+            edgeset = map.get(srcnum)!;
         }
         edgeset.add(tgtnum);
         allnodes.add(tgtnum).add(srcnum);
@@ -82,7 +82,7 @@ function calcClosureOfNode(stack: Array<number>, stacktop: number, nodenum: numb
         for (let adjnodenum of [...edgeset]) {
             if (adjnodenum === nodenum) continue; //self, ignore
             let adjcolor = colormap.get(adjnodenum);
-            let adjclosure = closuremap.get(adjnodenum);
+            let adjclosure = closuremap.get(adjnodenum)!;
             if (adjcolor === Color.black) //adj is black
                 addNodesToClosure(stack, 0, stacktop, adjclosure.getNodes(), closuremap);
             else if (adjcolor === Color.grey) {
@@ -92,7 +92,7 @@ function calcClosureOfNode(stack: Array<number>, stacktop: number, nodenum: numb
                 ++adjidx;
                 while (adjidx <= stacktop) {
                     let processedowners = new Set<number>();
-                    for (let ownernodenum of closuremap.get(stack[adjidx++]).getOwnerNodes()) {
+                    for (let ownernodenum of closuremap.get(stack[adjidx++])!.getOwnerNodes()) {
                         if (!processedowners.has(ownernodenum)) {
                             closuremap.set(ownernodenum, adjclosure);
                             adjclosure.addOwnerNode(ownernodenum);
@@ -129,7 +129,7 @@ export function calcClosure(arr: Iterable<utility.Edge>): Map<number, Closure> {
 export function closureOfNodes(nodenums: Iterable<number>, closuremap: Map<number, Closure>): Set<number> {
     let ret = new Set<number>();
     for (let nodenum of nodenums) {
-        for (let cnodenum of closuremap.get(nodenum).getNodes())
+        for (let cnodenum of closuremap.get(nodenum)!.getNodes())
             ret.add(cnodenum);
     }
     return ret;
@@ -138,7 +138,7 @@ export function closureOfNodes(nodenums: Iterable<number>, closuremap: Map<numbe
 function _calcClosureOfOneNode(edgemap: Map<number, Set<number>>, nodenum: number) {
     let set = new Set<number>().add(nodenum), queue = [nodenum];
     while (queue.length > 0) {
-        let nnum = queue.pop();
+        let nnum = queue.pop()!;
         let adjset = edgemap.get(nnum);
         if (adjset === undefined) continue;
         for (let adjnum of adjset) {

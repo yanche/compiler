@@ -60,9 +60,9 @@ export class ProdSet {
     private _idProdMap: Array<ProductionRef>;  //production id -> production
     private _symbolIdMap: SymbolIdMap; //integer of symbol <--> string of symbol
     private _terminalsCount: number;       //count of terminal symbols
-    private _nullableNonTerminals: Set<number>; //set of integer of non-terminal symbols which could produce epsilon
-    private _firstSet: Array<Set<number>>; //integer of symbol -> first set (epsilon is not included)
-    private _followSet: Array<Set<number>>; //integer of symbol -> follow set
+    private _nullableNonTerminals: Set<number> | undefined = undefined; //set of integer of non-terminal symbols which could produce epsilon
+    private _firstSet: Array<Set<number>> | undefined = undefined; //integer of symbol -> first set (epsilon is not included)
+    private _followSet: Array<Set<number>> | undefined = undefined; //integer of symbol -> follow set
 
     static preservedNonTerminalPrefix: string = "D__";
     static reservedStartNonTerminal: string = "D__START";
@@ -105,7 +105,12 @@ export class ProdSet {
 
     isSymIdTerminal(id: number): boolean { return id <= this._terminalsCount; }
 
-    getProds(lsymnum: number): Array<number> { return this._nonTerminalProdMap.get(lsymnum); }
+    getProds(lhsSymId: number): Array<number> {
+        if (!this._nonTerminalProdMap.has(lhsSymId)) {
+            throw new Error(`given LHS symbol id does not map to productions: ${lhsSymId}`)
+        }
+        return this._nonTerminalProdMap.get(lhsSymId)!;
+    }
 
     //from 0 -> n-1, n is the size of productions
     getProdIds(): Array<number> { return range(this._idProdMap.length); }
@@ -188,7 +193,8 @@ export class ProdSet {
     nullableNonTerminals(): Set<number> {
         if (this._nullableNonTerminals) return this._nullableNonTerminals;
 
-        const retset = new Set<number>(), nonTerminalsToProcess: Array<number> = [];
+        const retset = new Set<number>();
+        const nonTerminalsToProcess: Array<number> = [];
         const dependencyMap = new Map<number, Array<{ rnums: Array<number>, next: number, lnum: number }>>();
 
         for (let nont of this.getNonTerminals()) {
@@ -209,7 +215,7 @@ export class ProdSet {
         }
 
         while (nonTerminalsToProcess.length > 0) {
-            const lnum = nonTerminalsToProcess.pop();
+            const lnum = nonTerminalsToProcess.pop()!;
             for (let dependentItem of (dependencyMap.get(lnum) || [])) {
                 // the non-terminal symbol of dependentItem is already marked as nullable, no further action required
                 if (retset.has(dependentItem.lnum)) continue;
@@ -236,7 +242,7 @@ export class ProdSet {
     leftFactoredProdSet(): ProdSet {
         const prods: Production[] = [];
         const idgen = new IdGen();
-        
+
         for (let nont of this.getNonTerminals()) {
             // start non-terminal is added programmatically
             if (nont === this._startNonTerminalId) continue;
@@ -248,7 +254,9 @@ export class ProdSet {
 }
 
 function leftFactoring(lstr: string, rhsarr: Array<Array<Symbol>>, lfidx: number, prods: Array<Production>, idGen: IdGen) {
-    var lfmap = new Map<string, Array<Array<Symbol>>>(), gonull = false, lfset = new Set<string>();
+    const lfmap = new Map<string, Array<Array<Symbol>>>();
+    const lfset = new Set<string>();
+    let gonull = false;
     for (let rsymarr of rhsarr) {
         if (rsymarr.length === lfidx) gonull = true;
         else {
@@ -257,10 +265,10 @@ function leftFactoring(lstr: string, rhsarr: Array<Array<Symbol>>, lfidx: number
             lfset.add(lfname);
         }
     }
-    let lsymbol = new Symbol(false, lstr);
+    const lsymbol = new Symbol(false, lstr);
     if (gonull) prods.push(new Production(lsymbol, []));
     for (let lfname of lfset) {
-        let rights = lfmap.get(lfname);
+        const rights = lfmap.get(lfname);
         if (rights.length === 1) prods.push(new Production(lsymbol, lfidx > 0 ? rights[0].slice(lfidx) : rights[0]));
         else {
             let i = 1, lfidx0 = lfidx, anchor: string;
@@ -284,7 +292,7 @@ function leftFactoring(lstr: string, rhsarr: Array<Array<Symbol>>, lfidx: number
 
 function addToMapOfArr<K, T>(map: Map<K, Array<T>>, key: K, item: T) {
     if (!map.has(key)) map.set(key, [item]);
-    else map.get(key).push(item);
+    else map.get(key)!.push(item);
 }
 
 function addRangeToArrayOfSet<T>(map: Array<Set<T>>, key: number, item: Iterable<T>) {
@@ -395,7 +403,7 @@ class SymbolIdMap {
         if (!this._idmap.has(symbol)) {
             throw new Error(`unexpected, SymbolIdMap does not have symbol: ${symbol}`);
         }
-        return this._idmap.get(symbol);
+        return this._idmap.get(symbol)!;
     }
 
     getSymbol(id: number): string {

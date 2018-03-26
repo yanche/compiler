@@ -78,8 +78,10 @@ export function initArray<T>(len: number, init: T): Array<T> {
     return ret;
 }
 
-export function findFirst<T>(arr: Array<T>, predicate: (t: T, idx: number) => boolean, def?: T): T {
-    let len = arr.length;
+export function findFirst<T>(arr: T[], predicate: (t: T, idx: number) => boolean): T | undefined;
+export function findFirst<T>(arr: T[], predicate: (t: T, idx: number) => boolean, def: T): T;
+export function findFirst<T>(arr: T[], predicate: (t: T, idx: number) => boolean, def?: T): T | undefined {
+    const len = arr.length;
     for (let i = 0; i < len; ++i) {
         if (predicate(arr[i], i)) {
             return arr[i];
