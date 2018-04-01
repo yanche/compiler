@@ -4,12 +4,12 @@ import { LR0DFA, LRParser, LR0ItemsPack, LR0Item } from './util';
 
 
 // function itemInStr(item: LR0Item, prodset: ProdSet): string {
-//     let rnums = item.prod.rnums;
-//     let arr = new Array<string>(), i = 0, len = rnums.length;
+//     let rhsIds = item.prod.rhsIds;
+//     let arr = new Array<string>(), i = 0, len = rhsIds.length;
 //     while (i <= len) {
 //         if (i === item.dot) arr[i] = '.';
-//         else if (i > item.dot) arr[i] = prodset.getSymInStr(rnums[i - 1]);
-//         else arr[i] = prodset.getSymInStr(rnums[i]);
+//         else if (i > item.dot) arr[i] = prodset.getSymInStr(rhsIds[i - 1]);
+//         else arr[i] = prodset.getSymInStr(rhsIds[i]);
 //         ++i;
 //     }
 //     return prodset.getSymInStr(item.prod.lnum) + ' -> ' + arr.join(' ');
@@ -63,19 +63,19 @@ export default class LALR1Parser extends LRParser {
         }
         while (stack.length > 0) {
             let todo = stack.pop();
-            let rnums = todo.item.prod.rnums, dot = todo.item.dot;
-            if (dot === rnums.length) continue;
+            let rhsIds = todo.item.prod.rhsIds, dot = todo.item.dot;
+            if (dot === rhsIds.length) continue;
             // next item by one shift action
             let goitem = getItemByProdId(lr0dfa.lr0ItemsPack, todo.item.prodId, dot + 1);
-            let dotsymnum = rnums[dot], golr1itemnum = lr1ItemNum(goitem.itemId, todo.symId, ctlookaheadsym);
+            let dotsymnum = rhsIds[dot], golr1itemnum = lr1ItemNum(goitem.itemId, todo.symId, ctlookaheadsym);
             let gotodfastate = lr0dfa.getTransitionMap(todo.dfastate).get(prodset.getSymInStr(dotsymnum));
             tryAddIntoStack(stack, { dfastate: gotodfastate, item: goitem, symId: todo.symId }, dfastatemap, golr1itemnum);
             if (prodset.isSymIdTerminal(dotsymnum)) continue;
             // produce more when encountering a non-terminal symbol
             let gonull = true, fset = new Set<number>();
             ++dot;
-            while (gonull && dot < rnums.length) {
-                let rsym = rnums[dot++];
+            while (gonull && dot < rhsIds.length) {
+                let rsym = rhsIds[dot++];
                 for (let f of firsts[rsym]) fset.add(f);
                 gonull = nullablenonterminals.has(rsym);
             }
@@ -102,8 +102,8 @@ export default class LALR1Parser extends LRParser {
             for (let n of lr1itemnums) {
                 // state number of NFA is the number of item
                 let item = lr0dfa.lr0ItemsPack.getItem(Math.floor(n / ctlookaheadsym));
-                if (item.dot === item.prod.rnums.length && item.prod.lnum !== startnontnum) {
-                    this.addReduceAction(dfanum, n % ctlookaheadsym, item.prod.lnum, item.dot, item.prodId);
+                if (item.dot === item.prod.rhsIds.length && item.prod.lhsId !== startnontnum) {
+                    this.addReduceAction(dfanum, n % ctlookaheadsym, item.prod.lhsId, item.dot, item.prodId);
                 }
             }
         }

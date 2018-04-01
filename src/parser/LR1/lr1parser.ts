@@ -28,14 +28,14 @@ export default class LR1Parser extends LRParser {
             let itemnum = itemqueue.pop();
             let lr0itemnum = Math.floor(itemnum / ctlookaheadsym), lasymnum = itemnum % ctlookaheadsym; //symId: the lookahead symbol of item of LR(1)
             let lr0item = lr0itemspack.getItem(lr0itemnum);
-            let rnums = lr0item.prod.rnums;
-            if (lr0item.dot < rnums.length) {
-                let dotsym = rnums[lr0item.dot];
+            let rhsIds = lr0item.prod.rhsIds;
+            if (lr0item.dot < rhsIds.length) {
+                let dotsym = rhsIds[lr0item.dot];
                 addNFATran(new automata.Transition(itemnum, lr0itemspack.getItemIdsByProdId(lr0item.prodId)[lr0item.dot + 1] * ctlookaheadsym + lasymnum, prodset.getSymInStr(dotsym)), nfatrans, itemqueue, processeditems);
                 if (!prodset.isSymIdTerminal(dotsym)) {
                     let firsts = new Set<number>(), dot = lr0item.dot + 1, gonull = true;
-                    while (dot < rnums.length && gonull) {
-                        let rnum = rnums[dot++];
+                    while (dot < rhsIds.length && gonull) {
+                        let rnum = rhsIds[dot++];
                         for (let f of firstsets[rnum]) firsts.add(f);
                         gonull = nullableterminals.has(rnum);
                     }
@@ -78,9 +78,9 @@ export default class LR1Parser extends LRParser {
             for (let lr1itemnum of lr1itemnums) {
                 // state number of NFA is the number of item
                 let lr0item = lr0itemspack.getItem(Math.floor(lr1itemnum / ctlookaheadsym));
-                if (lr0item.dot === lr0item.prod.rnums.length && lr0item.prod.lnum !== startnontnum) {
+                if (lr0item.dot === lr0item.prod.rhsIds.length && lr0item.prod.lhsId !== startnontnum) {
                     // reduce item
-                    this.addReduceAction(dfanum, lr1itemnum % ctlookaheadsym, lr0item.prod.lnum, lr0item.dot, lr0item.prodId);
+                    this.addReduceAction(dfanum, lr1itemnum % ctlookaheadsym, lr0item.prod.lhsId, lr0item.dot, lr0item.prodId);
                 }
             }
         }

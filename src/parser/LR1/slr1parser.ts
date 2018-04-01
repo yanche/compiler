@@ -4,15 +4,15 @@ import { LR0DFA, LRParser } from "./util";
 
 
 // function itemInStr(item: LR0Item, prodset: prod.ProdSet): string {
-//     let rnums = item.prod.rnums;
-//     let arr = new Array<string>(), i = 0, len = rnums.length;
+//     let rhsIds = item.prod.rhsIds;
+//     let arr = new Array<string>(), i = 0, len = rhsIds.length;
 //     while (i <= len) {
 //         if (i === item.dot) arr[i] = ".";
-//         else if (i > item.dot) arr[i] = prodset.getSymInStr(rnums[i - 1]);
-//         else arr[i] = prodset.getSymInStr(rnums[i]);
+//         else if (i > item.dot) arr[i] = prodset.getSymInStr(rhsIds[i - 1]);
+//         else arr[i] = prodset.getSymInStr(rhsIds[i]);
 //         ++i;
 //     }
-//     return prodset.getSymInStr(item.prod.lnum) + " -> " + arr.join(" ");
+//     return prodset.getSymInStr(item.prod.lhsId) + " -> " + arr.join(" ");
 // }
 
 export default class SLR1Parser extends LRParser {
@@ -39,10 +39,10 @@ export default class SLR1Parser extends LRParser {
             const lr0Items = this._lr0dfa.getItemsInState(dfaId);
             for (let item of lr0Items) {
                 // state id of NFA is the id of item
-                if (item.dot === item.prod.rnums.length && item.prod.lnum !== startNonTerminalId) {
+                if (item.dot === item.prod.rhsIds.length && item.prod.lhsId !== startNonTerminalId) {
                     hasReduceMove = true;
-                    for (let f of followsets[item.prod.lnum])
-                        this.addReduceAction(dfaId, f, item.prod.lnum, item.prod.rnums.length, item.prodId);
+                    for (let f of followsets[item.prod.lhsId])
+                        this.addReduceAction(dfaId, f, item.prod.lhsId, item.prod.rhsIds.length, item.prodId);
                 }
             }
             if (this._isLR0 && hasReduceMove && lr0Items.length > 1)

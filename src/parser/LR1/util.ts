@@ -45,8 +45,8 @@ export class LR0ItemsPack {
         //build the item id mapping
         for (let prodId of prodIds) {
             const prod = prodset.getProdRef(prodId);
-            const arr = new Array<number>(prod.rnums.length + 1);
-            for (let i = 0; i <= prod.rnums.length; ++i) {
+            const arr = new Array<number>(prod.rhsIds.length + 1);
+            for (let i = 0; i <= prod.rhsIds.length; ++i) {
                 const itemId = idItemMap.length;
                 arr[i] = itemId;
                 idItemMap.push({ prodId: prodId, dot: i, prod: prod, itemId: itemId });
@@ -205,12 +205,12 @@ export abstract class LRParser extends Parser {
 }
 
 // export function itemInStr(bitem: LR0Item, symIds: Array<number>, prodset: prod.ProdSet): string {
-//     let rnums = bitem.prod.rnums;
-//     let arr = new Array<string>(), i = 0, len = rnums.length;
+//     let rhsIds = bitem.prod.rhsIds;
+//     let arr = new Array<string>(), i = 0, len = rhsIds.length;
 //     while (i <= len) {
 //         if (i === bitem.dot) arr[i] = ".";
-//         else if (i > bitem.dot) arr[i] = prodset.getSymInStr(rnums[i - 1]);
-//         else arr[i] = prodset.getSymInStr(rnums[i]);
+//         else if (i > bitem.dot) arr[i] = prodset.getSymInStr(rhsIds[i - 1]);
+//         else arr[i] = prodset.getSymInStr(rhsIds[i]);
 //         ++i;
 //     }
 //     return prodset.getSymInStr(bitem.prod.lnum) + " -> " + arr.join(" ") + " , LA:" + symIds.map(x => prodset.getSymInStr(x)).join(",");
@@ -262,8 +262,8 @@ function makeLR0ItemNFA(lr0ItemsPack: LR0ItemsPack, prodset: ProdSet): automata.
     for (let prodid of prodset.getProdIds()) {
         const prod = prodset.getProdRef(prodid);
         const itemIdArr = lr0ItemsPack.getItemIdsByProdId(prodid);
-        for (let i = 0; i < prod.rnums.length; ++i) {
-            const rnum = prod.rnums[i];
+        for (let i = 0; i < prod.rhsIds.length; ++i) {
+            const rnum = prod.rhsIds[i];
             const curitem = itemIdArr[i];
             const rsymstr = prodset.getSymInStr(rnum);
             nfaTrans.push(new automata.Transition(curitem, itemIdArr[i + 1], rsymstr));
