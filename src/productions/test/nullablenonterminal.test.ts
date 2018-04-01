@@ -5,13 +5,13 @@ import { createProdSetWithSplitter } from "../index";
 import { ProdSet } from "../production";
 
 function validate(pset: ProdSet, symarr: string[]) {
-    let startsymnum = pset.getStartNonTerminal();
+     const startsymnum = pset.getStartNonTerminal();
     assert.equal(true, utility.arrayEquivalent([...pset.nullableNonTerminals()].filter(n => n !== startsymnum).map(n => pset.getSymInStr(n)), symarr));
 }
 
 describe("non terminal able to produce epsilon", function () {
     it("simple 1", function () {
-        let pset = createProdSetWithSplitter([
+         const pset = createProdSetWithSplitter([
             "E -> T + E | T",
             "T -> int | int * T | ( E )"
         ]);
@@ -19,14 +19,14 @@ describe("non terminal able to produce epsilon", function () {
     });
 
     it("simple 2", function () {
-        let pset = createProdSetWithSplitter([
+         const pset = createProdSetWithSplitter([
             "E -> "
         ]);
         validate(pset, ["E"]);
     });
 
     it("simple 3", function () {
-        let pset = createProdSetWithSplitter([
+         const pset = createProdSetWithSplitter([
             "T -> E | int",
             "E -> "
         ]);
@@ -34,7 +34,7 @@ describe("non terminal able to produce epsilon", function () {
     });
 
     it("simple 4", function () {
-        let pset = createProdSetWithSplitter([
+         const pset = createProdSetWithSplitter([
             "A -> T",
             "T -> E X | int",
             "X -> q | ",
@@ -44,7 +44,7 @@ describe("non terminal able to produce epsilon", function () {
     });
 
     it("simple 5", function () {
-        let pset = createProdSetWithSplitter([
+         const pset = createProdSetWithSplitter([
             "TT -> EE | inXt",
             "EE -> "
         ]);

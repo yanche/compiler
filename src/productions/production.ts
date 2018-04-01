@@ -7,7 +7,7 @@ export class Symbol {
     private _name: string;
 
     constructor(terminal: boolean, name: string) {
-        if (name === "$") throw new Error("$ is reserved as a symbol");
+        if (name === "$") throw new Error("$ is a reserved symbol");
         this._terminal = terminal;
         this._name = name;
     }
@@ -20,23 +20,23 @@ export class Symbol {
 //one production, includes left-hand-side (one non-terminal symbol) and right-hand-side (a list of symbols)
 export class Production {
     private _lhs: Symbol;
-    private _rhs: Array<Symbol>;
+    private _rhs: Symbol[];
     private _literal: string;
 
-    constructor(lhs: Symbol, rhs: Array<Symbol>) {
+    constructor(lhs: Symbol, rhs: Symbol[]) {
         if (lhs.isTerminal()) throw new Error("left-hand-side of production must be non-terminal");
         this._lhs = lhs;
         this._rhs = rhs || [];
         this._literal = Production.toString(this._lhs, this._rhs);
     }
 
-    getLHS(): Symbol { return this._lhs; }
+    public getLHS(): Symbol { return this._lhs; }
 
-    getRHS(): Array<Symbol> { return this._rhs; }
+    public getRHS(): Symbol[] { return this._rhs; }
 
-    toString(): string { return this._literal; }
+    public toString(): string { return this._literal; }
 
-    static toString(lhs: Symbol | string, rhs: Array<Symbol>) {
+    public static toString(lhs: Symbol | string, rhs: Symbol[]) {
         let lstr: string;
         if (lhs instanceof Symbol) lstr = lhs.getName();
         else lstr = lhs;
@@ -44,12 +44,12 @@ export class Production {
     }
 }
 
-//private struct to present a production
+// private struct to present a production
 export interface ProductionRef {
     prod: Production;
-    lnum: number;
-    rnums: Array<number>;
-    prodid: number;
+    lhsId: number;
+    rhsIds: number[];
+    prodId: number;
 }
 
 //a group of productions, will assign an integer to each symbol, "$" takes 0, then terminals, then non-terminals
@@ -93,19 +93,19 @@ export class ProdSet {
         return this._idProdMap.length;
     }
 
-    getStartNonTerminal(): number { return this._startNonTerminalId; }
+    public getStartNonTerminal(): number { return this._startNonTerminalId; }
 
-    getNonTerminals(): Array<number> { return range(this._terminalsCount + 1, this._totalSymbolCount + 1); }
+    public getNonTerminals(): Array<number> { return range(this._terminalsCount + 1, this._totalSymbolCount + 1); }
 
-    getTerminals(): Array<number> { return range(1, this._terminalsCount + 1); }
+    public getTerminals(): Array<number> { return range(1, this._terminalsCount + 1); }
 
-    getSymInStr(num: number): string { return this._symbolIdMap.getSymbol(num); }
+    public getSymInStr(num: number): string { return this._symbolIdMap.getSymbol(num); }
 
-    getSymId(sym: string): number { return this._symbolIdMap.getId(sym); }
+    public getSymId(sym: string): number { return this._symbolIdMap.getId(sym); }
 
-    isSymIdTerminal(id: number): boolean { return id <= this._terminalsCount; }
+    public isSymIdTerminal(id: number): boolean { return id <= this._terminalsCount; }
 
-    getProds(lhsSymId: number): Array<number> {
+    public getProds(lhsSymId: number): Array<number> {
         if (!this._nonTerminalProdMap.has(lhsSymId)) {
             throw new Error(`given LHS symbol id does not map to productions: ${lhsSymId}`)
         }
@@ -113,11 +113,11 @@ export class ProdSet {
     }
 
     //from 0 -> n-1, n is the size of productions
-    getProdIds(): Array<number> { return range(this._idProdMap.length); }
+    public getProdIds(): Array<number> { return range(this._idProdMap.length); }
 
-    getProdRef(prodnum: number): ProductionRef { return this._idProdMap[prodnum]; }
+    public getProdRef(prodnum: number): ProductionRef { return this._idProdMap[prodnum]; }
 
-    firstSet(): Array<Set<number>> {
+    public firstSet(): Array<Set<number>> {
         if (this._firstSet) return this._firstSet;
 
         const nullableNonTerminals = this.nullableNonTerminals();
@@ -130,8 +130,8 @@ export class ProdSet {
             for (let prodid of this.getProds(nont)) {
                 const prodref = this.getProdRef(prodid);
                 let genepsilon = true, i = 0;
-                while (i < prodref.rnums.length && genepsilon) {
-                    const rnum = prodref.rnums[i++];
+                while (i < prodref.rhsIds.length && genepsilon) {
+                    const rnum = prodref.rhsIds[i++];
                     if (this.isSymIdTerminal(rnum)) {
                         retmap[nont].add(rnum);
                         genepsilon = false;
@@ -153,7 +153,7 @@ export class ProdSet {
         return this._firstSet = retmap;
     }
 
-    followSet(): Array<Set<number>> {
+    public followSet(): Array<Set<number>> {
         if (this._followSet) return this._followSet;
 
         const retmap = new Array<Set<number>>(this._totalSymbolCount + 1);
@@ -165,20 +165,20 @@ export class ProdSet {
 
         for (let nont of this.getNonTerminals()) {
             if (retmap[nont] == null) retmap[nont] = new Set<number>();
-            for (let prodid of this.getProds(nont)) {
-                let rnums = this.getProdRef(prodid).rnums;
-                if (rnums.length === 0) continue;
+            for (let prodId of this.getProds(nont)) {
+                const rhsIds = this.getProdRef(prodId).rhsIds;
+                if (rhsIds.length === 0) continue;
                 let i = 1, j = 0;
-                while (i < rnums.length) {
-                    const rnum = rnums[i];
-                    const fset = firstSetMap[rnum];
+                while (i < rhsIds.length) {
+                    const rsymId = rhsIds[i];
+                    const fset = firstSetMap[rsymId];
                     let s = j;
-                    while (s < i) addRangeToArrayOfSet(retmap, rnums[s++], fset);
-                    if (!nullableNonTerminals.has(rnum)) j = i;
+                    while (s < i) addRangeToArrayOfSet(retmap, rhsIds[s++], fset);
+                    if (!nullableNonTerminals.has(rsymId)) j = i;
                     ++i;
                 }
                 while (j < i) {
-                    const rnum = rnums[j++];
+                    const rnum = rhsIds[j++];
                     // follow set of LHS would be subset of last symbol(s) (if last symbol is nullable, then more than 1) in this production
                     if (rnum !== nont) edges.push({ src: rnum, tgt: nont });
                 }
@@ -190,17 +190,17 @@ export class ProdSet {
         return this._followSet = retmap;
     }
 
-    nullableNonTerminals(): Set<number> {
+    public nullableNonTerminals(): Set<number> {
         if (this._nullableNonTerminals) return this._nullableNonTerminals;
 
         const retset = new Set<number>();
         const nonTerminalsToProcess: Array<number> = [];
-        const dependencyMap = new Map<number, Array<{ rnums: Array<number>, next: number, lnum: number }>>();
+        const dependencyMap = new Map<number, Array<{ rhsIds: Array<number>, next: number, lsymId: number }>>();
 
         for (let nont of this.getNonTerminals()) {
             for (let prodid of this.getProds(nont)) {
-                let rnums = this.getProdRef(prodid).rnums;
-                if (rnums.length === 0) {
+                const rhsIds = this.getProdRef(prodid).rhsIds;
+                if (rhsIds.length === 0) {
                     // no right hand side, nullable
                     if (!retset.has(nont)) {
                         retset.add(nont);
@@ -208,9 +208,9 @@ export class ProdSet {
                     }
                     break;
                 }
-                if (this.isSymIdTerminal(rnums[0])) continue;
+                if (this.isSymIdTerminal(rhsIds[0])) continue;
                 // if for symbol rnums[0] becomes nullable, then lnum has a change to become nullable
-                addToMapOfArr(dependencyMap, rnums[0], { rnums: rnums, next: 1, lnum: nont });
+                addToMapOfArr(dependencyMap, rhsIds[0], { rhsIds: rhsIds, next: 1, lsymId: nont });
             }
         }
 
@@ -218,20 +218,20 @@ export class ProdSet {
             const lnum = nonTerminalsToProcess.pop()!;
             for (let dependentItem of (dependencyMap.get(lnum) || [])) {
                 // the non-terminal symbol of dependentItem is already marked as nullable, no further action required
-                if (retset.has(dependentItem.lnum)) continue;
+                if (retset.has(dependentItem.lsymId)) continue;
                 let next = dependentItem.next;
-                while (next < dependentItem.rnums.length && retset.has(dependentItem.rnums[next]))++next;
+                while (next < dependentItem.rhsIds.length && retset.has(dependentItem.rhsIds[next]))++next;
                 // reach the end of production, means this production can produce null, symbol at LHS is nullable
-                if (next === dependentItem.rnums.length) {
-                    retset.add(dependentItem.lnum);
-                    nonTerminalsToProcess.push(dependentItem.lnum);
+                if (next === dependentItem.rhsIds.length) {
+                    retset.add(dependentItem.lsymId);
+                    nonTerminalsToProcess.push(dependentItem.lsymId);
                 }
                 else {
-                    const symId = dependentItem.rnums[next];
+                    const symId = dependentItem.rhsIds[next];
                     // if blocked by terminal symbol, never get a change to be nullable
                     if (this.isSymIdTerminal(symId)) continue;
                     // now the "able to produce nullable" depends on symbol "symId"
-                    addToMapOfArr(dependencyMap, symId, { rnums: dependentItem.rnums, next: next + 1, lnum: dependentItem.lnum });
+                    addToMapOfArr(dependencyMap, symId, { rhsIds: dependentItem.rhsIds, next: next + 1, lsymId: dependentItem.lsymId });
                 }
             }
         }
@@ -239,7 +239,7 @@ export class ProdSet {
         return this._nullableNonTerminals = retset;
     }
 
-    leftFactoredProdSet(): ProdSet {
+    public leftFactoredProdSet(): ProdSet {
         const prods: Production[] = [];
         const idgen = new IdGen();
 
@@ -253,22 +253,22 @@ export class ProdSet {
     }
 }
 
-function leftFactoring(lstr: string, rhsarr: Array<Array<Symbol>>, lfidx: number, prods: Array<Production>, idGen: IdGen) {
-    const lfmap = new Map<string, Array<Array<Symbol>>>();
+function leftFactoring(lstr: string, rhsArr: Symbol[][], lfidx: number, prods: Production[], idGen: IdGen) {
+    const lfmap = new Map<string, Symbol[][]>();
     const lfset = new Set<string>();
     let gonull = false;
-    for (let rsymarr of rhsarr) {
-        if (rsymarr.length === lfidx) gonull = true;
+    for (let rsymArr of rhsArr) {
+        if (rsymArr.length === lfidx) gonull = true;
         else {
-            let lfname = rsymarr[lfidx].getName();
-            addToMapOfArr(lfmap, lfname, rsymarr);
+            const lfname = rsymArr[lfidx].getName();
+            addToMapOfArr(lfmap, lfname, rsymArr);
             lfset.add(lfname);
         }
     }
     const lsymbol = new Symbol(false, lstr);
     if (gonull) prods.push(new Production(lsymbol, []));
     for (let lfname of lfset) {
-        const rights = lfmap.get(lfname);
+        const rights = lfmap.get(lfname)!;
         if (rights.length === 1) prods.push(new Production(lsymbol, lfidx > 0 ? rights[0].slice(lfidx) : rights[0]));
         else {
             let i = 1, lfidx0 = lfidx, anchor: string;
@@ -362,19 +362,20 @@ function prodProcess(prods: Production[], symbolIdMap: SymbolIdMap): {
     const linkToNonTerminal: Edge[] = [];
     const nonTerminalProdMap = new Map<number, number[]>();
     for (let prod of prods) {
-        const lnum = symbolIdMap.getId(prod.getLHS().getName()), rhs = prod.getRHS();
+        const lhsId = symbolIdMap.getId(prod.getLHS().getName());
+        const rhs = prod.getRHS();
         const prodId = idProdMap.length;
         idProdMap.push({
-            prodid: prodId,
+            prodId: prodId,
             prod: prod,
-            lnum: lnum,
-            rnums: rhs.map(s => {
+            lhsId: lhsId,
+            rhsIds: rhs.map(s => {
                 let rnum = symbolIdMap.getId(s.getName());
-                if (!s.isTerminal()) linkToNonTerminal.push({ src: lnum, tgt: rnum });
+                if (!s.isTerminal()) linkToNonTerminal.push({ src: lhsId, tgt: rnum });
                 return rnum;
             })
         });
-        addToMapOfArr(nonTerminalProdMap, lnum, prodId);
+        addToMapOfArr(nonTerminalProdMap, lhsId, prodId);
     }
     return { idProdMap, linkToNonTerminal, nonTerminalProdMap };
 }

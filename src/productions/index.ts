@@ -31,7 +31,7 @@ function createProduction(lstr: string, rstr: string): Production {
 //     return createProduction(lstr, rstr);
 // }
 
-function createMultipleProductions(mprodstr: string, splitter?: string): Array<Production> {
+function createMultipleProductions(mprodstr: string, splitter?: string): Production[] {
     let idxarrow = mprodstr.indexOf("->");
     if (idxarrow < 0) throw new Error("production must has a -> :" + mprodstr);
     let lstr = mprodstr.slice(0, idxarrow).trim();
@@ -45,7 +45,7 @@ function createMultipleProductions(mprodstr: string, splitter?: string): Array<P
 }
 
 export function createProdSet(mprodarr: Iterable<string>): ProdSet {
-    let prods: Array<Production> = [];
+    let prods: Production[] = [];
     for (let mprod of mprodarr) {
         for (let p of createMultipleProductions(mprod)) prods.push(p);
     }
@@ -53,7 +53,7 @@ export function createProdSet(mprodarr: Iterable<string>): ProdSet {
 }
 
 export function createProdSetWithSplitter(mprodarr: Iterable<string>, splitter?: string): ProdSet {
-    let prods: Array<Production> = [];
+    let prods: Production[] = [];
     for (let mprod of mprodarr) {
         for (let p of createMultipleProductions(mprod, splitter || "|")) prods.push(p);
     }

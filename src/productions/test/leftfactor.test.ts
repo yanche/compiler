@@ -5,16 +5,16 @@ import { createProdSetWithSplitter } from "../index";
 import * as prod from "../production";
 
 function validate(pset: prod.ProdSet, expected: Array<{ lhs: string, rhsArr: Array<Array<{ str: string, terminal: boolean }>> }>) {
-    let startsymnum = pset.getStartNonTerminal();
-    let allLHS = [...pset.getNonTerminals()].filter(n => n != startsymnum).map(n => pset.getSymInStr(n));
+    const startsymnum = pset.getStartNonTerminal();
+    const allLHS = [...pset.getNonTerminals()].filter(n => n != startsymnum).map(n => pset.getSymInStr(n));
     assert.equal(true, utility.arrayEquivalent([...allLHS], expected.map(e => e.lhs)));
     for (let i = 0; i < expected.length; ++i) {
-        let item = expected[i];
-        assert.equal(true, utility.arrayEquivalent(item.rhsArr, pset.getProds(pset.getSymId(item.lhs)).map(p => pset.getProdRef(p).rnums), function (test, real) {
+        const item = expected[i];
+        assert.equal(true, utility.arrayEquivalent(item.rhsArr, pset.getProds(pset.getSymId(item.lhs)).map(p => pset.getProdRef(p).rhsIds), function (test, real) {
             //test and real are both array
             if (test.length !== real.length) return false;
             for (let q = 0; q < test.length; ++q) {
-                let titem = test[q], symId = real[q];
+                const titem = test[q], symId = real[q];
                 if (pset.getSymId(titem.str) !== symId || titem.terminal !== pset.isSymIdTerminal(symId)) return false;
             }
             return true;
@@ -22,17 +22,16 @@ function validate(pset: prod.ProdSet, expected: Array<{ lhs: string, rhsArr: Arr
     }
 };
 
-
 describe("production set left factoring", function () {
     it("simple 1", function () {
-        let pset = createProdSetWithSplitter([
+        const pset = createProdSetWithSplitter([
             "E -> T + E | T",
             "T -> int | int * T | ( E )"
         ]);
-        let lfprodset = pset.leftFactoredProdSet();
-        let new1 = lfprodset.getSymInStr(lfprodset.getProdRef(lfprodset.getProds(lfprodset.getSymId("E"))[0]).rnums[1]);
-        let trhsarr = lfprodset.getProds(lfprodset.getSymId("T"));
-        let new2 = lfprodset.getSymInStr(lfprodset.getProdRef(trhsarr[lfprodset.getProdRef(trhsarr[0]).rnums.length == 2 ? 0 : 1]).rnums[1]);
+        const lfprodset = pset.leftFactoredProdSet();
+        const new1 = lfprodset.getSymInStr(lfprodset.getProdRef(lfprodset.getProds(lfprodset.getSymId("E"))[0]).rhsIds[1]);
+        const trhsarr = lfprodset.getProds(lfprodset.getSymId("T"));
+        const new2 = lfprodset.getSymInStr(lfprodset.getProdRef(trhsarr[lfprodset.getProdRef(trhsarr[0]).rhsIds.length == 2 ? 0 : 1]).rhsIds[1]);
         validate(lfprodset, [
             {
                 lhs: "E",
@@ -78,31 +77,31 @@ describe("production set left factoring", function () {
     });
 
     it("simple 2: no need left factoring, return self", function () {
-        let pset = createProdSetWithSplitter([
+        const pset = createProdSetWithSplitter([
             "E -> int + int | "
         ]);
         assert.equal(pset.leftFactoredProdSet(), pset);
     });
 
     it("simple 3: 2 left factor for one non-terminal", function () {
-        let pset = createProdSetWithSplitter([
+        const pset = createProdSetWithSplitter([
             "E -> T + E | T | Q | Q * m | w",
             "T -> int | int * T | ( E )",
             "Q -> u"
         ]);
-        let lfprodset = pset.leftFactoredProdSet();
-        let Erhsarr = lfprodset.getProds(lfprodset.getSymId("E"));
-        let new1: string, new2: string, new3: string;
+        const lfprodset = pset.leftFactoredProdSet();
+        const Erhsarr = lfprodset.getProds(lfprodset.getSymId("E"));
+        let new1: string = "", new2: string = "", new3: string = "";
         for (let i = 0; i < 3; ++i) {
-            let rhs = lfprodset.getProdRef(Erhsarr[i]).rnums;
+            const rhs = lfprodset.getProdRef(Erhsarr[i]).rhsIds;
             if (rhs.length === 2) {
-                let r1sym = lfprodset.getSymInStr(rhs[1]);
+                const r1sym = lfprodset.getSymInStr(rhs[1]);
                 if (rhs[0] === lfprodset.getSymId("T")) new1 = r1sym;
                 else new2 = r1sym;
             }
         }
-        let Trhsarr = lfprodset.getProds(lfprodset.getSymId("T"));
-        new3 = lfprodset.getSymInStr(lfprodset.getProdRef(Trhsarr[lfprodset.getProdRef(Trhsarr[0]).rnums.length == 2 ? 0 : 1]).rnums[1]);
+        const Trhsarr = lfprodset.getProds(lfprodset.getSymId("T"));
+        new3 = lfprodset.getSymInStr(lfprodset.getProdRef(Trhsarr[lfprodset.getProdRef(Trhsarr[0]).rhsIds.length == 2 ? 0 : 1]).rhsIds[1]);
         validate(lfprodset, [
             {
                 lhs: "E",
@@ -172,7 +171,7 @@ describe("production set left factoring", function () {
 
 
     it("simple 4: 2 layer of left factoring", function () {
-        let pset = createProdSetWithSplitter([
+        const pset = createProdSetWithSplitter([
             "E -> int + q | int + m | int +"
         ]);
         validate(pset.leftFactoredProdSet(), [
@@ -202,7 +201,7 @@ describe("production set left factoring", function () {
 
 
     it("simple 5: 2 layer of left factoring-2", function () {
-        let pset = createProdSetWithSplitter([
+        const pset = createProdSetWithSplitter([
             "E -> int + q | int + m | int * w"
         ]);
         validate(pset.leftFactoredProdSet(), [
@@ -242,7 +241,7 @@ describe("production set left factoring", function () {
 
 
     it("simple 6: 2 layer of left factoring-3", function () {
-        let pset = createProdSetWithSplitter([
+        const pset = createProdSetWithSplitter([
             "E -> int + q | int + m | int"
         ]);
         validate(pset.leftFactoredProdSet(), [

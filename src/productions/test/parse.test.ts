@@ -1,17 +1,17 @@
 
- import { assert } from "chai";
+import { assert } from "chai";
 import * as utility from "../../utility";
 import { createProdSetWithSplitter } from "../index";
 import { ProdSet } from "../production";
 
 
-function validate(pset: ProdSet, expected: Array<{ lhs: string, rhsArr: Array<Array<{ str: string, terminal: boolean }>> }>) {
+function validate(pset: ProdSet, expected: { lhs: string, rhsArr: { str: string, terminal: boolean }[][] }[]) {
     let startsymnum = pset.getStartNonTerminal();
     let allLHS = pset.getNonTerminals().filter(n => n !== startsymnum).map(n => pset.getSymInStr(n));
     assert.equal(true, utility.arrayEquivalent([...allLHS], expected.map(e => e.lhs)));
     for (let i = 0; i < expected.length; ++i) {
         let item = expected[i];
-        assert.equal(true, utility.arrayEquivalent(item.rhsArr, pset.getProds(pset.getSymId(item.lhs)).map(p => pset.getProdRef(p).rnums), function (test, real): boolean {
+        assert.equal(true, utility.arrayEquivalent(item.rhsArr, pset.getProds(pset.getSymId(item.lhs)).map(p => pset.getProdRef(p).rhsIds), function (test, real): boolean {
             //test and real are both array
             if (test.length !== real.length) return false;
             for (let q = 0; q < test.length; ++q) {

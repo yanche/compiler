@@ -4,10 +4,10 @@ import * as utility from "../../utility";
 import { createProdSetWithSplitter, ProdSet } from "../index";
 
 function validate(prodset: ProdSet, expected: Array<{ symbol: string, firsts: Array<string> }>) {
-    let startsymnum = prodset.getStartNonTerminal();
-    let finsymnum = prodset.getSymId("$");
-    let firstSet = prodset.firstSet();
-    let testedset = firstSet.filter((x, idx) => idx !== startsymnum && idx !== finsymnum);
+    const startsymnum = prodset.getStartNonTerminal();
+    const finsymnum = prodset.getSymId("$");
+    const firstSet = prodset.firstSet();
+    const testedset = firstSet.filter((x, idx) => idx !== startsymnum && idx !== finsymnum);
     assert.equal(true, utility.arrayEquivalent(testedset, expected, function (f, e) {
         return f === firstSet[prodset.getSymId(e.symbol)] && utility.arrayEquivalent([...f].map(n => prodset.getSymInStr(n)), e.firsts);
     }));
@@ -15,7 +15,7 @@ function validate(prodset: ProdSet, expected: Array<{ symbol: string, firsts: Ar
 
 describe("first sets", function () {
     it("simple 1", function () {
-        let pset = createProdSetWithSplitter([
+        const pset = createProdSetWithSplitter([
             "E -> T + E | T",
             "T -> int | int * T | ( E )"
         ]);
@@ -31,7 +31,7 @@ describe("first sets", function () {
     });
 
     it("simple 2", function () {
-        let pset = createProdSetWithSplitter([
+        const pset = createProdSetWithSplitter([
             "E -> "
         ]);
         validate(pset, [
@@ -40,7 +40,7 @@ describe("first sets", function () {
     });
 
     it("simple 3", function () {
-        let pset = createProdSetWithSplitter([
+        const pset = createProdSetWithSplitter([
             "T -> E | int",
             "E -> "
         ]);
@@ -52,7 +52,7 @@ describe("first sets", function () {
     });
 
     it("simple 4", function () {
-        let pset = createProdSetWithSplitter([
+        const pset = createProdSetWithSplitter([
             "A -> T",
             "T -> E X | int",
             "X -> q | ",
@@ -70,7 +70,7 @@ describe("first sets", function () {
     });
 
     it("simple 5", function () {
-        let pset = createProdSetWithSplitter([
+        const pset = createProdSetWithSplitter([
             "TT -> EE | inXt",
             "EE -> "
         ]);
