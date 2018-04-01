@@ -1,7 +1,6 @@
 /node_modules
 /src/**/*.js
 *.map
-/typings
 *.log
 *.ic
 *.asm
