@@ -285,3 +285,31 @@ function makeLR0ItemNFA(lr0ItemsPack: LR0ItemsPack, prodset: ProdSet): automata.
 
     return nfaTrans;
 }
+
+export function calcLR1ItemId(lr0ItemId: number, lookAheadSymId: number, totalLookAhead: number) {
+    return lr0ItemId * totalLookAhead + lookAheadSymId;
+}
+
+export function parseLR1Item(lr1ItemId: number, totalLookAhead: number): { lr0ItemId: number; lookAheadSymId: number; } {
+    const lr0ItemId = Math.floor(lr1ItemId / totalLookAhead);
+    const lookAheadSymId = lr1ItemId % totalLookAhead;
+    return { lr0ItemId, lookAheadSymId };
+}
+
+export function getLR0ItemByProdId(lr0ItemPack: LR0ItemsPack, prodId: number, dot: number): LR0Item {
+    return lr0ItemPack.getItem(lr0ItemPack.getItemIdsByProdId(prodId)[dot]);
+}
+
+// symIds: the symbols after the next non-terminal
+// for example, for this LR1 item
+// N -> a . M c Q d, *
+// to calculate all LR1 look-aheads for
+// N -> a M . c Q d
+// symIds should be [c Q d]
+// lookAheadSymId should be *
+export function calcLR1LookAheadSymbols(prodset: ProdSet, symIds: number[], lookAheadSymId: number): Set<number> {
+    const { nullable, firstSet } = prodset.firstSetOfSymbols(symIds);
+    const nonTerminalFollowSet = firstSet;
+    if (nullable) nonTerminalFollowSet.add(lookAheadSymId);
+    return nonTerminalFollowSet;
+}
