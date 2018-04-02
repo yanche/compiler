@@ -8,7 +8,6 @@
         "allowUnusedLabels": false,
         "allowJs": false,
         "noUnusedLocals": true,
-        // "noUnusedParameters": true,
         // "strict": true,
     }
 }

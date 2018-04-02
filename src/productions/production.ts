@@ -113,11 +113,11 @@ export class ProdSet {
     }
 
     //from 0 -> n-1, n is the size of productions
-    public getProdIds(): Array<number> { return range(this._idProdMap.length); }
+    public getProdIds(): number[] { return range(this._idProdMap.length); }
 
     public getProdRef(prodnum: number): ProductionRef { return this._idProdMap[prodnum]; }
 
-    public firstSet(): Array<Set<number>> {
+    public firstSet(): Set<number>[] {
         if (this._firstSet) return this._firstSet;
 
         const nullableNonTerminals = this.nullableNonTerminals();
