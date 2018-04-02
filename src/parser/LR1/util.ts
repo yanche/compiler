@@ -1,15 +1,15 @@
 
 import { ProdSet, ProductionRef } from "../../productions";
 import { DFA } from "../../DFA";
-import { ParseReturn, ParseTreeMidNode, ParseTreeTermNode, ParseTreeNode, Token, Parser } from "../../compile";
+import { ParseReturn, ParseTreeMidNode, ParseTreeTermNode, ParseTreeNode, Token, Parser, Area, noArea } from "../../compile";
 import { range, automata } from "../../utility";
 import { createNFA } from '../../NFA';
-import { NeedMoreTokensError, TooManyTokensError, NotAcceptableError } from "../error";
+import { NeedMoreTokensError, TooManyTokensError, NotAcceptableError, createParseErrorReturn } from "../error";
 
 //FOR LR parse-table
 abstract class Action { }
 class ShiftAction extends Action {
-    constructor(public toStateNum: number) { super(); }
+    constructor(public toStateId: number) { super(); }
 }
 class ReduceAction extends Action {
     constructor(public nonTerminal: number, public rhsLen: number, public prodId: number) { super(); }
@@ -24,34 +24,34 @@ export interface LR0Item {
 }
 
 export class LR0ItemsPack {
-    private _prodItemsMap: Array<Array<number>>;
-    private _idItemMap: Array<LR0Item>;
-    private _startItems: Array<number>;
+    private _prodItemsMap: number[][];
+    private _idItemMap: LR0Item[];
+    private _startItems: number[];
 
-    get size(): number { return this._idItemMap.length; }
+    public get size(): number { return this._idItemMap.length; }
 
-    getItemIdsByProdId(prodid: number): Array<number> { return this._prodItemsMap[prodid]; }
+    public getItemIdsByProdId(prodId: number): number[] { return this._prodItemsMap[prodId]; }
 
-    getStartItemIds(): Array<number> { return this._startItems; }
+    public getStartItemIds(): number[] { return this._startItems; }
 
-    getItem(itemId: number): LR0Item { return this._idItemMap[itemId]; }
+    public getItem(lr0ItemId: number): LR0Item { return this._idItemMap[lr0ItemId]; }
 
     constructor(prodset: ProdSet) {
         const prodIds = prodset.getProdIds();
-        const prodItemsMap = new Array<Array<number>>(prodIds.length);
-        const idItemMap = new Array<LR0Item>();
+        const prodItemsMap = new Array<number[]>(prodIds.length);
+        const idItemMap: LR0Item[] = [];
 
         //prodid from 0 -> prodsize - 1
         //build the item id mapping
         for (let prodId of prodIds) {
             const prod = prodset.getProdRef(prodId);
-            const arr = new Array<number>(prod.rhsIds.length + 1);
+            const itemArr = new Array<number>(prod.rhsIds.length + 1);
             for (let i = 0; i <= prod.rhsIds.length; ++i) {
                 const itemId = idItemMap.length;
-                arr[i] = itemId;
+                itemArr[i] = itemId;
                 idItemMap.push({ prodId: prodId, dot: i, prod: prod, itemId: itemId });
             }
-            prodItemsMap[prodId] = arr;
+            prodItemsMap[prodId] = itemArr;
         }
 
         this._prodItemsMap = prodItemsMap;
@@ -64,13 +64,12 @@ export abstract class LRParser extends Parser {
     // parsing table
     private _ptable: Map<number, Map<number, Array<Action>>>;
     private _ambCells: Map<number, Set<number>>;
-    protected _startState: number;
+    protected abstract _startState: number;
 
     constructor(prodset: ProdSet) {
         super(prodset);
         this._ptable = new Map<number, Map<number, Array<Action>>>();
         this._ambCells = new Map<number, Set<number>>();
-        this._startState = null;
     }
 
     // stringifyAmbCells(): string {
@@ -87,6 +86,46 @@ export abstract class LRParser extends Parser {
     // get startState(): number { return this._startState; }
     // set startState(val: number) { this._startState = val; }
 
+    public get valid(): boolean {
+        return this._ambCells.size === 0;
+    }
+
+    public parse(tokens: Token[]): ParseReturn {
+        if (tokens.length === 0 || tokens[tokens.length - 1].symId !== 0) throw new Error("the last token must be '$', stands for the end of tokens");
+        if (!this.valid) throw new Error("the grammar is not valid");
+        if (this._startState === null || this._startState === undefined) throw new Error("start state is not specified");
+
+        const stack: { tnode: ParseTreeNode, state: number }[] = [{ tnode: undefined!, state: this._startState }];
+        const len = tokens.length;
+        let i = 0, stackTop = 0;
+        while (i < len) {
+            const token = tokens[i];
+            const stackItem = stack[stackTop];
+            const act = this._getSingleAct(stackItem.state, token.symId, token.area);
+            if (act instanceof ShiftAction) {
+                stack[++stackTop] = { tnode: new ParseTreeTermNode(token.symId, token), state: act.toStateId };
+                ++i;
+            }
+            else if (act instanceof ReduceAction) {
+                let newStackTop = stackTop - act.rhsLen;
+                const midnode = new ParseTreeMidNode(act.nonTerminal, act.prodId, stack.slice(newStackTop + 1, stackTop + 1).map(x => x.tnode));
+                const newAct = this._getSingleAct(stack[newStackTop].state, act.nonTerminal, noArea);
+                if (newAct instanceof ShiftAction) {
+                    stack[++newStackTop] = { tnode: midnode, state: newAct.toStateId };
+                    stackTop = newStackTop;
+                }
+                else throw new Error("something wrong with parsing table, by taking a non-terminal symbol state should always shift in");
+            }
+            else if (act instanceof AcceptAction) {
+                if (i !== len - 1) return createParseErrorReturn(new TooManyTokensError());
+                else if (stackTop !== 1) return createParseErrorReturn(new NeedMoreTokensError());
+                else return new ParseReturn(<ParseTreeMidNode>stackItem.tnode);
+            }
+            else throw new Error("impossible code path, 2");
+        }
+        throw new Error("impossible code path, 3");
+    }
+
     protected addAcceptAction(dfaStateId: number, symId: number): this {
         return this._addAction(dfaStateId, symId, new AcceptAction());
     }
@@ -95,76 +134,40 @@ export abstract class LRParser extends Parser {
         return this._addAction(dfaStateId, symId, new ShiftAction(toDFAStateId));
     }
 
-    protected addReduceAction(dfaStateId: number, symId: number, lnum: number, reducecount: number, prodid: number): this {
-        return this._addAction(dfaStateId, symId, new ReduceAction(lnum, reducecount, prodid));
+    protected addReduceAction(dfaStateId: number, symId: number, lhsId: number, reduceCount: number, prodId: number): this {
+        return this._addAction(dfaStateId, symId, new ReduceAction(lhsId, reduceCount, prodId));
     }
 
     private _addAction(dfaStateId: number, symId: number, action: Action): this {
         const row = this._initRow(dfaStateId);
-        let acts = row.get(symId);
-        if (!acts) row.set(symId, [action]);
+        if (!row.has(symId)) row.set(symId, [action]);
         else {
-            acts.push(action);
+            row.get(symId)!.push(action);
             this._markAmbiguousCell(dfaStateId, symId);
         }
         return this;
     }
 
     private _markAmbiguousCell(dfaStateId: number, symId: number): this {
-        if (this._ambCells.has(dfaStateId)) this._ambCells.get(dfaStateId).add(symId);
+        if (this._ambCells.has(dfaStateId)) this._ambCells.get(dfaStateId)!.add(symId);
         else this._ambCells.set(dfaStateId, new Set<number>().add(symId));
         return this;
     }
 
-    private _initRow(dfaStateId: number): Map<number, Array<Action>> {
-        let ret = this._ptable.get(dfaStateId);
-        if (!ret) {
-            ret = new Map<number, Array<Action>>()
-            this._ptable.set(dfaStateId, ret);
+    private _initRow(dfaStateId: number): Map<number, Action[]> {
+        if (!this._ptable.has(dfaStateId)) {
+            this._ptable.set(dfaStateId, new Map<number, Array<Action>>());
         }
-        return ret;
+        return this._ptable.get(dfaStateId)!;
     }
 
-    parse(tokens: Array<Token>): ParseReturn {
-        if (tokens.length === 0 || tokens[tokens.length - 1].symId !== 0) throw new Error("the last token must be '$', stands for the end of tokens");
-        if (!this.valid) throw new Error("the grammar is not valid");
-        if (this._startState == null) throw new Error("start state is not specified");
-
-        const stack: { tnode: ParseTreeNode, state: number }[] = [{ tnode: null, state: this._startState }];
-        const len = tokens.length;
-        let i = 0, stackTop = 0;
-        while (i < len) {
-            const token = tokens[i];
-            const stackItem = stack[stackTop];
-            const acts = this._ptable.get(stackItem.state).get(token.symId) || [];
-            if (acts.length === 0) return new ParseReturn(null, new NotAcceptableError(`input not acceptable: ${this._prodset.getSymInStr(token.symId)} at ${token.area}`));
-            const act = acts[0];
-            if (act instanceof ShiftAction) {
-                stack[++stackTop] = { tnode: new ParseTreeTermNode(token.symId, token), state: act.toStateNum };
-                ++i;
-            }
-            else if (act instanceof ReduceAction) {
-                let newStackTop = stackTop - act.rhsLen;
-                const midnode = new ParseTreeMidNode(act.nonTerminal, act.prodId, stack.slice(newStackTop + 1, stackTop + 1).map(x => x.tnode));
-                const newact = this._ptable.get(stack[newStackTop].state).get(act.nonTerminal)[0];
-                if (newact instanceof ShiftAction) {
-                    stack[++newStackTop] = { tnode: midnode, state: newact.toStateNum };
-                    stackTop = newStackTop;
-                }
-                else throw new Error("impossible code path, something wrong with parsing table"); //reserved code path, should be no possible here
-            }
-            else if (act instanceof AcceptAction) {
-                if (i !== len - 1) return new ParseReturn(null, new TooManyTokensError());
-                else if (stackTop !== 1) return new ParseReturn(null, new NeedMoreTokensError());
-                else return new ParseReturn(<ParseTreeMidNode>stackItem.tnode);
-            }
-            else throw new Error("impossible code path, 2"); //reserved code path, should be no possible here
-        }
-        throw new Error("impossible code path, 3"); //reserved code path, should be no possible here
-    }
-
-    get valid(): boolean {
-        return this._ambCells.size === 0;
+    private _getSingleAct(stateId: number, symId: number, area: Area): Action {
+        if (!this._ptable.has(stateId)) throw new Error(`bad parsing table, no action is records for state: ${stateId}`);
+        const acts = this._ptable.get(stateId)!.get(symId) || [];
+        const tokenSymStr = this._prodset.getSymInStr(symId);
+        if (acts.length === 0) return createParseErrorReturn(new NotAcceptableError(`input not acceptable: ${tokenSymStr} at ${area}`));
+        else if (acts.length > 1) throw new Error(`defensive code, more than 1 actions are found for state: ${stateId}, ${tokenSymStr}`);
+        return acts[0];
     }
 
     // ambCells(): Set<number> {
@@ -188,7 +191,7 @@ export abstract class LRParser extends Parser {
     //                     strarr.push("        accept");
     //                 }
     //                 else if (act instanceof ShiftAction) {
-    //                     strarr.push("        shift to dfa-state: " + act.toStateNum);
+    //                     strarr.push("        shift to dfa-state: " + act.toStateId);
     //                 }
     //                 else if (act instanceof ReduceAction) {
     //                     strarr.push("        reduce using production: " + this._prodset.getProdRef(act.prodid).prod.toString());
@@ -204,7 +207,7 @@ export abstract class LRParser extends Parser {
     // }
 }
 
-// export function itemInStr(bitem: LR0Item, symIds: Array<number>, prodset: prod.ProdSet): string {
+// export function itemInStr(bitem: LR0Item, symIds: number[], prodset: prod.ProdSet): string {
 //     let rhsIds = bitem.prod.rhsIds;
 //     let arr = new Array<string>(), i = 0, len = rhsIds.length;
 //     while (i <= len) {
@@ -223,13 +226,17 @@ export class LR0DFA extends DFA {
     private _dfaItemsMap: Map<number, Set<number>>;
     private _acceptableDFAState: number;
 
-    getItemsInState(stateId: number): Array<LR0Item> {
-        return [...this._dfaItemsMap.get(stateId)].map(itemId => this._lr0ItemsPack.getItem(itemId));
-    }
-
     get lr0ItemsPack(): LR0ItemsPack { return this._lr0ItemsPack; }
 
     get acceptableDFAState(): number { return this._acceptableDFAState; }
+
+    public getItemsInState(stateId: number): LR0Item[] {
+        if (this._dfaItemsMap.has(stateId)) {
+            return [...this._dfaItemsMap.get(stateId)!].map(itemId => this._lr0ItemsPack.getItem(itemId));
+        } else {
+            throw new Error(`state not found: ${stateId}`);
+        }
+    }
 
     constructor(prodset: ProdSet) {
         //number of item, is the number of NFA
@@ -249,27 +256,28 @@ export class LR0DFA extends DFA {
         const startProdLR0Items = lr0ItemsPack.getItemIdsByProdId(startProds[0]);
         if (startProdLR0Items.length !== 2) throw new Error(`defensive code, only two start production LR0 items from: ${ProdSet.reservedStartNonTerminal} should be`);
 
-        const startDFA = dfat.nfa2dfaStateMap.get(startProdLR0Items[1]);
-        if (!startDFA || startDFA.size !== 1) throw new Error("defensive code, DFA state not found or more than 1");
-        
-        this._acceptableDFAState = [...startDFA][0];
+        const terminalDFA = dfat.nfa2dfaStateMap.get(startProdLR0Items[1]);
+        if (!terminalDFA || terminalDFA.size !== 1) throw new Error("defensive code, terminal DFA state not found or more than 1");
+
+        this._acceptableDFAState = [...terminalDFA][0];
     }
 }
 
 function makeLR0ItemNFA(lr0ItemsPack: LR0ItemsPack, prodset: ProdSet): automata.Transition[] {
     const nfaTrans: automata.Transition[] = [];
 
-    for (let prodid of prodset.getProdIds()) {
-        const prod = prodset.getProdRef(prodid);
-        const itemIdArr = lr0ItemsPack.getItemIdsByProdId(prodid);
+    for (let prodId of prodset.getProdIds()) {
+        const prod = prodset.getProdRef(prodId);
+        const itemIdArr = lr0ItemsPack.getItemIdsByProdId(prodId);
         for (let i = 0; i < prod.rhsIds.length; ++i) {
-            const rnum = prod.rhsIds[i];
-            const curitem = itemIdArr[i];
-            const rsymstr = prodset.getSymInStr(rnum);
-            nfaTrans.push(new automata.Transition(curitem, itemIdArr[i + 1], rsymstr));
-            if (!prodset.isSymIdTerminal(rnum)) {
-                for (let prodId2 of prodset.getProds(rnum)) {
-                    nfaTrans.push(new automata.Transition(curitem, lr0ItemsPack.getItemIdsByProdId(prodId2)[0], ""));
+            const rhsSymId = prod.rhsIds[i];
+            const curItem = itemIdArr[i];
+            const rhsSymStr = prodset.getSymInStr(rhsSymId);
+            nfaTrans.push(new automata.Transition(curItem, itemIdArr[i + 1], rhsSymStr));
+            if (!prodset.isSymIdTerminal(rhsSymId)) {
+                for (let prodId2 of prodset.getProds(rhsSymId)) {
+                    // epsilon transition
+                    nfaTrans.push(new automata.Transition(curItem, lr0ItemsPack.getItemIdsByProdId(prodId2)[0], ""));
                 }
             }
         }

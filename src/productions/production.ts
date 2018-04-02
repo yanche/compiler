@@ -251,6 +251,26 @@ export class ProdSet {
 
         return prods.length === (this._prodCount - 1) ? this : new ProdSet(prods);
     }
+
+    public firstSetOfSymbols(symbolIds: number[]): { firstSet: Set<number>; nullable: boolean } {
+        let nullable = true;
+        let i = 0;
+        const len = symbolIds.length;
+        const firstSet = new Set<number>();
+        const firsts = this.firstSet();
+        const nullables = this.nullableNonTerminals();
+        while (nullable && i < len) {
+            const symId = symbolIds[i++];
+            if (symId >= this._symbolIdMap.size) throw new Error(`not a valid symbol: ${symId}`);
+            // firsts[symId] -> first set of symbol (symId)
+            for (let fsymId of firsts[symId]) {
+                firstSet.add(fsymId);
+            }
+            nullable = nullables.has(symId);
+        }
+
+        return { firstSet, nullable };
+    }
 }
 
 function leftFactoring(lstr: string, rhsArr: Symbol[][], lfidx: number, prods: Production[], idGen: IdGen) {

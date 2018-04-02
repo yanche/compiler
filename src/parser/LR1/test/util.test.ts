@@ -15,7 +15,7 @@ export function validate(prodset: ProdSet, tnode: c.ParseTreeNode, expected: Exp
     assert.equal(tnode.symId, prodset.getSymId(expected.symstr));
     if (tnode instanceof c.ParseTreeMidNode) {
         assert.equal(expected.mid, true);
-        let c1 = tnode.children, c2 = expected.children;
+        let c1 = tnode.children, c2 = expected.children!;
         assert.equal(c1.length, c2.length);
         for (let i = 0; i < c1.length; ++i) validate(prodset, c1[i], c2[i]);
     }

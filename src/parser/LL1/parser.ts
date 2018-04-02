@@ -12,28 +12,19 @@ export default class LL1Parser extends Parser {
         this._table = new Map<number, Map<number, number[]>>();
         this._valid = true;
 
-        const firstSets = prodset.firstSet();
         const followSets = prodset.followSet();
-        const nullableNonTerminals = prodset.nullableNonTerminals();
-
         for (let nont of prodset.getNonTerminals()) {
             this._getOrCreateParseRow(nont);
-            for (let prodid of prodset.getProds(nont)) {
-                const rsymarr = prodset.getProdRef(prodid).rhsIds;
-                const syms = new Set<number>();
-                let gonull = true, idx = 0;
+            for (let prodId of prodset.getProds(nont)) {
+                const rhsIds = prodset.getProdRef(prodId).rhsIds;
                 // calc the first set of RHS of production
-                while (idx < rsymarr.length && gonull) {
-                    const rsym = rsymarr[idx++];
-                    for (let f of firstSets[rsym]) syms.add(f);
-                    gonull = nullableNonTerminals.has(rsym);
-                }
-                if (gonull) {
-                    for (let f of followSets[nont]) syms.add(f);
-                }
+                const { nullable, firstSet } = prodset.firstSetOfSymbols(rhsIds);
                 // when nont encounters symbol s, use production w/ prodid
-                for (let s of syms)
-                    this._bookKeeping(nont, s, prodid);
+                for (let s of firstSet) this._bookKeeping(nont, s, prodId);
+                // if nullable, add follow set
+                if (nullable) {
+                    for (let f of followSets[nont]) this._bookKeeping(nont, f, prodId);
+                }
             }
         }
     }
@@ -57,12 +48,12 @@ export default class LL1Parser extends Parser {
             if (node instanceof ParseTreeTermNode) {
                 if (node.symId === token.symId) node.token = token;
                 else if (i === tokens.length - 1) return createParseErrorReturn(new NeedMoreTokensError());
-                else return createParseErrorReturn(new NotAcceptableError(`terminal symbol at top of stack: ${nodeSymStr} does not match with token symbol: ${tokenSymStr}`));
+                else return createParseErrorReturn(new NotAcceptableError(`expecting symbol: ${nodeSymStr} but get: ${tokenSymStr} at ${token.area}`));
                 ++i;
             }
             else if (node instanceof ParseTreeMidNode) {
                 const prods = this._table.get(stacktop.symId)!.get(token.symId) || [];
-                if (prods.length === 0) return createParseErrorReturn(new NotAcceptableError(`no production is found for: ${nodeSymStr}, ${tokenSymStr}`));
+                if (prods.length === 0) return createParseErrorReturn(new NotAcceptableError(`unexpected symbol: ${tokenSymStr} at ${token.area}`));
                 if (prods.length > 1) throw new Error(`defensive code, more than 1 productions are found for: ${node.symId}, ${token.symId}`);
                 const prodId = prods[0];
                 const newStackItems = this._prodset.getProdRef(prodId).rhsIds.map(sym => {
@@ -79,18 +70,22 @@ export default class LL1Parser extends Parser {
         else return createParseErrorReturn(new TooManyTokensError());
     }
 
-    private _bookKeeping(ntsym: number, tsym: number, prodnum: number): this {
+    private _bookKeeping(ntsym: number, tsym: number, prodId: number): this {
         const row = this._getOrCreateParseRow(ntsym);
         let col = row.get(tsym);
+        let dup = false;
         if (!col) {
             col = [];
             row.set(tsym, col);
         }
         else {
-            // more than one choice for same non-termial/terminal pair, conflict happens
-            this._valid = false;
+            if (col.some(x => x === prodId)) dup = true;
+            else {
+                // more than one choice for same non-termial/terminal pair, conflict happens
+                this._valid = false;
+            }
         }
-        col.push(prodnum);
+        if (!dup) col.push(prodId);
         return this;
     }
 

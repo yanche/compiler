@@ -49,7 +49,7 @@ describe("SLR(1) parse", function () {
             new Token("$", prodset.getSymId("$"), noArea)
         ]);
         assert.equal(true, parseret.accept);
-        validate(prodset, parseret.root, {
+        validate(prodset, parseret.root!, {
             symstr: "E",
             mid: true,
             children: [

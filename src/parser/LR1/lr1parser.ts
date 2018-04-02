@@ -12,6 +12,7 @@ export default class LR1Parser extends LRParser {
     // private _ctlookaheadsym: number;
     // private _dfa: dfa.DFA;
     // private _lr0itemspack: LR0ItemsPack;
+    protected _startState: number;
 
     constructor(prodset: ProdSet) {
         super(prodset);
