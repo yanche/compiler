@@ -39,30 +39,29 @@ export default class LALR1Parser extends LRParser {
         const startNonTerminalId = prodset.getStartNonTerminal();
         for (let prodId of prodset.getProds(startNonTerminalId)) {
             const lr0Item = getItemByProdId(lr0DFA.lr0ItemsPack, prodId, 0);
-            addIntoStackIfNotProcessed(stack, stack.length, { dfaStateId: dfaStartStateId, item: lr0Item, itemFollowSymId: finSymId }, dfaStateLR1ItemMap, calcLR1ItemId(lr0Item.itemId, finSymId, totalLookAheadSymbols));
+            addIntoStackIfNotProcessed(stack, stack.length, dfaStartStateId, lr0Item, finSymId, totalLookAheadSymbols, dfaStateLR1ItemMap);
         }
         // from start DFA state, FLOW the item follow symbol into every lr0item inside DFA state
         let stackTop = stack.length - 1;
         while (stackTop >= 0) {
             const todo = stack[stackTop--];
-            const rhsIds = todo.item.prod.rhsIds;
-            let dot = todo.item.dot;
+            const rhsIds = todo.lr0Item.prod.rhsIds;
+            let dot = todo.lr0Item.dot;
             if (dot === rhsIds.length) continue;
             // next item by one shift action
-            const gotoLR0Item = getItemByProdId(lr0DFA.lr0ItemsPack, todo.item.prodId, dot + 1);
-            const gotoLR1ItemId = calcLR1ItemId(gotoLR0Item.itemId, todo.itemFollowSymId, totalLookAheadSymbols);
+            const gotoLR0Item = getItemByProdId(lr0DFA.lr0ItemsPack, todo.lr0Item.prodId, dot + 1);
             const dotSymId = rhsIds[dot];
             const gotoDFAStateId = lr0DFA.getTransitionMap(todo.dfaStateId).get(prodset.getSymInStr(dotSymId))!;
-            stackTop = addIntoStackIfNotProcessed(stack, stackTop + 1, { dfaStateId: gotoDFAStateId, item: gotoLR0Item, itemFollowSymId: todo.itemFollowSymId }, dfaStateLR1ItemMap, gotoLR1ItemId);
+            stackTop = addIntoStackIfNotProcessed(stack, stackTop + 1, gotoDFAStateId, gotoLR0Item, todo.lookAheadSymId, totalLookAheadSymbols, dfaStateLR1ItemMap);
             if (prodset.isSymIdTerminal(dotSymId)) continue;
             // produce more when encountering a non-terminal symbol
             const { nullable, firstSet } = prodset.firstSetOfSymbols(rhsIds.slice(dot + 1));
             const nonTerminalFollowSet = firstSet;
-            if (nullable) nonTerminalFollowSet.add(todo.itemFollowSymId);
+            if (nullable) nonTerminalFollowSet.add(todo.lookAheadSymId);
             for (let prodId of prodset.getProds(dotSymId)) {
                 const lr0Item = getItemByProdId(lr0DFA.lr0ItemsPack, prodId, 0);
                 for (let f of nonTerminalFollowSet) {
-                    stackTop = addIntoStackIfNotProcessed(stack, stackTop + 1, { dfaStateId: todo.dfaStateId, item: lr0Item, itemFollowSymId: f }, dfaStateLR1ItemMap, calcLR1ItemId(lr0Item.itemId, f, totalLookAheadSymbols));
+                    stackTop = addIntoStackIfNotProcessed(stack, stackTop + 1, todo.dfaStateId, lr0Item, f, totalLookAheadSymbols, dfaStateLR1ItemMap);
                 }
             }
         }
@@ -120,11 +119,16 @@ function calcLR1ItemId(lr0ItemId: number, lookAheadSymId: number, totalLookAhead
 }
 
 // return new stack top (point to last element in stack)
-function addIntoStackIfNotProcessed(stack: StackItem[], stackLength: number, newItem: StackItem, processedLR1Items: Map<number, Set<number>>, lr1ItemId: number): number {
-    const stateProcessedItems = processedLR1Items.get(newItem.dfaStateId)!;
+function addIntoStackIfNotProcessed(stack: StackItem[], stackLength: number, dfaStateId: number, lr0Item: LR0Item, lookAheadSymId: number, totalLookAheadSymbols: number, processedLR1Items: Map<number, Set<number>>): number {
+    const lr1ItemId = calcLR1ItemId(lr0Item.itemId, lookAheadSymId, totalLookAheadSymbols);
+    const stateProcessedItems = processedLR1Items.get(dfaStateId)!;
     if (!stateProcessedItems.has(lr1ItemId)) {
         stateProcessedItems.add(lr1ItemId);
-        stack[stackLength] = newItem;
+        stack[stackLength] = {
+            dfaStateId: dfaStateId,
+            lr0Item: lr0Item,
+            lookAheadSymId: lookAheadSymId
+        };
         return stackLength;
     }
     else return stackLength - 1;
@@ -132,9 +136,9 @@ function addIntoStackIfNotProcessed(stack: StackItem[], stackLength: number, new
 
 interface StackItem {
     dfaStateId: number;
-    item: LR0Item;
+    lr0Item: LR0Item;
     // symId to reduce the item (the following symbol)
-    itemFollowSymId: number;
+    lookAheadSymId: number;
 }
 
 function getItemByProdId(lr0ItemPack: LR0ItemsPack, prodId: number, dot: number): LR0Item {
