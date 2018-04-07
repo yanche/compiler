@@ -35,4 +35,4 @@ export class Area {
     }
 }
 
-export let noArea = new Area(new Posi(0, 0), new Posi(0, 0));
+export const noArea = new Area(new Posi(0, 0), new Posi(0, 0));

@@ -148,21 +148,21 @@ describe("type always goes up, from NEVER to ANY", () => {
 
 describe("value infer code test", () => {
     it("num const", () => {
-        let num = 10, regId = new IdGen();
-        let r1 = regId.next();
-        let codelines = genCodeLines([new t.TAC_loadint(num, r1), new t.TAC_ret()]);
-        let inferRet = inferValues(codelines, regId.cur, []);
+        const num = 10, regId = new IdGen();
+        const r1 = regId.next();
+        const codelines = genCodeLines([new t.TAC_loadint(num, r1), new t.TAC_ret()]);
+        const inferRet = inferValues(codelines, regId.cur, []);
         assert.strictEqual(inferRet.length, 2);
         assert.strictEqual(inferRet[1][r1].type, ValueType.CONST);
         assert.strictEqual(inferRet[1][r1].cons, num);
     });
 
     it("const times register", () => {
-        let num = 10, regId = new IdGen();
-        let r1 = regId.next();
-        let r2 = regId.next();
-        let codelines = genCodeLines([new t.TAC_loadint(num, r1), new t.TAC_binary("*", r1, r2, r1), new t.TAC_ret()]);
-        let inferRet = inferValues(codelines, regId.cur, [r2]);
+        const num = 10, regId = new IdGen();
+        const r1 = regId.next();
+        const r2 = regId.next();
+        const codelines = genCodeLines([new t.TAC_loadint(num, r1), new t.TAC_binary("*", r1, r2, r1), new t.TAC_ret()]);
+        const inferRet = inferValues(codelines, regId.cur, [r2]);
         assert.strictEqual(inferRet.length, 3);
         assert.strictEqual(inferRet[1][r1].type, ValueType.CONST);
         assert.strictEqual(inferRet[1][r1].cons, num);
@@ -172,16 +172,16 @@ describe("value infer code test", () => {
     });
 
     it("all code line must run at least once", () => {
-        let num = 10, regId = new IdGen();
-        let r1 = regId.next();
-        let l1 = new CodeLabel();
-        let c1 = new CodeLine(new t.TAC_branch(l1));
-        let c2 = new CodeLine(new t.TAC_loadint(num, r1), l1);
-        let c3 = new CodeLine(new t.TAC_ret());
-        let codelines = [c1, c2, c3];
+        const num = 10, regId = new IdGen();
+        const r1 = regId.next();
+        const l1 = new CodeLabel();
+        const c1 = new CodeLine(new t.TAC_branch(l1));
+        const c2 = new CodeLine(new t.TAC_loadint(num, r1), l1);
+        const c3 = new CodeLine(new t.TAC_ret());
+        const codelines = [c1, c2, c3];
         assignLineNums(codelines);
         finalizeLabelRef(codelines);
-        let inferRet = inferValues(codelines, regId.cur, []);
+        const inferRet = inferValues(codelines, regId.cur, []);
         assert.strictEqual(inferRet.length, 3);
         assert.strictEqual(inferRet[2][r1].type, ValueType.CONST);
         assert.strictEqual(inferRet[2][r1].cons, num);

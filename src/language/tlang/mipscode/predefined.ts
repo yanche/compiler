@@ -51,11 +51,11 @@ export function predefinedCode(asm: MIPSAssembly, classlookup: ClassLookup, main
 function setupVtable(asm: MIPSAssembly, classlookup: ClassLookup): boolean {
     //pre-defined function, vtable initializer
     let setup = false;
-    for (let cname of classlookup.getAllClasses()) {
-        let cdef = classlookup.getClass(cname);
-        let vtable = cdef.vmethodTable;
+    for (const cname of classlookup.getAllClasses()) {
+        const cdef = classlookup.getClass(cname);
+        const vtable = cdef.vmethodTable;
         if (vtable.length > 0) {
-            let vtablelabel = cdef.getMIPSVTableLabel();
+            const vtablelabel = cdef.getMIPSVTableLabel();
             asm.addGData(new g.MIPSGData_word(vtable.length).setComments(`virtual method table of class ${cname}`), vtablelabel);
             asm.addGData(new g.MIPSGData_emptyline());
             if (!setup) {

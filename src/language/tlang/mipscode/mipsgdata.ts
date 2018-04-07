@@ -25,7 +25,7 @@ export class MIPSGData_word extends MIPSGData {
     constructor(nums: Array<number> | number) {
         super();
         if (typeof nums === "number") {
-            let arr = new Array<number>(nums);
+            const arr = new Array<number>(nums);
             for (let i = 0; i < nums; ++i) arr[i] = 0;
             this._nums = arr;
         }

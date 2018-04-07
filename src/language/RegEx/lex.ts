@@ -3,16 +3,18 @@ import { ProdSet } from "../../productions";
 import { Token, Area, LexReturn, Posi, noArea, InvalidTokenError } from "../../compile";
 
 // | * + ( ) . char [ ] -
-let chnum_a = "a".charCodeAt(0);
-let chnum_z = "z".charCodeAt(0);
-let chnum_A = "A".charCodeAt(0);
-let chnum_Z = "Z".charCodeAt(0);
-let chnum_0 = "0".charCodeAt(0);
-let chnum_9 = "9".charCodeAt(0);
+const chnum_a = "a".charCodeAt(0);
+const chnum_z = "z".charCodeAt(0);
+const chnum_A = "A".charCodeAt(0);
+const chnum_Z = "Z".charCodeAt(0);
+const chnum_0 = "0".charCodeAt(0);
+const chnum_9 = "9".charCodeAt(0);
 export default function lex(input: string, prodset: ProdSet): LexReturn {
-    let len = input.length, i = 0, tokens = new Array<Token>();
+    const len = input.length;
+    const tokens = new Array<Token>();
+    let i = 0;
     while (i < len) {
-        let ch = input[i];
+        const ch = input[i];
         if (ch !== " ") {
             let symId: number = 0;
             switch (ch) {
@@ -29,7 +31,7 @@ export default function lex(input: string, prodset: ProdSet): LexReturn {
                     symId = prodset.getSymId(ch);
                     break;
                 default:
-                    let chnum = ch.charCodeAt(0);
+                    const chnum = ch.charCodeAt(0);
                     if (chnum >= chnum_a && chnum <= chnum_z)
                         symId = prodset.getSymId("l_letter");
                     else if (chnum >= chnum_A && chnum <= chnum_Z)

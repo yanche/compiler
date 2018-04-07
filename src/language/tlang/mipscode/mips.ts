@@ -7,7 +7,7 @@ export class MIPSAssembly {
     private _gdata: Array<MIPSGDataLine>;
 
     toString(): string {
-        let dataarr = this._gdata.length === 0 ? [] : [".data"].concat(this._gdata.map(g => g.toString()));
+        const dataarr = this._gdata.length === 0 ? [] : [".data"].concat(this._gdata.map(g => g.toString()));
         return dataarr.concat(".text").concat(this._textarea.map(t => t.toString())).join("\r\n");
     }
 
@@ -32,7 +32,7 @@ class MIPSGDataLine {
     private _gdata: MIPSGData;
 
     toString(): string {
-        let labelstr = this._label ? (this._label + ":\r\n") : "";
+        const labelstr = this._label ? (this._label + ":\r\n") : "";
         return labelstr + this._gdata.toString();
     }
 
@@ -47,7 +47,7 @@ class MIPSCodeLine {
     private _ins: MIPSInstruction;
 
     toString(): string {
-        let labelstr = this._label ? (this._label + ":\r\n") : "";
+        const labelstr = this._label ? (this._label + ":\r\n") : "";
         return labelstr + this._ins.toString();
     }
 

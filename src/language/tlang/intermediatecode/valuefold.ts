@@ -5,14 +5,15 @@ import { ValueInference } from "./valueinfer";
 import { TAC, TAC_ret, TAC_branch, TAC_btrue, TAC_bfalse, TAC_noop } from "../tac";
 
 export function valueFold(codelines: Array<CodeLine>, regvinfer: Array<Array<ValueInference>>): void {
-    let tlen = codelines.length;
-    let newtacs = new Array<TAC>(tlen);
-    let stack = [0], stacktop = 1;
+    const tlen = codelines.length;
+    const newtacs = new Array<TAC>(tlen);
+    const stack = [0];
+    let stacktop = 1;
     while (stacktop > 0) {
-        let codeseq = stack[--stacktop];
+        const codeseq = stack[--stacktop];
         if (newtacs[codeseq] == null) {
-            let cl = codelines[codeseq];
-            let newtac = cl.tac.simplify(regvinfer[codeseq]);
+            const cl = codelines[codeseq];
+            const newtac = cl.tac.simplify(regvinfer[codeseq]);
             newtacs[codeseq] = newtac;
             if (!(newtac instanceof TAC_ret)) {
                 if (newtac instanceof TAC_branch) {

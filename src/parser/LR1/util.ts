@@ -43,7 +43,7 @@ export class LR0ItemsPack {
 
         //prodid from 0 -> prodsize - 1
         //build the item id mapping
-        for (let prodId of prodIds) {
+        for (const prodId of prodIds) {
             const prod = prodset.getProdRef(prodId);
             const itemArr = new Array<number>(prod.rhsIds.length + 1);
             for (let i = 0; i <= prod.rhsIds.length; ++i) {
@@ -73,9 +73,9 @@ export abstract class LRParser extends Parser {
     }
 
     // stringifyAmbCells(): string {
-    //     let strarr = [this._parsetable.stringifyAmbCells(), "", ""];
-    //     let dfastatestoprint = this._parsetable.ambCells();
-    //     for (let d of dfastatestoprint)
+    //     const strarr = [this._parsetable.stringifyAmbCells(), "", ""];
+    //     const dfastatestoprint = this._parsetable.ambCells();
+    //     for (const d of dfastatestoprint)
     //         strarr.push(this.stringify1DFA(d));
     //     return strarr.join("\r\n");
     // }
@@ -97,7 +97,8 @@ export abstract class LRParser extends Parser {
 
         const stack: { tnode: ParseTreeNode, state: number }[] = [{ tnode: undefined!, state: this._startState }];
         const len = tokens.length;
-        let i = 0, stackTop = 0;
+        let i = 0;
+        let stackTop = 0;
         while (i < len) {
             const token = tokens[i];
             const stackItem = stack[stackTop];
@@ -171,22 +172,22 @@ export abstract class LRParser extends Parser {
     }
 
     // ambCells(): Set<number> {
-    //     let dfastates = new Set<number>();
-    //     for (let amb of this._ambCells) {
+    //     const dfastates = new Set<number>();
+    //     for (const amb of this._ambCells) {
     //         dfastates.add(amb[0]);
     //     }
     //     return dfastates;
     // }
 
     // stringifyAmbCells(): string {
-    //     let strarr = new Array<string>();
-    //     for (let amb of this._ambCells) {
-    //         let dfaStateId = amb[0], syms = amb[1];
+    //     const strarr = new Array<string>();
+    //     for (const amb of this._ambCells) {
+    //         const dfaStateId = amb[0], syms = amb[1];
     //         strarr.push("dfa state: " + dfaStateId);
-    //         let row = this._ptable.get(dfaStateId);
-    //         for (let symId of syms) {
+    //         const row = this._ptable.get(dfaStateId);
+    //         for (const symId of syms) {
     //             strarr.push("    on terminal symbol: " + this._prodset.getSymInStr(symId));
-    //             for (let act of row.get(symId)) {
+    //             for (const act of row.get(symId)) {
     //                 if (act instanceof AcceptAction) {
     //                     strarr.push("        accept");
     //                 }
@@ -208,8 +209,8 @@ export abstract class LRParser extends Parser {
 }
 
 // export function itemInStr(bitem: LR0Item, symIds: number[], prodset: prod.ProdSet): string {
-//     let rhsIds = bitem.prod.rhsIds;
-//     let arr = new Array<string>(), i = 0, len = rhsIds.length;
+//     const rhsIds = bitem.prod.rhsIds;
+//     const arr = new Array<string>(), i = 0, len = rhsIds.length;
 //     while (i <= len) {
 //         if (i === bitem.dot) arr[i] = ".";
 //         else if (i > bitem.dot) arr[i] = prodset.getSymInStr(rhsIds[i - 1]);
@@ -266,7 +267,7 @@ export class LR0DFA extends DFA {
 function makeLR0ItemNFA(lr0ItemsPack: LR0ItemsPack, prodset: ProdSet): automata.Transition[] {
     const nfaTrans: automata.Transition[] = [];
 
-    for (let prodId of prodset.getProdIds()) {
+    for (const prodId of prodset.getProdIds()) {
         const prod = prodset.getProdRef(prodId);
         const itemIdArr = lr0ItemsPack.getItemIdsByProdId(prodId);
         for (let i = 0; i < prod.rhsIds.length; ++i) {
@@ -275,7 +276,7 @@ function makeLR0ItemNFA(lr0ItemsPack: LR0ItemsPack, prodset: ProdSet): automata.
             const rhsSymStr = prodset.getSymInStr(rhsSymId);
             nfaTrans.push(new automata.Transition(curItem, itemIdArr[i + 1], rhsSymStr));
             if (!prodset.isSymIdTerminal(rhsSymId)) {
-                for (let prodId2 of prodset.getProds(rhsSymId)) {
+                for (const prodId2 of prodset.getProds(rhsSymId)) {
                     // epsilon transition
                     nfaTrans.push(new automata.Transition(curItem, lr0ItemsPack.getItemIdsByProdId(prodId2)[0], ""));
                 }

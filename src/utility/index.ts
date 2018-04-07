@@ -35,13 +35,14 @@ function strictEqual(i1: any, i2: any): boolean { return i1 === i2; };
 export function arrayEquivalent<T1, T2>(arr1: Array<T1>, arr2: Array<T2>, comparefn?: (v1: T1, v2: T2) => boolean) {
     if (arr1.length !== arr2.length) return false;
     comparefn = comparefn || strictEqual;
-    let len = arr1.length;
-    let metarr = new Array(len);
+    const len = arr1.length;
+    const metarr = new Array(len);
     for (let i = 0; i < len; ++i) {
-        let item1 = arr1[i], j = 0;
+        const item1 = arr1[i];
+        let j = 0;
         for (; j < len; ++j) {
             if (metarr[j]) continue;
-            let item2 = arr2[j];
+            const item2 = arr2[j];
             if (comparefn(item1, item2)) break;
         }
         if (j === len) return false; //not found
@@ -56,8 +57,8 @@ export function range(start: number, end?: number): Array<number> {
         end = start;
         start = 0;
     }
-    let ct = Math.max(0, end - start);
-    let ret = new Array<number>(ct);
+    const ct = Math.max(0, end - start);
+    const ret = new Array<number>(ct);
     for (let i = 0; i < ct; ++i) {
         ret[i] = start + i;
     }
@@ -73,7 +74,7 @@ export function startsWith(strbase: string, strpart: string): boolean {
 }
 
 export function initArray<T>(len: number, init: T): Array<T> {
-    let ret = new Array<T>(len);
+    const ret = new Array<T>(len);
     for (let i = 0; i < len; ++i) ret[i] = init;
     return ret;
 }

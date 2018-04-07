@@ -1,7 +1,7 @@
 
- import { assert } from "chai";
+import { assert } from "chai";
 import * as utility from "../../utility";
-import {createProdSetWithSplitter, ProdSet} from "../index";
+import { createProdSetWithSplitter, ProdSet } from "../index";
 
 function validate(prodset: ProdSet, expected: Array<{ symbol: string, follow: Array<string> }>) {
     const startsymnum = prodset.getStartNonTerminal();

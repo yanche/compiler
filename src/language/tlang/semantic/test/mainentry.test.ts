@@ -5,28 +5,28 @@ import { ErrorCode } from "../../error";
 
 describe("ensure main entry exists", () => {
     it("happy path", () => {
-        let code = `void main() { }`;
-        let sret = getSemanticResult(code);
+        const code = `void main() { }`;
+        const sret = getSemanticResult(code);
         assert.ok(sret.accept);
     });
     
     it("no main function", () => {
-        let code = `void X() { }`;
-        let sret = getSemanticResult(code);
+        const code = `void X() { }`;
+        const sret = getSemanticResult(code);
         assert.ok(!sret.accept);
         assert.strictEqual(sret.error.errCode, ErrorCode.ENTRY_NOTFOUND);
     });
     
     it("no main function without args", () => {
-        let code = `void main(int c) { }`;
-        let sret = getSemanticResult(code);
+        const code = `void main(int c) { }`;
+        const sret = getSemanticResult(code);
         assert.ok(!sret.accept);
         assert.strictEqual(sret.error.errCode, ErrorCode.ENTRY_NOTFOUND);
     });
     
     it("int main function", () => {
-        let code = `int main() { }`;
-        let sret = getSemanticResult(code);
+        const code = `int main() { }`;
+        const sret = getSemanticResult(code);
         assert.ok(!sret.accept);
         assert.strictEqual(sret.error.errCode, ErrorCode.ENTRY_RETURNS_VOID);
     });

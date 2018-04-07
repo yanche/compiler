@@ -8,7 +8,7 @@ import { createProdSetWithSplitter } from "../../../productions";
 
 describe("LR(1) parse", function () {
     it("invalid LALR(1), valid LR(1)", function () {
-        let lr1parser = createLR1Parser(createProdSetWithSplitter([
+        const lr1parser = createLR1Parser(createProdSetWithSplitter([
             "S -> a E c | a F d | b F c | b E d",
             "E -> e",
             "F -> e"
@@ -18,7 +18,7 @@ describe("LR(1) parse", function () {
     });
 
     it("valid LALR(1), valid SLR(1)", function () {
-        let lr1parser = createLR1Parser(createProdSetWithSplitter([
+        const lr1parser = createLR1Parser(createProdSetWithSplitter([
             "E -> T + E | T",
             "T -> int | int * T | ( E )"
         ]));
@@ -27,7 +27,7 @@ describe("LR(1) parse", function () {
     });
 
     it("valid LALR(1), invalid SLR(1)", function () {
-        let lr1parser = createLR1Parser(createProdSetWithSplitter([
+        const lr1parser = createLR1Parser(createProdSetWithSplitter([
             "S -> A a | b A c | d c | b d a",
             "A -> d"
         ]));
@@ -37,12 +37,12 @@ describe("LR(1) parse", function () {
     });
 
     it("simple 1", function () {
-        let prodset = createProdSetWithSplitter([
+        const prodset = createProdSetWithSplitter([
             "E -> T + E | T",
             "T -> int | int * T | ( E )"
         ]);
-        let lr1parser = createLR1Parser(prodset);
-        let parseret = lr1parser.parse([
+        const lr1parser = createLR1Parser(prodset);
+        const parseret = lr1parser.parse([
             new Token("1", prodset.getSymId("int"), noArea),
             new Token("+", prodset.getSymId("+"), noArea),
             new Token("2", prodset.getSymId("int"), noArea),

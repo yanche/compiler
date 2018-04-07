@@ -7,9 +7,9 @@ import { genCodeLines } from "./util";
 
 describe("live-ness prone test", () => {
     it("assignment to dead register", () => {
-        let regId = new IdGen();
-        let r1 = regId.next();
-        let codelines = genCodeLines([
+        const regId = new IdGen();
+        const r1 = regId.next();
+        const codelines = genCodeLines([
             new t.TAC_loadint(10, r1)
         ]);
         livenessProne(codelines, [{ regbtmlive: [false], regtoplive: null }]);
@@ -18,9 +18,9 @@ describe("live-ness prone test", () => {
     });
 
     it("assignment to live register", () => {
-        let regId = new IdGen();
-        let r1 = regId.next();
-        let codelines = genCodeLines([
+        const regId = new IdGen();
+        const r1 = regId.next();
+        const codelines = genCodeLines([
             new t.TAC_loadint(10, r1)
         ]);
         livenessProne(codelines, [{ regbtmlive: [true], regtoplive: null }]);

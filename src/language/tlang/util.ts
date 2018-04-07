@@ -14,7 +14,7 @@ export function assignable(fromtype: Type, totype: Type, classlookup: ClassLooku
     if (fromtype.depth !== 0) return fromtype.basetype === totype.basetype;
     if (fromtype.basetype === totype.basetype) return true;
     if (fromtype.basetype === PRIMITIVE_TYPE_BOOL && totype.basetype === PRIMITIVE_TYPE_INT) return true;
-    let classdef = classlookup.getClass(fromtype.basetype);
+    const classdef = classlookup.getClass(fromtype.basetype);
     return classdef != null && classdef.hasAncestor(totype.basetype);
 }
 
@@ -34,11 +34,12 @@ export function isFnRet(name: string, classlookup: ClassLookup): boolean {
 export function isPrimitive(name: string): boolean { return primitives.some(p => p == name); }
 
 export function fnApplicable(argtypelist: Array<Type>, parametertypelist: Array<Type>, classlookup: ClassLookup): { match: boolean, perfect: boolean } {
-    let alen = argtypelist.length;
+    const alen = argtypelist.length;
     if (alen === parametertypelist.length) {
-        let perfect = true, i = 0;
+        let perfect = true;
+        let i = 0;
         for (; i < alen; ++i) {
-            let argtype = argtypelist[i], ptype = parametertypelist[i];
+            const argtype = argtypelist[i], ptype = parametertypelist[i];
             if (!assignable(ptype, argtype, classlookup)) break;
             if (perfect && !ptype.equals2(argtype)) perfect = false;
         }
@@ -49,8 +50,8 @@ export function fnApplicable(argtypelist: Array<Type>, parametertypelist: Array<
 
 
 function hasFnDefined(fnList: Array<FunctionDefinition>, argtypelist: Array<Type>): boolean {
-    for (let fndef of (fnList || [])) {
-        let fnargtypelist = fndef.argtypelist;
+    for (const fndef of (fnList || [])) {
+        const fnargtypelist = fndef.argtypelist;
         if (fnargtypelist.length === argtypelist.length && fnargtypelist.every((t, idx) => t.equals2(argtypelist[idx])))
             return true;
     }
@@ -70,7 +71,7 @@ export class FunctionLookup {
     }
 
     hasDefinedMethod(methodname: string, classname: string, argtypelist: Array<Type>): boolean {
-        let classMethodMap = this._methodMap.get(classname);
+        const classMethodMap = this._methodMap.get(classname);
         return classMethodMap ? hasFnDefined(classMethodMap.get(methodname), argtypelist) : false;
     }
 
@@ -85,7 +86,7 @@ export class FunctionLookup {
             fnList = [];
             this._fnMap.set(fnname, fnList);
         }
-        let fndef = new FunctionDefinition(fnname, "", rettype, argtypelist, area, this._seqid, predefined);
+        const fndef = new FunctionDefinition(fnname, "", rettype, argtypelist, area, this._seqid, predefined);
         fnList.push(fndef);
         return fndef;
     }
@@ -97,7 +98,7 @@ export class FunctionLookup {
             consList = [];
             this._constructorMap.set(classname, consList);
         }
-        let consdef = new FunctionDefinition(ClassLookup.constructorFnName, classname, null, argtypelist, area, this._seqid, false);
+        const consdef = new FunctionDefinition(ClassLookup.constructorFnName, classname, null, argtypelist, area, this._seqid, false);
         consList.push(consdef);
         return consdef;
     }
@@ -115,16 +116,16 @@ export class FunctionLookup {
             methodList = [];
             classMethodMap.set(methodname, methodList);
         }
-        let methoddef = new FunctionDefinition(methodname, classname, rettype, argtypelist, area, this._seqid, false);
+        const methoddef = new FunctionDefinition(methodname, classname, rettype, argtypelist, area, this._seqid, false);
         methodList.push(methoddef);
         return methoddef;
     }
 
     // getApplicableMethod(fnname: string, classname: string, parametertypelist: Array<Type>, classlookup: ClassLookup): Array<FunctionDefinition> {
-    //     let fnlist = this._map.get(classname).get(fnname);
-    //     let candidates = new Array<FunctionDefinition>();
-    //     for (let fndef of fnlist) {
-    //         let app = fnApplicable(fndef, fnname, parametertypelist, classlookup);
+    //     const fnlist = this._map.get(classname).get(fnname);
+    //     const candidates = new Array<FunctionDefinition>();
+    //     for (const fndef of fnlist) {
+    //         const app = fnApplicable(fndef, fnname, parametertypelist, classlookup);
     //         if (app.match) {
     //             if (app.perfect) return [fndef];
     //             else candidates.push(fndef);
@@ -134,10 +135,10 @@ export class FunctionLookup {
     // }
 
     getApplicableFn(fnname: string, parametertypelist: Array<Type>, classlookup: ClassLookup): Array<FunctionDefinition> {
-        let fnlist = this._fnMap.get(fnname);
-        let candidates = new Array<FunctionDefinition>();
-        for (let fndef of fnlist || []) {
-            let app = fnApplicable(fndef.argtypelist, parametertypelist, classlookup);
+        const fnlist = this._fnMap.get(fnname);
+        const candidates = new Array<FunctionDefinition>();
+        for (const fndef of fnlist || []) {
+            const app = fnApplicable(fndef.argtypelist, parametertypelist, classlookup);
             if (app.match) {
                 if (app.perfect) return [fndef];
                 else candidates.push(fndef);
@@ -150,14 +151,14 @@ export class FunctionLookup {
         // no need to run constructor function, basically here classdef is the parent of Object, to the root of class chain
         if (!classdef) return { noop: true };
         else {
-            let fnlist = this._constructorMap.get(classdef.name);
+            const fnlist = this._constructorMap.get(classdef.name);
             // if no constructor definition for this class, means it take all constructor from its parent, so
             // go on seeking the applicable constructor in its parent class
             if (!fnlist) return this.getApplicableConstructor(classdef.getParent(), parametertypelist, classlookup);
-            let candidates = new Array<FunctionDefinition>();
-            for (let fndef of fnlist) {
+            const candidates = new Array<FunctionDefinition>();
+            for (const fndef of fnlist) {
                 // ignore first parameter of constructor, the "this" pointer
-                let app = fnApplicable(fndef.argtypelist.slice(1), parametertypelist, classlookup);
+                const app = fnApplicable(fndef.argtypelist.slice(1), parametertypelist, classlookup);
                 if (app.match) {
                     if (app.perfect) return { noop: false, candidates: [fndef] };
                     else candidates.push(fndef);
@@ -168,8 +169,8 @@ export class FunctionLookup {
     }
 
     allFn(): Array<FunctionDefinition> {
-        let ret = new Array<Array<FunctionDefinition>>();
-        for (let x of this._fnMap) ret.push(x[1]);
+        const ret = new Array<Array<FunctionDefinition>>();
+        for (const x of this._fnMap) ret.push(x[1]);
         return flatten(ret);
     }
 
@@ -178,10 +179,10 @@ export class FunctionLookup {
     }
 
     findMethods(classname: string): Array<FunctionDefinition> {
-        let ret = new Array<Array<FunctionDefinition>>();
-        let m1 = this._methodMap.get(classname);
+        const ret = new Array<Array<FunctionDefinition>>();
+        const m1 = this._methodMap.get(classname);
         if (m1)
-            for (let x of m1) ret.push(x[1]);
+            for (const x of m1) ret.push(x[1]);
         return flatten(ret);
     }
 
@@ -249,7 +250,7 @@ export class FunctionSigniture {
     }
     
     static toString(name: string, classname: string, argtypelist: Array<Type>): string {
-        let classprefix = classname ? (classname + ":") : "";
+        const classprefix = classname ? (classname + ":") : "";
         return [classprefix + name].concat(argtypelist.map(type => type.toString())).join(":");
     }
 }
@@ -292,7 +293,7 @@ export class ClassDefinition {
 
     //hasField(name: string): boolean { return this.getField(name) != null; }
     getField(name: string): Field {
-        for (let f of this.fieldSpace) {
+        for (const f of this.fieldSpace) {
             if (f.name === name) return f;
         }
         return null;
@@ -335,8 +336,8 @@ export class ClassLookup {
     }
 
     getAllClasses(): Array<string> {
-        let ret = new Array<string>();
-        for (let m of this._map) ret.push(m[0]);
+        const ret = new Array<string>();
+        for (const m of this._map) ret.push(m[0]);
         return ret;
     }
 

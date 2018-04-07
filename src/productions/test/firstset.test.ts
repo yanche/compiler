@@ -1,5 +1,5 @@
 
- import { assert } from "chai";
+import { assert } from "chai";
 import * as utility from "../../utility";
 import { createProdSetWithSplitter, ProdSet } from "../index";
 

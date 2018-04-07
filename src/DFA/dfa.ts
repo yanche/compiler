@@ -9,8 +9,8 @@ export default class DFA {
     // private _statect: number;
 
     constructor(trans: Iterable<utility.automata.Transition>, start: number, terminals: Iterable<number>) {
-        let statemap = new Map<number, State>();
-        for (let tran of trans) {
+        const statemap = new Map<number, State>();
+        for (const tran of trans) {
             let state = statemap.get(tran.src);
             if (!state) {
                 state = new State(tran.src);
@@ -23,8 +23,8 @@ export default class DFA {
         }
         if (statemap.size === 0) throw new Error("empty transitions is not acceptable");
         if (!statemap.has(start)) throw new Error(`start state number not found in transitions: ${start}`);
-        let terminalset = new Set<number>();
-        for (let ter of terminals) {
+        const terminalset = new Set<number>();
+        for (const ter of terminals) {
             if (!statemap.has(ter)) throw new Error(`terminal state number not found in transitions: ${ter}`);
             terminalset.add(ter);
         }
@@ -50,7 +50,7 @@ export default class DFA {
 
     accept(strarr: Iterable<string>, onfirstterminal: boolean = false): boolean {
         let curstate = this._start;
-        for (let str of strarr) {
+        for (const str of strarr) {
             if (onfirstterminal && this.isTerminal(curstate)) return true;
             curstate = this._statemap.get(curstate).getTransition(str);
             if (curstate === undefined) return false;
@@ -59,27 +59,27 @@ export default class DFA {
     }
     
     toString(): string {
-        let strarr = [`${this._statemap.size} states in total`, `start state: ${this._start}`, `terminal states: ${[...this._terminalset].join(",")}`];
-        for (let tran of this._trans) strarr.push(tran.toString());
+        const strarr = [`${this._statemap.size} states in total`, `start state: ${this._start}`, `terminal states: ${[...this._terminalset].join(",")}`];
+        for (const tran of this._trans) strarr.push(tran.toString());
         return strarr.join("\r\n");
     }
 
     equivalent(dfa: DFA): boolean {
         if (this === dfa) return true;
         if (this._statemap.size !== dfa._statemap.size || this._terminalset.size != dfa._terminalset.size) return false
-        let statemap = new Map<number, number>(), stateset = new Set<number>(), queue = [this._start];
+        const statemap = new Map<number, number>(), stateset = new Set<number>(), queue = [this._start];
         statemap.set(this._start, dfa._start);
         stateset.add(dfa._start);
         while (queue.length > 0) {
-            let statenum1 = queue.pop();
-            let trans1 = this._statemap.get(statenum1).getTransitionMap();
-            let state2 = dfa._statemap.get(statemap.get(statenum1));
+            const statenum1 = queue.pop();
+            const trans1 = this._statemap.get(statenum1).getTransitionMap();
+            const state2 = dfa._statemap.get(statemap.get(statenum1));
             if (trans1.size != state2.getTransitionMap().size) return false;
-            for (let tran of trans1) {
-                let str = tran[0], tgtstate = tran[1];
-                let tgtstate2 = state2.getTransition(str);
+            for (const tran of trans1) {
+                const str = tran[0], tgtstate = tran[1];
+                const tgtstate2 = state2.getTransition(str);
                 if (tgtstate2 == null) return false;
-                let map1has = statemap.has(tgtstate), sethas = stateset.has(tgtstate2);
+                const map1has = statemap.has(tgtstate), sethas = stateset.has(tgtstate2);
                 if (!map1has && !sethas) {
                     statemap.set(tgtstate, tgtstate2);
                     stateset.add(tgtstate2);

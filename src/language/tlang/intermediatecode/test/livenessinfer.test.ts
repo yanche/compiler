@@ -10,13 +10,13 @@ import { genCodeLines, assignLineNums } from "./util";
 
 describe("live-ness inference test", () => {
     it("live-ness on assignment", () => {
-        let regId = new IdGen();
-        let r1 = regId.next(), r2 = regId.next(), r3 = regId.next();
-        let codelines = genCodeLines([
+        const regId = new IdGen();
+        const r1 = regId.next(), r2 = regId.next(), r3 = regId.next();
+        const codelines = genCodeLines([
             new t.TAC_binary("+", r1, r2, r3),
             new t.TAC_retreg(r3)
         ]);
-        let liveness = inferLiveness(codelines, regId.cur);
+        const liveness = inferLiveness(codelines, regId.cur);
         livenessVerify(liveness, <LivenessInfo[]>[{
             regtoplive: [true, true, false],
             regbtmlive: [false, false, true]
@@ -27,15 +27,15 @@ describe("live-ness inference test", () => {
     });
 
     it("live-ness cross multiple code lines", () => {
-        let regId = new IdGen();
-        let r1 = regId.next(), r2 = regId.next(), r3 = regId.next();
-        let codelines = genCodeLines([
+        const regId = new IdGen();
+        const r1 = regId.next(), r2 = regId.next(), r3 = regId.next();
+        const codelines = genCodeLines([
             new t.TAC_loadint(1, r1),
             new t.TAC_loadint(2, r2),
             new t.TAC_binary("+", r1, r2, r3),
             new t.TAC_retreg(r3)
         ]);
-        let liveness = inferLiveness(codelines, regId.cur);
+        const liveness = inferLiveness(codelines, regId.cur);
         livenessVerify(liveness, <LivenessInfo[]>[{
             regtoplive: [false, false, false],
             regbtmlive: [true, false, false]
@@ -52,16 +52,16 @@ describe("live-ness inference test", () => {
     });
 
     it("live-ness with branches", () => {
-        let regId = new IdGen();
-        let r1 = regId.next(), r2 = regId.next(), r3 = regId.next();
-        let label = new CodeLabel();
-        let cl1 = new CodeLine(new t.TAC_btrue(label, r1));
-        let cl2 = new CodeLine(new t.TAC_binary("+", r2, r3, r1));
-        let cl3 = new CodeLine(new t.TAC_retreg(r1), label);
-        let codelines = [cl1, cl2, cl3];
+        const regId = new IdGen();
+        const r1 = regId.next(), r2 = regId.next(), r3 = regId.next();
+        const label = new CodeLabel();
+        const cl1 = new CodeLine(new t.TAC_btrue(label, r1));
+        const cl2 = new CodeLine(new t.TAC_binary("+", r2, r3, r1));
+        const cl3 = new CodeLine(new t.TAC_retreg(r1), label);
+        const codelines = [cl1, cl2, cl3];
         assignLineNums(codelines);
         finalizeLabelRef(codelines);
-        let liveness = inferLiveness(codelines, regId.cur);
+        const liveness = inferLiveness(codelines, regId.cur);
         livenessVerify(liveness, <LivenessInfo[]>[{
             regtoplive: [true, true, true],
             regbtmlive: [true, true, true]
@@ -75,13 +75,13 @@ describe("live-ness inference test", () => {
     });
 
     it("live-ness no change by self-assignment", () => {
-        let regId = new IdGen();
-        let r1 = regId.next(), r2 = regId.next();
-        let codelines = genCodeLines([
+        const regId = new IdGen();
+        const r1 = regId.next(), r2 = regId.next();
+        const codelines = genCodeLines([
             new t.TAC_binary("+", r1, r2, r1),
             new t.TAC_retreg(r1)
         ]);
-        let liveness = inferLiveness(codelines, regId.cur);
+        const liveness = inferLiveness(codelines, regId.cur);
         livenessVerify(liveness, <LivenessInfo[]>[{
             regtoplive: [true, true],
             regbtmlive: [true, false]

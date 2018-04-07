@@ -7,7 +7,7 @@ export abstract class MIPSInstruction {
     protected _comments: string;
 
     toString(): string {
-        let ins = this.toStringWithoutComments();
+        const ins = this.toStringWithoutComments();
         return this._comments == null ? ins : ("###" + this._comments + "###\r\n" + ins);
     }
 

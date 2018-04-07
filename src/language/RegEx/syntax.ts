@@ -3,8 +3,8 @@ import { ParseTreeMidNode, ParseTreeTermNode, ASTNode, defineSyntaxProcessor } f
 import { createSLR1Parser } from "../../parser";
 import * as ap from "./astprocess";
 
-let straightThru0 = straightThruGen(0);
-let straightThru1 = straightThruGen(1);
+const straightThru0 = straightThruGen(0);
+const straightThru1 = straightThruGen(1);
 
 const processor = defineSyntaxProcessor([
     {
@@ -22,7 +22,7 @@ const processor = defineSyntaxProcessor([
     {
         production: "S-RE -> B-RE S-RE",
         handler: node => {
-            let left = childToAST(node, 0), right = childToAST(node, 1);
+            const left = childToAST(node, 0), right = childToAST(node, 1);
             let children = left instanceof ap.ASTNode_Concat ? left.children : [left];
             children = children.concat(right instanceof ap.ASTNode_Concat ? right.children : [right]);
             return new ap.ASTNode_Concat(children);
@@ -31,10 +31,10 @@ const processor = defineSyntaxProcessor([
     {
         production: "B-RE -> E-RE REPEAT",
         handler: node => {
-            let left = childToAST(node, 0), right = childToAST(node, 1);
+            const left = childToAST(node, 0), right = childToAST(node, 1);
             if (right == null) return left;
             else {
-                let sright = <ap.ASTNode_Single>right;
+                const sright = <ap.ASTNode_Single>right;
                 if (sright.ch === ch_star) return new ap.ASTNode_RStar(left);
                 else if (sright.ch === ch_plus) return new ap.ASTNode_RPlus(left);
                 else if (sright.ch === ch_ques) return new ap.ASTNode_RQues(left);
@@ -130,7 +130,7 @@ function straightThruGen(pos: number): (node: ParseTreeMidNode) => ASTNode {
 //CONCAT & OR
 function glueChildrenGen_OR(posright: number): (node: ParseTreeMidNode) => ASTNode {
     return function (node: ParseTreeMidNode): ASTNode {
-        let left = childToAST(node, 0), right = childToAST(node, posright);
+        const left = childToAST(node, 0), right = childToAST(node, posright);
         let children = left instanceof ap.ASTNode_OR ? left.children : [left];
         children = children.concat(right instanceof ap.ASTNode_OR ? right.children : [right]);
         return new ap.ASTNode_OR(children);

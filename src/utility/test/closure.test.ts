@@ -4,8 +4,8 @@ import * as closure from '../closure';
 import {Edge} from '../../utility';
 
 function convToEdges(edges: Array<Array<number>>): Array<Edge> {
-    let ret: Array<Edge> = [];
-    for (let edge of edges) {
+    const ret: Array<Edge> = [];
+    for (const edge of edges) {
         ret.push({ src: edge[0], tgt: edge[1] });
     }
     return ret;
@@ -13,15 +13,15 @@ function convToEdges(edges: Array<Array<number>>): Array<Edge> {
 
 describe('happy', function () {
     it('1 edge 1 node', function () {
-        let m = closure.calcClosure(convToEdges([[0, 0], [0, 0]]));
-        let c0 = m.get(0)!;
+        const m = closure.calcClosure(convToEdges([[0, 0], [0, 0]]));
+        const c0 = m.get(0)!;
         arrEqual([...c0.getNodes()], [0]);
         arrEqual([...c0.getOwnerNodes()], [0]);
     });
 
     it('1 edge', function () {
-        let m = closure.calcClosure(convToEdges([[0, 1]]));
-        let c0 = m.get(0)!, c1 = m.get(1)!;
+        const m = closure.calcClosure(convToEdges([[0, 1]]));
+        const c0 = m.get(0)!, c1 = m.get(1)!;
         arrEqual([...c0.getNodes()], [0, 1]);
         arrEqual([...c1.getNodes()], [1]);
         arrEqual([...c0.getOwnerNodes()], [0]);
@@ -29,8 +29,8 @@ describe('happy', function () {
     });
 
     it('2 edges', function () {
-        let m = closure.calcClosure(convToEdges([[0, 1], [1, 3]]));
-        let c0 = m.get(0)!, c1 = m.get(1)!, c2 = m.get(3)!;
+        const m = closure.calcClosure(convToEdges([[0, 1], [1, 3]]));
+        const c0 = m.get(0)!, c1 = m.get(1)!, c2 = m.get(3)!;
         arrEqual([...c0.getNodes()], [0, 1, 3]);
         arrEqual([...c1.getNodes()], [1, 3]);
         arrEqual([...c2.getNodes()], [3]);
@@ -40,8 +40,8 @@ describe('happy', function () {
     });
 
     it('star', function () {
-        let m = closure.calcClosure(convToEdges([[0, 1], [0, 3], [0, 5]]));
-        let c0 = m.get(0)!, c1 = m.get(1)!, c2 = m.get(3)!, c3 = m.get(5)!;
+        const m = closure.calcClosure(convToEdges([[0, 1], [0, 3], [0, 5]]));
+        const c0 = m.get(0)!, c1 = m.get(1)!, c2 = m.get(3)!, c3 = m.get(5)!;
         arrEqual([...c0.getNodes()], [0, 1, 3, 5]);
         arrEqual([...c1.getNodes()], [1]);
         arrEqual([...c2.getNodes()], [3]);
@@ -53,8 +53,8 @@ describe('happy', function () {
     });
 
     it('reversed star', function () {
-        let m = closure.calcClosure(convToEdges([[1, 0], [3, 0], [5, 0]]));
-        let c0 = m.get(0)!, c1 = m.get(1)!, c2 = m.get(3)!, c3 = m.get(5)!;
+        const m = closure.calcClosure(convToEdges([[1, 0], [3, 0], [5, 0]]));
+        const c0 = m.get(0)!, c1 = m.get(1)!, c2 = m.get(3)!, c3 = m.get(5)!;
         arrEqual([...c0.getNodes()], [0]);
         arrEqual([...c1.getNodes()], [1, 0]);
         arrEqual([...c2.getNodes()], [3, 0]);
@@ -68,23 +68,23 @@ describe('happy', function () {
 
 describe('loop', function () {
     it('2 nodes', function () {
-        let m = closure.calcClosure(convToEdges([[0, 1], [1, 0]]));
-        let c0 = m.get(0)!, c1 = m.get(1)!;
+        const m = closure.calcClosure(convToEdges([[0, 1], [1, 0]]));
+        const c0 = m.get(0)!, c1 = m.get(1)!;
         assert.equal(c0, c1);
         arrEqual([...c0.getNodes()], [0, 1]);
         arrEqual([...c0.getOwnerNodes()], [0, 1]);
     });
 
     it('4 nodes', function () {
-        let m = closure.calcClosure(convToEdges([[0, 1], [1, 2], [2, 3], [3, 0]]));
-        let c0 = m.get(0)!, c1 = m.get(1)!, c2 = m.get(2)!, c3 = m.get(3)!;
+        const m = closure.calcClosure(convToEdges([[0, 1], [1, 2], [2, 3], [3, 0]]));
+        const c0 = m.get(0)!, c1 = m.get(1)!, c2 = m.get(2)!, c3 = m.get(3)!;
         closuresShareNodes([c0, c1, c2, c3], [0, 1, 2, 3]);
         closuresOwners([c0, c1, c2, c3], [0, 1, 2, 3]);
     });
 
     it('3 nodes, several hanging edges', function () {
-        let m = closure.calcClosure(convToEdges([[0, 1], [1, 2], [2, 0], [2, 3], [1, 4]]));
-        let c0 = m.get(0)!, c1 = m.get(1)!, c2 = m.get(2)!, c3 = m.get(3)!, c4 = m.get(4)!;
+        const m = closure.calcClosure(convToEdges([[0, 1], [1, 2], [2, 0], [2, 3], [1, 4]]));
+        const c0 = m.get(0)!, c1 = m.get(1)!, c2 = m.get(2)!, c3 = m.get(3)!, c4 = m.get(4)!;
         closuresShareNodes([c0, c1, c2], [0, 1, 2, 3, 4]);
         closuresOwners([c0, c1, c2], [0, 1, 2]);
         arrEqual([...c3.getNodes()], [3]);
@@ -94,22 +94,22 @@ describe('loop', function () {
     });
 
     it('4 nodes, 2 loops', function () {
-        let m = closure.calcClosure(convToEdges([[2, 3], [3, 0], [0, 1], [1, 2], [2, 0]]));
-        let c0 = m.get(0)!, c1 = m.get(1)!, c2 = m.get(2)!, c3 = m.get(3)!;
+        const m = closure.calcClosure(convToEdges([[2, 3], [3, 0], [0, 1], [1, 2], [2, 0]]));
+        const c0 = m.get(0)!, c1 = m.get(1)!, c2 = m.get(2)!, c3 = m.get(3)!;
         closuresShareNodes([c0, c1, c2, c3], [0, 1, 2, 3]);
         closuresOwners([c0, c1, c2, c3], [0, 1, 2, 3]);
     });
 
     it('4 nodes, 2 loops, intersect', function () {
-        let m = closure.calcClosure(convToEdges([[2, 3], [3, 1], [0, 1], [1, 2], [2, 0]]));
-        let c0 = m.get(0)!, c1 = m.get(1)!, c2 = m.get(2)!, c3 = m.get(3)!;
+        const m = closure.calcClosure(convToEdges([[2, 3], [3, 1], [0, 1], [1, 2], [2, 0]]));
+        const c0 = m.get(0)!, c1 = m.get(1)!, c2 = m.get(2)!, c3 = m.get(3)!;
         closuresShareNodes([c0, c1, c2, c3], [0, 1, 2, 3]);
         closuresOwners([c0, c1, c2, c3], [0, 1, 2, 3]);
     });
 
     it('3 loops, consider process sequence', function () {
-        let m = closure.calcClosure(convToEdges([[2, 3], [3, 1], [0, 1], [1, 2], [2, 0], [0, 4], [4, 5], [5, 0]]));
-        let c0 = m.get(0)!, c1 = m.get(1)!, c2 = m.get(2)!, c3 = m.get(3)!, c4 = m.get(4)!, c5 = m.get(5)!;
+        const m = closure.calcClosure(convToEdges([[2, 3], [3, 1], [0, 1], [1, 2], [2, 0], [0, 4], [4, 5], [5, 0]]));
+        const c0 = m.get(0)!, c1 = m.get(1)!, c2 = m.get(2)!, c3 = m.get(3)!, c4 = m.get(4)!, c5 = m.get(5)!;
         closuresShareNodes([c0, c1, c2, c3, c4, c5], [0, 1, 2, 3, 4, 5]);
         closuresOwners([c0, c1, c2, c3, c4, c5], [0, 1, 2, 3, 4, 5]);
     });
@@ -126,13 +126,13 @@ function arrEqual(arr1: Array<number>, arr2: Array<number>) {
 };
 
 function closuresShareNodes(closures: Array<closure.Closure>, nodes: Array<number>) {
-    for (let c of closures) arrEqual(nodes, [...c.getNodes()]);
+    for (const c of closures) arrEqual(nodes, [...c.getNodes()]);
 };
 
 function closuresOwners(closures: Array<closure.Closure>, owners: Array<number>) {
-    let set = new Set<number>();
-    for (let c of closures)
-        for (let n of c.getOwnerNodes())
+    const set = new Set<number>();
+    for (const c of closures)
+        for (const n of c.getOwnerNodes())
             set.add(n);
     arrEqual(owners, [...set]);
 };

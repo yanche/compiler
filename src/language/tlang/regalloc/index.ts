@@ -7,8 +7,8 @@ import { regnumToMIPSReg } from "./regs";
 import { RIG } from "./reginfgraph";
 
 function convLivenessToSet(regliveness: Array<boolean>): Set<number> {
-    let rlen = regliveness.length;
-    let ret = new Set<number>();
+    const rlen = regliveness.length;
+    const ret = new Set<number>();
     for (let i = 0; i < rlen; ++i) {
         if (regliveness[i]) {
             ret.add(i);
@@ -19,8 +19,8 @@ function convLivenessToSet(regliveness: Array<boolean>): Set<number> {
 
 // NOTE, THIS FUNCTION WILL MODIFY INPUT (codelines)
 export function regalloc(codelines: Array<CodeLine>, regliveness: Array<LivenessInfo>, maxtmpregnum: number): { regmap: Map<number, number>, tmpinstack: Map<number, number> } {
-    let rig = new RIG(), clen = codelines.length;
-    let reglivesets = regliveness.map(r => {
+    const rig = new RIG(), clen = codelines.length;
+    const reglivesets = regliveness.map(r => {
         return {
             regbtmlive: convLivenessToSet(r.regbtmlive),
             regtoplive: convLivenessToSet(r.regtoplive),
@@ -30,24 +30,28 @@ export function regalloc(codelines: Array<CodeLine>, regliveness: Array<Liveness
         rig.addRelateRegs([...reglivesets[i].regbtmlive]);
         rig.addRelateRegs([...reglivesets[i].regtoplive]);
     }
-    let allo = rig.allocate(), fpoffset = 0, stackoffsetmap = new Map<number, number>(), tmpregnum = maxtmpregnum + 1;
+    let allo = rig.allocate();
+    let fpoffset = 0;
+    const stackoffsetmap = new Map<number, number>();
+    let tmpregnum = maxtmpregnum + 1;
     while (!allo.succeed) {
-        let snum = allo.spill, i = 0;
+        const snum = allo.spill;
+        let i = 0;
         // new assigned reg for spilled reg cannot be spilled again (no good solution to this conflict yet)
         if (snum > maxtmpregnum) throw new Error("undefined behavior, spilled reigster cannot be spilled again: " + snum);
-        let mloc = -4 * fpoffset++;
+        const mloc = -4 * fpoffset++;
         stackoffsetmap.set(snum, mloc);
         rig.removeReg(snum);
         for (; i < codelines.length; ++i) {
             // remove spilled tmp-register in every lines
-            let reginfer = reglivesets[i], cl = codelines[i];
+            const reginfer = reglivesets[i], cl = codelines[i];
             reginfer.regbtmlive.delete(snum);
             reginfer.regtoplive.delete(snum);
-            let tac = cl.tac;
+            const tac = cl.tac;
             if (tac.readReg(snum)) {
-                let newreg = tmpregnum++;
-                let newcl = new CodeLine(new t.TAC_lw(util.TMP_REGS_FP, mloc, newreg));
-                let newreginfer = {
+                const newreg = tmpregnum++;
+                const newcl = new CodeLine(new t.TAC_lw(util.TMP_REGS_FP, mloc, newreg));
+                const newreginfer = {
                     regtoplive: new Set<number>(reginfer.regtoplive),
                     regbtmlive: new Set<number>(reginfer.regtoplive).add(newreg)
                 };
@@ -56,7 +60,7 @@ export function regalloc(codelines: Array<CodeLine>, regliveness: Array<Liveness
                 reglivesets.splice(i++, 0, newreginfer);
                 // move label
                 if (cl.label != null) {
-                    let lb = cl.label;
+                    const lb = cl.label;
                     cl.label = null;
                     newcl.label = lb;
                     lb.owner = newcl;
@@ -66,9 +70,9 @@ export function regalloc(codelines: Array<CodeLine>, regliveness: Array<Liveness
                 reginfer.regtoplive.add(newreg);
             }
             if (tac.writeReg(snum)) {
-                let newreg = tmpregnum++;
-                let newcl = new CodeLine(new t.TAC_sw(util.TMP_REGS_FP, mloc, newreg));
-                let newreginfer = {
+                const newreg = tmpregnum++;
+                const newcl = new CodeLine(new t.TAC_sw(util.TMP_REGS_FP, mloc, newreg));
+                const newreginfer = {
                     regbtmlive: new Set<number>(reginfer.regbtmlive),
                     regtoplive: new Set<number>(reginfer.regbtmlive).add(newreg)
                 };

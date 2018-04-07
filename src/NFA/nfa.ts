@@ -40,8 +40,8 @@ export default class NFA {
     private _startclosure: Set<number>;
 
     constructor(trans: Iterable<utility.automata.Transition>, starts: Iterable<number>, terminals: Iterable<number>) {
-        let statemap = new Map<number, State>();
-        for (let tran of trans) {
+        const statemap = new Map<number, State>();
+        for (const tran of trans) {
             let state = statemap.get(tran.src);
             if (!state) {
                 state = new State(tran.src);
@@ -54,23 +54,23 @@ export default class NFA {
         }
         if (statemap.size === 0) throw new Error('zero state is not good for NFA');
 
-        let epsilontrans: Array<utility.Edge> = [];
-        for (let item of statemap) {
-            let statenum = item[0];
-            let epset = statemap.get(statenum).getTransition('');
+        const epsilontrans: Array<utility.Edge> = [];
+        for (const item of statemap) {
+            const statenum = item[0];
+            const epset = statemap.get(statenum).getTransition('');
             if (epset === undefined) epsilontrans.push({ src: statenum, tgt: statenum }); //self loop, for closure calculation purpose
             else {
-                for (let epstate of epset) epsilontrans.push({ src: statenum, tgt: epstate });
+                for (const epstate of epset) epsilontrans.push({ src: statenum, tgt: epstate });
             }
         }
 
-        let startset = new Set<number>(), terminalset = new Set<number>();
-        for (let s of starts) {
+        const startset = new Set<number>(), terminalset = new Set<number>();
+        for (const s of starts) {
             if (!statemap.has(s)) throw new Error('invalid start num: ' + s);
             startset.add(s);
         }
         if (startset.size === 0) throw new Error('no start state in NFA');
-        for (let t of terminals) {
+        for (const t of terminals) {
             if (!statemap.has(t)) throw new Error('invalid terminal num: ' + t);
             terminalset.add(t);
         }
@@ -87,7 +87,7 @@ export default class NFA {
     }
 
     hasTerminal(statenums: Iterable<number>): boolean {
-        for (let state of statenums) {
+        for (const state of statenums) {
             if (this._terminalset.has(state)) return true;
         }
         return false;
@@ -95,12 +95,12 @@ export default class NFA {
 
     accept(strarr: Iterable<string>): boolean {
         let curstatenums = this._startclosure;
-        for (let str of strarr) {
-            let mstates = new Set<number>();
-            for (let state of curstatenums) {
-                let tset = this._statemap.get(state).getTransition(str);
+        for (const str of strarr) {
+            const mstates = new Set<number>();
+            for (const state of curstatenums) {
+                const tset = this._statemap.get(state).getTransition(str);
                 if (tset === undefined) continue;
-                for (let t of tset)
+                for (const t of tset)
                     mstates.add(t);
             }
             curstatenums = this.epsilonClosureOfStates(mstates);
@@ -114,7 +114,7 @@ export default class NFA {
         dfa2nfaStateMap: Map<number, Set<number>>;
         nfa2dfaStateMap: Map<number, Set<number>>;
     } {
-        let dfat = this.getDFATrans();
+        const dfat = this.getDFATrans();
         return { dfa: createDFA(dfat.dfaTrans, dfat.startid, dfat.terminals), dfa2nfaStateMap: dfat.dfa2nfaStateMap, nfa2dfaStateMap: dfat.nfa2dfaStateMap };
     }
 
@@ -125,31 +125,32 @@ export default class NFA {
         dfa2nfaStateMap: Map<number, Set<number>>,
         nfa2dfaStateMap: Map<number, Set<number>>
     } {
-        let dfaTrans: Array<utility.automata.Transition> = [], dfaIdGen = new utility.IdGen();
-        let dfastatemap = new Map<string, number>(), startid = dfaIdGen.next(), terminals = new Set<number>();
-        let nfaidofstarts = statesId([...this._startclosure]), dfa2nfaStateMap = new Map<number, Set<number>>();
+        const dfaTrans: Array<utility.automata.Transition> = [], dfaIdGen = new utility.IdGen();
+        const dfastatemap = new Map<string, number>(), startid = dfaIdGen.next(), terminals = new Set<number>();
+        const nfaidofstarts = statesId([...this._startclosure]), dfa2nfaStateMap = new Map<number, Set<number>>();
         dfastatemap.set(nfaidofstarts, startid);
         dfa2nfaStateMap.set(startid, this._startclosure);
         if (this.hasTerminal(this._startclosure)) terminals.add(startid);
-        let queue = [{ set: this._startclosure, id: nfaidofstarts, dfaid: startid }];
+        const queue = [{ set: this._startclosure, id: nfaidofstarts, dfaid: startid }];
         while (queue.length > 0) {
-            let cur = queue.shift(), tmp = new Map<string, Set<number>>();
-            for (let s of cur.set) {
-                let nfastate = this._statemap.get(s);
-                for (let tran of nfastate.getTransitionMap()) {
-                    let str = tran[0], tgtset = tran[1];
+            const cur = queue.shift(), tmp = new Map<string, Set<number>>();
+            for (const s of cur.set) {
+                const nfastate = this._statemap.get(s);
+                for (const tran of nfastate.getTransitionMap()) {
+                    const str = tran[0], tgtset = tran[1];
                     if (str.length === 0) continue;
                     let chset = tmp.get(str);
                     if (chset == null) {
                         chset = new Set<number>();
                         tmp.set(str, chset);
                     }
-                    for (let t of tgtset) chset.add(t);
+                    for (const t of tgtset) chset.add(t);
                 }
             }
-            for (let m of tmp) {
-                let str = m[0], tset = this.epsilonClosureOfStates(m[1]);
-                let nfastatesid = statesId([...tset]), dfaid: number = null;
+            for (const m of tmp) {
+                const str = m[0], tset = this.epsilonClosureOfStates(m[1]);
+                const nfastatesid = statesId([...tset]);
+                let dfaid: number = null;
                 if (!dfastatemap.has(nfastatesid)) {
                     dfaid = dfaIdGen.next();
                     dfastatemap.set(nfastatesid, dfaid);
@@ -163,10 +164,10 @@ export default class NFA {
             }
         }
         // construct the mapping from original nfa state -> owner dfa states
-        let nfa2dfaStateMap = new Map<number, Set<number>>();
-        for (let item of dfa2nfaStateMap) {
-            let dfastateid = item[0];
-            for (let nfastateid of item[1]) {
+        const nfa2dfaStateMap = new Map<number, Set<number>>();
+        for (const item of dfa2nfaStateMap) {
+            const dfastateid = item[0];
+            for (const nfastateid of item[1]) {
                 let dfastates = nfa2dfaStateMap.get(nfastateid);
                 if (!dfastates) {
                     dfastates = new Set<number>();

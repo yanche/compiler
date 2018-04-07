@@ -2,10 +2,10 @@
 import { Production, ProdSet, Symbol } from "./production";
 import { startsWith } from "../utility";
 
-let chA = "A".charCodeAt(0);
-let chZ = "Z".charCodeAt(0);
+const chA = "A".charCodeAt(0);
+const chZ = "Z".charCodeAt(0);
 function strAsNonTerminal(str: string): boolean {
-    let ch = str.charCodeAt(0);
+    const ch = str.charCodeAt(0);
     return chA <= ch && ch <= chZ;
 };
 
@@ -16,8 +16,8 @@ function createProduction(lstr: string, rstr: string): Production {
     if (lstr.indexOf(" ") >= 0) throw new Error("left-hand-side contains more than one symbol: " + lstr);
     if (!strAsNonTerminal(lstr)) throw new Error("left-hand-side is not a non-terminal symbol: " + lstr);
     if (startsWith(lstr, ProdSet.preservedNonTerminalPrefix)) throw new Error("non-terminal cannot start with preserved prefix: " + lstr);
-    let lsymbol = new Symbol(false, lstr);
-    let rsymbols = rstr.split(" ").filter(str => str.length > 0).map(str => {
+    const lsymbol = new Symbol(false, lstr);
+    const rsymbols = rstr.split(" ").filter(str => str.length > 0).map(str => {
         if (startsWith(str, ProdSet.preservedNonTerminalPrefix)) throw new Error("non-terminal cannot start with preserved prefix: " + str);
         return new Symbol(!strAsNonTerminal(str), str);
     });
@@ -25,16 +25,16 @@ function createProduction(lstr: string, rstr: string): Production {
 }
 
 // function createProduction2(prodstr: string): Production {
-//     let idxarrow = prodstr.indexOf("->");
+//     const idxarrow = prodstr.indexOf("->");
 //     if (idxarrow < 0) throw new Error("production must has a -> :" + prodstr);
-//     let lstr = prodstr.slice(0, idxarrow), rstr = prodstr.slice(idxarrow + 2);
+//     const lstr = prodstr.slice(0, idxarrow), rstr = prodstr.slice(idxarrow + 2);
 //     return createProduction(lstr, rstr);
 // }
 
 function createMultipleProductions(mprodstr: string, splitter?: string): Production[] {
-    let idxarrow = mprodstr.indexOf("->");
+    const idxarrow = mprodstr.indexOf("->");
     if (idxarrow < 0) throw new Error("production must has a -> :" + mprodstr);
-    let lstr = mprodstr.slice(0, idxarrow).trim();
+    const lstr = mprodstr.slice(0, idxarrow).trim();
     if (splitter === undefined) {
         const rstr = mprodstr.slice(idxarrow + 2).trim();
         return [createProduction(lstr, rstr)];
@@ -45,17 +45,17 @@ function createMultipleProductions(mprodstr: string, splitter?: string): Product
 }
 
 export function createProdSet(mprodarr: Iterable<string>): ProdSet {
-    let prods: Production[] = [];
-    for (let mprod of mprodarr) {
-        for (let p of createMultipleProductions(mprod)) prods.push(p);
+    const prods: Production[] = [];
+    for (const mprod of mprodarr) {
+        for (const p of createMultipleProductions(mprod)) prods.push(p);
     }
     return new ProdSet(prods);
 }
 
 export function createProdSetWithSplitter(mprodarr: Iterable<string>, splitter?: string): ProdSet {
-    let prods: Production[] = [];
-    for (let mprod of mprodarr) {
-        for (let p of createMultipleProductions(mprod, splitter || "|")) prods.push(p);
+    const prods: Production[] = [];
+    for (const mprod of mprodarr) {
+        for (const p of createMultipleProductions(mprod, splitter || "|")) prods.push(p);
     }
     return new ProdSet(prods);
 }

@@ -63,7 +63,7 @@ export class TAC_retreg extends TAC_ret {
         return ["ret", reg2str(this.reg)].join(" ");
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
-        let info = tmpreginfers[this.reg];
+        const info = tmpreginfers[this.reg];
         if (info.type === ValueType.CONST) return new TAC_retint(info.cons);
         else if (info.type === ValueType.CONST_TIMES_REG && info.cons === 1) return new TAC_retreg(info.regnum);
         else return this;
@@ -81,7 +81,7 @@ export class TAC_retreg extends TAC_ret {
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
         //put the return value into register v0
-        let ret = new Array<m.MIPSInstruction>();
+        const ret = new Array<m.MIPSInstruction>();
         ret.push(new m.MIPS_move(m.REGS.v0, r.toMIPSReg(this.reg, regmap)));
         if (!last) ret.push(new m.MIPS_b(retlabel));
         return ret;
@@ -94,7 +94,7 @@ export class TAC_retint extends TAC_ret {
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
         //put the return integer into register v0
-        let ret = new Array<m.MIPSInstruction>();
+        const ret = new Array<m.MIPSInstruction>();
         ret.push(new m.MIPS_li(m.REGS.v0, this.num));
         if (!last) ret.push(new m.MIPS_b(retlabel));
         return ret;
@@ -110,7 +110,7 @@ export class TAC_loadint extends TAC {
         return { regnum: this.to_reg, reginfo: { cons: this.num, type: ValueType.CONST } };
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
-        let info = tmpreginfers[this.to_reg];
+        const info = tmpreginfers[this.to_reg];
         if (info.type === ValueType.CONST && info.cons === this.num) return new TAC_noop();
         else return this;
     }
@@ -142,7 +142,7 @@ export class TAC_mov extends TAC {
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
         if (this.from_reg === this.to_reg) return new TAC_noop();
-        let info1 = tmpreginfers[this.from_reg], info2 = tmpreginfers[this.to_reg];
+        const info1 = tmpreginfers[this.from_reg], info2 = tmpreginfers[this.to_reg];
         if (info1.type === ValueType.CONST && info2.type === ValueType.CONST && info1.cons === info2.cons) return new TAC_noop();
         else if (info1.type === ValueType.CONST_TIMES_REG && info2.type === ValueType.CONST_TIMES_REG && info1.cons === info2.cons && info1.regnum === info2.regnum) return new TAC_noop();
         else if (info1.type === ValueType.CONST) return new TAC_loadint(info1.cons, this.to_reg);
@@ -198,7 +198,7 @@ export class TAC_param extends TAC {
         return ["param", reg2str(this.reg)].join(" ");
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
-        let info = tmpreginfers[this.reg];
+        const info = tmpreginfers[this.reg];
         if (info.type === ValueType.CONST) return new TAC_paramint(info.cons);
         else if (info.type === ValueType.CONST_TIMES_REG && info.cons === 1) return new TAC_param(info.regnum);
         else return this;
@@ -257,7 +257,7 @@ export class TAC_allocate extends TAC {
         return [reg2str(this.result_reg), "=", "allocate", reg2str(this.reg_bytes)].join(" ");
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
-        let info = tmpreginfers[this.reg_bytes];
+        const info = tmpreginfers[this.reg_bytes];
         if (info.type === ValueType.CONST) return new TAC_allocateint(info.cons, this.result_reg);
         else if (info.type === ValueType.CONST_TIMES_REG && info.cons === 1) return new TAC_allocate(info.regnum, this.result_reg);
         else return this;
@@ -323,7 +323,7 @@ export class TAC_fncall extends TAC {
         return this;
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
-        let ret: Array<m.MIPSInstruction> = [
+        const ret: Array<m.MIPSInstruction> = [
             //call the function(return address into $ra)
             new m.MIPS_jal(this.fn.getMIPSLabel()),
             //get the return value from v0
@@ -340,7 +340,7 @@ export class TAC_fncall_reg extends TAC {
         return [reg2str(this.result_reg), "=", "call", reg2str(this.fn_reg), this.plen].join(" ");
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
-        let info = tmpreginfers[this.fn_reg];
+        const info = tmpreginfers[this.fn_reg];
         if (info.type === ValueType.CONST_TIMES_REG && info.cons === 1) return new TAC_fncall_reg(info.regnum, this.plen, this.result_reg);
         else return this;
     }
@@ -370,7 +370,7 @@ export class TAC_fncall_reg extends TAC {
         return this;
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
-        let ret: Array<m.MIPSInstruction> = [
+        const ret: Array<m.MIPSInstruction> = [
             //call the function by register(return address into $ra)
             new m.MIPS_jalr(r.toMIPSReg(this.fn_reg, regmap)),
             //get the return value from v0
@@ -389,7 +389,7 @@ export class TAC_procedurecall extends TAC {
     }
     toMIPS(regmap: Map<number, number>, retlabel: string, last: boolean): Array<m.MIPSInstruction> {
         //call the function(return address into $ra)
-        let ret: Array<m.MIPSInstruction> = [new m.MIPS_jal(this.fn.getMIPSLabel())];
+        const ret: Array<m.MIPSInstruction> = [new m.MIPS_jal(this.fn.getMIPSLabel())];
         //SP = SP + 4*PLEN
         if (this.fn.argtypelist.length > 0)
             ret.push(new m.MIPS_addu(m.REGS.sp, m.REGS.sp, 4 * this.fn.argtypelist.length));
@@ -402,7 +402,7 @@ export class TAC_procedurecall_reg extends TAC {
         return ["call", reg2str(this.fn_reg), this.plen].join(" ");
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
-        let info = tmpreginfers[this.fn_reg];
+        const info = tmpreginfers[this.fn_reg];
         if (info.type === ValueType.CONST_TIMES_REG && info.cons === 1) return new TAC_procedurecall_reg(info.regnum, this.plen);
         else return this;
     }
@@ -468,7 +468,7 @@ export class TAC_binary extends TAC {
         return { regnum: this.result_reg, reginfo: retinfo };
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
-        let oinfo1 = tmpreginfers[this.operand1_reg], oinfo2 = tmpreginfers[this.operand2_reg];
+        const oinfo1 = tmpreginfers[this.operand1_reg], oinfo2 = tmpreginfers[this.operand2_reg];
         if (this.op === "*" && ((oinfo1.type === ValueType.CONST && oinfo1.cons === 0) || (oinfo2.type === ValueType.CONST && oinfo2.cons === 0))) {
             return new TAC_loadint(0, this.result_reg);
             //TODO: MERGE WITH regInfoOutput
@@ -483,7 +483,7 @@ export class TAC_binary extends TAC {
             return new TAC_binary_int("*", oinfo2.regnum, oinfo1.cons * oinfo2.cons, this.result_reg);
         }
         else if ((this.op === "+" || this.op === "-") && oinfo1.type === ValueType.CONST_TIMES_REG && oinfo2.type === ValueType.CONST_TIMES_REG && oinfo1.regnum === oinfo2.regnum) {
-            let opint = this.op === "+" ? (oinfo1.cons + oinfo2.cons) : (oinfo1.cons - oinfo2.cons);
+            const opint = this.op === "+" ? (oinfo1.cons + oinfo2.cons) : (oinfo1.cons - oinfo2.cons);
             return new TAC_binary_int("*", oinfo1.regnum, opint, this.result_reg);
         }
         else if (this.op === "*" && oinfo1.type === ValueType.CONST) {
@@ -551,13 +551,13 @@ export class TAC_binary_int extends TAC {
         return { regnum: this.result_reg, reginfo: retinfo };
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
-        let oinfo = tmpreginfers[this.operand_reg];
+        const oinfo = tmpreginfers[this.operand_reg];
         if (this.op === "*" && ((oinfo.type === ValueType.CONST && oinfo.cons === 0) || this.operand_int === 0)) {
             return new TAC_loadint(0, this.result_reg).simplify(tmpreginfers);
             //TODO: MERGE WITH regInfoOutput
         }
         else if (this.op === "*" && oinfo.type === ValueType.CONST_TIMES_REG) {
-            let cons = oinfo.cons * this.operand_int;
+            const cons = oinfo.cons * this.operand_int;
             if (cons === 1) return new TAC_mov(oinfo.regnum, this.result_reg).simplify(tmpreginfers);
             else return new TAC_binary_int("*", oinfo.regnum, cons, this.result_reg);
             //TODO: MORE
@@ -618,7 +618,7 @@ export class TAC_unary extends TAC {
         return { regnum: this.result_reg, reginfo: retinfo };
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
-        let oinfo = tmpreginfers[this.operand_reg];
+        const oinfo = tmpreginfers[this.operand_reg];
         if (oinfo.type === ValueType.CONST) {
             return new TAC_loadint(unary_op(this.op, oinfo.cons), this.result_reg).simplify(tmpreginfers);
         }
@@ -669,7 +669,7 @@ export class TAC_btrue extends TAC_branch {
         return ["branch_true", reg2str(this.reg), this.label].join(" ");
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
-        let oinfo = tmpreginfers[this.reg];
+        const oinfo = tmpreginfers[this.reg];
         if (oinfo.type === ValueType.CONST) {
             if (oinfo.cons === 0) return new TAC_noop();
             else return new TAC_branch(this.label);
@@ -698,7 +698,7 @@ export class TAC_bfalse extends TAC_branch {
         return ["branch_false", reg2str(this.reg), this.label].join(" ");
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
-        let oinfo = tmpreginfers[this.reg];
+        const oinfo = tmpreginfers[this.reg];
         if (oinfo.type === ValueType.CONST) {
             if (oinfo.cons !== 0) return new TAC_noop();
             else return new TAC_branch(this.label);
@@ -726,7 +726,7 @@ export class TAC_lw extends TAC {
         return [reg2str(this.result_reg), "=", "word", this.offset + "(" + reg2str(this.store_reg) + ")"].join(" ");
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
-        let oinfo = tmpreginfers[this.store_reg];
+        const oinfo = tmpreginfers[this.store_reg];
         if (oinfo.type === ValueType.CONST_TIMES_REG && oinfo.cons === 1) return new TAC_lw(oinfo.regnum, this.offset, this.result_reg);
         else return this;
     }
@@ -765,7 +765,7 @@ export class TAC_lb extends TAC {
         return [reg2str(this.result_reg), "=", "byte", this.offset + "(" + reg2str(this.store_reg) + ")"].join(" ");
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
-        let oinfo = tmpreginfers[this.store_reg];
+        const oinfo = tmpreginfers[this.store_reg];
         if (oinfo.type === ValueType.CONST_TIMES_REG && oinfo.cons === 1) return new TAC_lb(oinfo.regnum, this.offset, this.result_reg);
         else return this;
     }
@@ -804,7 +804,7 @@ export class TAC_sw extends TAC {
         return ["word", this.offset + "(" + reg2str(this.store_reg) + ")", "=", reg2str(this.from_reg)].join(" ");
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
-        let oinfo1 = tmpreginfers[this.store_reg], oinfo2 = tmpreginfers[this.from_reg];
+        const oinfo1 = tmpreginfers[this.store_reg], oinfo2 = tmpreginfers[this.from_reg];
         let sreg = this.store_reg, freg = this.from_reg;
         if (oinfo1.type === ValueType.CONST_TIMES_REG && oinfo1.cons === 1) sreg = oinfo1.regnum;
         if (oinfo2.type === ValueType.CONST_TIMES_REG && oinfo2.cons === 1) freg = oinfo2.regnum;
@@ -833,7 +833,7 @@ export class TAC_sb extends TAC {
         return ["byte", this.offset + "(" + reg2str(this.store_reg) + ")", "=", reg2str(this.from_reg)].join(" ");
     }
     simplify(tmpreginfers: Array<ValueInference>): TAC {
-        let oinfo1 = tmpreginfers[this.store_reg], oinfo2 = tmpreginfers[this.from_reg];
+        const oinfo1 = tmpreginfers[this.store_reg], oinfo2 = tmpreginfers[this.from_reg];
         let sreg = this.store_reg, freg = this.from_reg;
         if (oinfo1.type === ValueType.CONST_TIMES_REG && oinfo1.cons === 1) sreg = oinfo1.regnum;
         if (oinfo2.type === ValueType.CONST_TIMES_REG && oinfo2.cons === 1) freg = oinfo2.regnum;
@@ -920,7 +920,7 @@ function unary_op(op: string, num: number): number {
 //            false for a=fib(1,2)
 function tmpRegLiveness_assign(regbtmlive: Array<boolean>, rhs_reg: Array<number>, lhs_reg: number, deadignore: boolean): Array<{ regnum: number, live: boolean }> {
     if (!regbtmlive[lhs_reg] && deadignore) return [];
-    let r = rhs_reg.map(r => { return { regnum: r, live: true } });
+    const r = rhs_reg.map(r => { return { regnum: r, live: true } });
     if (rhs_reg.some(r => r == lhs_reg)) return r;
     else return [{ regnum: lhs_reg, live: false }].concat(r);
 }

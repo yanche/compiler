@@ -18,25 +18,25 @@ export { ValueInference, ValueType, ANY, LivenessInfo };
 // FOR INTERMEDIATE CODE GENERATION AND OPTIMIZATION
 
 export function generateIntermediateCode(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup): IntermediateCode {
-    let code = new IntermediateCode();
+    const code = new IntermediateCode();
     code.addVtableGData(classlookup);
     const labelIdGen = new IdGen();
-    for (let fndef of flatten([fnlookup.allFn(), flatten(classlookup.getAllClasses().map(c => flatten([fnlookup.findMethods(c), fnlookup.findConstructors(c)])))])) {
+    for (const fndef of flatten([fnlookup.allFn(), flatten(classlookup.getAllClasses().map(c => flatten([fnlookup.findMethods(c), fnlookup.findConstructors(c)])))])) {
         if (fndef.predefined) continue;
-        let codelines = new Array<CodeLine>();
+        const codelines = new Array<CodeLine>();
         fndef.astnode.genIntermediateCode(codelines);
         finalizeLabelRef(codelines);
-        let cllen = codelines.length;
+        const cllen = codelines.length;
         for (let i = 0; i < cllen; ++i) {
             codelines[i].linenum = i;
         }
-        let valInfers = inferValues(codelines, fndef.astnode.tmpRegAssigned, fndef.astnode.argTmpRegIdList);
+        const valInfers = inferValues(codelines, fndef.astnode.tmpRegAssigned, fndef.astnode.argTmpRegIdList);
         valueFold(codelines, valInfers); // fold will replace several TAC
-        let liveInfers = inferLiveness(codelines, fndef.astnode.tmpRegAssigned);
+        const liveInfers = inferLiveness(codelines, fndef.astnode.tmpRegAssigned);
         livenessProne(codelines, liveInfers); // livenessProne will replace several TAC
         removeBranch(codelines);
         // final code-lines
-        let compressed = compress(codelines, liveInfers, labelIdGen);
+        const compressed = compress(codelines, liveInfers, labelIdGen);
         code.newCodePiece(fndef, fndef.astnode.tmpRegAssigned, compressed.codelines, compressed.regliveness);
     }
     return code;
@@ -47,9 +47,9 @@ export class IntermediateCode {
     private _gdatapieces: Array<GDATA>;
 
     toMIPS(asm: m.MIPSAssembly): this {
-        for (let gd of this._gdatapieces)
+        for (const gd of this._gdatapieces)
             gd.toMIPS(asm);
-        for (let cp of this._codepieces)
+        for (const cp of this._codepieces)
             cp.toMIPS(asm);
         return this;
     }
@@ -60,8 +60,8 @@ export class IntermediateCode {
     }
 
     toString(): string {
-        let gdata = ".data\r\n" + this._gdatapieces.map(gdata => gdata.toString()).join("\r\n\r\n");
-        let text = ".text\r\n" + this._codepieces.map(cp => cp.toString()).join("\r\n\r\n");
+        const gdata = ".data\r\n" + this._gdatapieces.map(gdata => gdata.toString()).join("\r\n\r\n");
+        const text = ".text\r\n" + this._codepieces.map(cp => cp.toString()).join("\r\n\r\n");
         return gdata + "\r\n\r\n" + text;
     }
 
@@ -71,7 +71,7 @@ export class IntermediateCode {
     }
 
     addVtableGData(classlookup: util.ClassLookup): this {
-        for (let classname of classlookup.getAllClasses()) {
+        for (const classname of classlookup.getAllClasses()) {
             this.addGData(new GDATA_VTABLE(classlookup.getClass(classname)));
         }
         return this;
@@ -84,8 +84,8 @@ export class IntermediateCode {
 }
 
 // function lineNum2Str(linenum: number, minlen: number): string {
-//     let linestr = linenum + ":";
-//     let arr = new Array<string>(Math.max(minlen - linestr.length, 0) + 1);
+//     const linestr = linenum + ":";
+//     const arr = new Array<string>(Math.max(minlen - linestr.length, 0) + 1);
 //     for (let i = 0; i < arr.length - 1; ++i) arr[i] = " ";
 //     arr[arr.length - 1] = linestr;
 //     return arr.join("");
@@ -106,11 +106,11 @@ export class IntermediateCode {
 export class CodePiece {
     toMIPS(asm: m.MIPSAssembly): this {
         // regalloc will MODIFY the codelines and regliveness
-        let regallocret = r.regalloc(this._codelines, this._regliveness, this._tmpregcount - 1), regset = new Set<number>();
-        for (let x of regallocret.regmap) regset.add(x[1]);
+        const regallocret = r.regalloc(this._codelines, this._regliveness, this._tmpregcount - 1), regset = new Set<number>();
+        for (const x of regallocret.regmap) regset.add(x[1]);
         // mipsregs is the set of mips registers that will be used in this code block
-        let mipsregs = [...regset].map(rnum => r.regnumToMIPSReg(rnum));
-        let rlen = mipsregs.length;
+        const mipsregs = [...regset].map(rnum => r.regnumToMIPSReg(rnum));
+        const rlen = mipsregs.length;
         // store the $ra (return address)
         asm.addCode(new m.MIPS_sw(m.REGS.ra, new m.MIPSAddr_reg(-4 * rlen, m.REGS.sp)).setComments(this._fndef.signiture.toString()), this._fndef.getMIPSLabel());
         // store the $fp (frame point)
@@ -135,8 +135,8 @@ export class CodePiece {
         // reset $sp
         asm.addCode(new m.MIPS_add(m.REGS.sp, m.REGS.sp, -4 * rlen - 8 - 4 * regallocret.tmpinstack.size));
         // function body
-        let clen = this._codelines.length;
-        let fnretlabel = this._fndef.getMIPSLabel_return();
+        const clen = this._codelines.length;
+        const fnretlabel = this._fndef.getMIPSLabel_return();
         for (let i = 0; i < clen; ++i) {
             this._codelines[i].toMIPS(asm, regallocret.regmap, i === clen - 1, fnretlabel);
         }
@@ -178,8 +178,8 @@ export class CodeLine {
 
     toMIPS(asm: m.MIPSAssembly, regmap: Map<number, number>, last: boolean, retlabel: string): this {
         //livetemp: ignore fp, sp, if any
-        let ins = this.tac.toMIPS(regmap, retlabel, last);
-        let label = this.label == null ? null : this.label.toString();
+        const ins = this.tac.toMIPS(regmap, retlabel, last);
+        const label = this.label == null ? null : this.label.toString();
         if (ins.length === 0) {
             if (label != null)
                 asm.addCode(new m.MIPS_nop(), label);
@@ -198,9 +198,9 @@ export class CodeLine {
     }
 
     branchToCL(): CodeLine {
-        let tac = this.tac;
+        const tac = this.tac;
         if (tac instanceof t.TAC_branch) {
-            let retcl = tac.label.owner;
+            const retcl = tac.label.owner;
             if (!retcl) throw new Error("defensive code, label point to nothing, branchToCL is supposed to be called under label-complete mode");
             return retcl;
         }

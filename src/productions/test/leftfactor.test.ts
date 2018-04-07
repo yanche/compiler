@@ -1,5 +1,5 @@
 
- import { assert } from "chai";
+import { assert } from "chai";
 import * as utility from "../../utility";
 import { createProdSetWithSplitter } from "../index";
 import * as prod from "../production";
@@ -91,7 +91,9 @@ describe("production set left factoring", function () {
         ]);
         const lfprodset = pset.leftFactoredProdSet();
         const Erhsarr = lfprodset.getProds(lfprodset.getSymId("E"));
-        let new1: string = "", new2: string = "", new3: string = "";
+        let new1: string = "";
+        let new2: string = "";
+        let new3: string = "";
         for (let i = 0; i < 3; ++i) {
             const rhs = lfprodset.getProdRef(Erhsarr[i]).rhsIds;
             if (rhs.length === 2) {

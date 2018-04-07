@@ -8,7 +8,7 @@ class TLangASTConverter extends ASTConverter {
         super(handlermapp);
     }
     toAST(root: ParseTreeMidNode): a.ASTNode {
-        let ret = <a.ASTNode>super.toAST(root);
+        const ret = <a.ASTNode>super.toAST(root);
         ret.area = root.area();
         return ret;
     }
@@ -22,7 +22,7 @@ let processor = defineSyntaxProcessor([
     {
         production: "GLOBAL-STATEMENT-LIST -> GLOBAL-STATEMENT GLOBAL-STATEMENT-LIST",
         handler: node => {
-            let left = <a.ASTNode_classdef | a.ASTNode_functiondef>childToAST(node, 0), right = <a.ASTNode_globaldefs>childToAST(node, 1);
+            const left = <a.ASTNode_classdef | a.ASTNode_functiondef>childToAST(node, 0), right = <a.ASTNode_globaldefs>childToAST(node, 1);
             return new a.ASTNode_globaldefs([left].concat(right.children));
         }
     },
@@ -43,14 +43,14 @@ let processor = defineSyntaxProcessor([
     {
         production: "FUNCTION-DEFINITION -> void id FUNCTION-DEFINITION-MAIN",
         handler: node => {
-            let ast_fnmain = <a.ASTNode_functiondef_main>childToAST(node, 2);
+            const ast_fnmain = <a.ASTNode_functiondef_main>childToAST(node, 2);
             return new a.ASTNode_functiondef(new a.ASTNode_type(childToken(node, 0), 0), childToken(node, 1), ast_fnmain.argumentlist, ast_fnmain.statementlist);
         }
     },
     {
         production: "FUNCTION-DEFINITION -> TYPE-ANNOTATION id FUNCTION-DEFINITION-MAIN",
         handler: node => {
-            let ast_fnmain = <a.ASTNode_functiondef_main>childToAST(node, 2);
+            const ast_fnmain = <a.ASTNode_functiondef_main>childToAST(node, 2);
             return new a.ASTNode_functiondef(<a.ASTNode_type>childToAST(node, 0), childToken(node, 1), ast_fnmain.argumentlist, ast_fnmain.statementlist);
         }
     },
@@ -75,7 +75,7 @@ let processor = defineSyntaxProcessor([
     {
         production: "TYPE-ANNOTATION -> [ TYPE-ANNOTATION ]",
         handler: node => {
-            let type = (<a.ASTNode_type>childToAST(node, 1));
+            const type = (<a.ASTNode_type>childToAST(node, 1));
             return new a.ASTNode_type(type.basetype, type.depth + 1);
         }
     },
@@ -90,7 +90,7 @@ let processor = defineSyntaxProcessor([
     {
         production: "ARGUMENT-LIST -> VAR-DECLARATION , ARGUMENT-LIST",
         handler: node => {
-            let left = <a.ASTNode_vardeclare>childToAST(node, 0), right = <a.ASTNode_argumentlist>childToAST(node, 2);
+            const left = <a.ASTNode_vardeclare>childToAST(node, 0), right = <a.ASTNode_argumentlist>childToAST(node, 2);
             return new a.ASTNode_argumentlist([left].concat((right).children));
         }
     },
@@ -135,7 +135,7 @@ let processor = defineSyntaxProcessor([
     {
         production: "CLASS-BODY -> CLASS-BODY-ITEM CLASS-BODY",
         handler: node => {
-            let left = <a.ASTNode_vardeclare | a.ASTNode_functiondef | a.ASTNode_constructordef>childToAST(node, 0), right = <a.ASTNode_classbody>childToAST(node, 1);
+            const left = <a.ASTNode_vardeclare | a.ASTNode_functiondef | a.ASTNode_constructordef>childToAST(node, 0), right = <a.ASTNode_classbody>childToAST(node, 1);
             return new a.ASTNode_classbody([left].concat(right.children));
         }
     },
@@ -156,14 +156,14 @@ let processor = defineSyntaxProcessor([
     {
         production: "CLASS-BODY-ITEM -> constructor FUNCTION-DEFINITION-MAIN",
         handler: node => {
-            let right = <a.ASTNode_functiondef_main>childToAST(node, 1);
+            const right = <a.ASTNode_functiondef_main>childToAST(node, 1);
             return new a.ASTNode_constructordef(right.argumentlist, right.statementlist);
         }
     },
     {
         production: "STATEMENT-LIST -> STATEMENT STATEMENT-LIST",
         handler: node => {
-            let left = <a.ASTNode_statement>childToAST(node, 0), right = <a.ASTNode_statementlist>childToAST(node, 1);
+            const left = <a.ASTNode_statement>childToAST(node, 0), right = <a.ASTNode_statementlist>childToAST(node, 1);
             return new a.ASTNode_statementlist([left].concat(right.children));
         }
     },
@@ -434,7 +434,7 @@ let processor = defineSyntaxProcessor([
     {
         production: "CALL-EXPRESSION -> new TYPE-ANNOTATION ( EXPRESSION-NULLABLE-LIST )",
         handler: node => {
-            let typenode = <a.ASTNode_type>childToAST(node, 1), exprlist = <a.ASTNode_exprlist>childToAST(node, 3);
+            const typenode = <a.ASTNode_type>childToAST(node, 1), exprlist = <a.ASTNode_exprlist>childToAST(node, 3);
             if (typenode.depth === 0)
                 return new a.ASTNode_newinstance(typenode.basetype, exprlist)
             else
@@ -504,7 +504,7 @@ let processor = defineSyntaxProcessor([
     {
         production: "EXPRESSION-LIST -> EXPRESSION , EXPRESSION-LIST",
         handler: node => {
-            let left = <a.ASTNode_expr>childToAST(node, 0), right = <a.ASTNode_exprlist>childToAST(node, 2);
+            const left = <a.ASTNode_expr>childToAST(node, 0), right = <a.ASTNode_exprlist>childToAST(node, 2);
             return new a.ASTNode_exprlist([left].concat(right.children));
         }
     },
@@ -521,7 +521,7 @@ function handlerFnStmtElse(node: ParseTreeMidNode): a.ASTNode_if {
 }
 
 function handlerFnWhileFor(node: ParseTreeMidNode): a.ASTNode_for | a.ASTNode_while {
-    let left = <a.ASTNode_for_head | a.ASTNode_expr>childToAST(node, 0), right = <a.ASTNode_statement>childToAST(node, 1);
+    const left = <a.ASTNode_for_head | a.ASTNode_expr>childToAST(node, 0), right = <a.ASTNode_statement>childToAST(node, 1);
     if (left instanceof a.ASTNode_for_head)
         return new a.ASTNode_for(left.initstmt, left.cond, left.endstmt, right);
     else

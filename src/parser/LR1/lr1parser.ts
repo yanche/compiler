@@ -25,7 +25,7 @@ export default class LR1Parser extends LRParser {
         const lr0ItemsPack = new LR0ItemsPack(prodset);
         // start items
         const startLR1Items = lr0ItemsPack.getStartItemIds().map(lr0ItemId => calcLR1ItemId(lr0ItemId, finSymId, totalLookAhead));
-        for (let i of startLR1Items) processedItems.add(i);
+        for (const i of startLR1Items) processedItems.add(i);
         const lr1ItemStack = startLR1Items.concat([]);
         let stackTop = lr1ItemStack.length - 1;
         while (stackTop >= 0) {
@@ -41,9 +41,9 @@ export default class LR1Parser extends LRParser {
                 // non-terminal, add epsilon transition
                 if (!prodset.isSymIdTerminal(dotSymId)) {
                     const nonTerminalFollowSet = calcLR1LookAheadSymbols(prodset, rhsIds.slice(lr0Item.dot + 1), lookAheadSymId);
-                    for (let prodId of prodset.getProds(dotSymId)) {
+                    for (const prodId of prodset.getProds(dotSymId)) {
                         const nextProdLR0ItemId = lr0ItemsPack.getItemIdsByProdId(prodId)[0];
-                        for (let f of nonTerminalFollowSet) {
+                        for (const f of nonTerminalFollowSet) {
                             const nextProdLR1ItemId = calcLR1ItemId(nextProdLR0ItemId, f, totalLookAhead);
                             stackTop = addNFATran(new automata.Transition(lr1ItemId, nextProdLR1ItemId, ""), nfaTrans, lr1ItemStack, stackTop + 1, processedItems);
                         }
@@ -91,7 +91,7 @@ export default class LR1Parser extends LRParser {
     }
     // stringifyDFA(): string {
     //     const strarr = ["DFA:", this._dfa.toString()];
-    //     for (let dstate of this._dfaitemmap) {
+    //     for (const dstate of this._dfaitemmap) {
     //         strarr.push(this.stringify1DFA(dstate[0]));
     //     }
     //     return strarr.join("\r\n");
@@ -100,12 +100,12 @@ export default class LR1Parser extends LRParser {
     //     const lr1itemnums = this._dfaitemmap.get(dfaStateId);
     //     const strarr = ["DFA state " + dfaStateId + " contains items: "];
     //     const map = new Map<number, Array<number>>();
-    //     for (let lr1itemnum of lr1itemnums) {
+    //     for (const lr1itemnum of lr1itemnums) {
     //         const lr0itemnum = Math.floor(lr1itemnum / this._totalLookAhead), lasymnum = lr1itemnum % this._totalLookAhead;
     //         if (map.has(lr0itemnum)) map.get(lr0itemnum).push(lasymnum);
     //         else map.set(lr0itemnum, [lasymnum]);
     //     }
-    //     for (let n of map) {
+    //     for (const n of map) {
     //         strarr.push(itemInStr(this._lr0ItemsPack.getItem(n[0]), n[1], this._prodset));
     //     }
     //     return strarr.join("\r\n");

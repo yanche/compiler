@@ -13,7 +13,7 @@ export class ASTConverter {
     }
 
     toAST(root: ParseTreeMidNode): ASTNode {
-        let handler = this._handlermap.get(root.prodId);
+        const handler = this._handlermap.get(root.prodId);
         if (!handler) throw new Error(`handler not found for prodId: ${root.prodId}`);
         return handler(root);
     }

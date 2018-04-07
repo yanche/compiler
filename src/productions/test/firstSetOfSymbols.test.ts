@@ -4,7 +4,7 @@ import * as utility from "../../utility";
 import { createProdSetWithSplitter, ProdSet } from "../index";
 
 function validate(prodset: ProdSet, expected: { symbols: string[]; firsts: string[]; nullable: boolean; }[]) {
-    for (let e of expected) {
+    for (const e of expected) {
         const result = prodset.firstSetOfSymbols(e.symbols.map(s => prodset.getSymId(s)));
         assert.strictEqual(result.nullable, e.nullable);
         assert.strictEqual(utility.arrayEquivalent([...result.firstSet].map(s => prodset.getSymInStr(s)), e.firsts), true);

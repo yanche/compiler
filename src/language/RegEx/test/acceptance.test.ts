@@ -4,7 +4,7 @@ import RegEx from "../regex";
 
 describe("acceptance tests for regex --- accept full input", function () {
     describe("simple concat: abc", function () {
-        let regex = new RegEx("abc");
+        const regex = new RegEx("abc");
         it("accept: abc", function () {
             assert.equal(regex.acceptFull("abc"), true);
         });
@@ -23,7 +23,7 @@ describe("acceptance tests for regex --- accept full input", function () {
     });
 
     describe("simple OR: a|b", function () {
-        let regex = new RegEx("a|b");
+        const regex = new RegEx("a|b");
         it("accept: a", function () {
             assert.equal(regex.acceptFull("a"), true);
         });
@@ -42,7 +42,7 @@ describe("acceptance tests for regex --- accept full input", function () {
     });
 
     describe("simple REPEAT (*): a*", function () {
-        let regex = new RegEx("a*");
+        const regex = new RegEx("a*");
         it("accept: a", function () {
             assert.equal(regex.acceptFull("a"), true);
         });
@@ -61,7 +61,7 @@ describe("acceptance tests for regex --- accept full input", function () {
     });
 
     describe("simple REPEAT (+): a+", function () {
-        let regex = new RegEx("a+");
+        const regex = new RegEx("a+");
         it("accept: a", function () {
             assert.equal(regex.acceptFull("a"), true);
         });
@@ -80,7 +80,7 @@ describe("acceptance tests for regex --- accept full input", function () {
     });
 
     describe("simple REPEAT (?): a?", function () {
-        let regex = new RegEx("a?");
+        const regex = new RegEx("a?");
         it("accept: a", function () {
             assert.equal(regex.acceptFull("a"), true);
         });
@@ -99,7 +99,7 @@ describe("acceptance tests for regex --- accept full input", function () {
     });
 
     describe("simple group: a-m", function () {
-        let regex = new RegEx("a-m");
+        const regex = new RegEx("a-m");
         it("accept: a", function () {
             assert.equal(regex.acceptFull("a"), true);
         });
@@ -118,7 +118,7 @@ describe("acceptance tests for regex --- accept full input", function () {
     });
 
     describe("simple group: 2-6", function () {
-        let regex = new RegEx("2-6");
+        const regex = new RegEx("2-6");
         it("accept: 3", function () {
             assert.equal(regex.acceptFull("3"), true);
         });
@@ -140,7 +140,7 @@ describe("acceptance tests for regex --- accept full input", function () {
     });
 
     describe("simple set: [abc]", function () {
-        let regex = new RegEx("[abc]");
+        const regex = new RegEx("[abc]");
         it("accept: a", function () {
             assert.equal(regex.acceptFull("a"), true);
         });
@@ -159,7 +159,7 @@ describe("acceptance tests for regex --- accept full input", function () {
     });
 
     describe("precedance: abc|def", function () {
-        let regex = new RegEx("abc|def");
+        const regex = new RegEx("abc|def");
         it("deny: abcef", function () {
             assert.equal(regex.acceptFull("abcef"), false);
         });
@@ -175,7 +175,7 @@ describe("acceptance tests for regex --- accept full input", function () {
     });
 
     describe("precedance: ab(c|d)ef", function () {
-        let regex = new RegEx("ab(c|d)ef");
+        const regex = new RegEx("ab(c|d)ef");
         it("accept: abcef", function () {
             assert.equal(regex.acceptFull("abcef"), true);
         });
@@ -191,7 +191,7 @@ describe("acceptance tests for regex --- accept full input", function () {
     });
 
     describe("precedance: abc*", function () {
-        let regex = new RegEx("abc*");
+        const regex = new RegEx("abc*");
         it("accept: abc", function () {
             assert.equal(regex.acceptFull("abc"), true);
         });
@@ -207,7 +207,7 @@ describe("acceptance tests for regex --- accept full input", function () {
     });
 
     describe("precedance: (abc)*", function () {
-        let regex = new RegEx("(abc)*");
+        const regex = new RegEx("(abc)*");
         it("accept: abc", function () {
             assert.equal(regex.acceptFull("abc"), true);
         });
@@ -223,7 +223,7 @@ describe("acceptance tests for regex --- accept full input", function () {
     });
 
     describe("precedance: abc-d*", function () {
-        let regex = new RegEx("abc-d*");
+        const regex = new RegEx("abc-d*");
         it("accept: abc", function () {
             assert.equal(regex.acceptFull("abc"), true);
         });
@@ -239,7 +239,7 @@ describe("acceptance tests for regex --- accept full input", function () {
     });
 
     describe("complicated case: w(a1|b2)*([c-emx-z]+qwe*rt?)w", function () {
-        let regex = new RegEx("w(a1|b2)*([c-emx-z]+qwe*rt?)w");
+        const regex = new RegEx("w(a1|b2)*([c-emx-z]+qwe*rt?)w");
         it("accept: wa1cqwertw", function () {
             assert.equal(regex.acceptFull("wa1cqwertw"), true);
         });
@@ -276,7 +276,7 @@ describe("acceptance tests for regex --- accept full input", function () {
 
 describe("acceptance tests for regex --- accept partial input", function () {
     describe("simple concat: abc", function () {
-        let regex = new RegEx("abc");
+        const regex = new RegEx("abc");
         it("accept: abcdef", function () {
             assert.equal(regex.accept("abcdef"), true);
         });

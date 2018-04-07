@@ -10,7 +10,7 @@ interface AcceptValidor {
 }
 //arr: array of {str:, expected: bool}
 function bulkValidate(arr: Array<AcceptValidor>, dfa: DFA) {
-    for (let item of arr) {
+    for (const item of arr) {
         assert.equal(item.expected, dfa.accept(item.str.split('')));
     }
 };

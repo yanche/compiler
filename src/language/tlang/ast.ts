@@ -12,9 +12,9 @@ function createTypeAssignMismatchReturn(rtype: util.Type, ltype: util.Type, area
 }
 
 function typeAnalysisExprList(exprlist: Array<ASTNode_expr>, parr: Array<util.Type>, classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
-    let len = exprlist.length;
+    const len = exprlist.length;
     for (let i = 0; i < len; ++i) {
-        let cret = exprlist[i].typeAnalysis(classlookup, fnlookup, ctx);
+        const cret = exprlist[i].typeAnalysis(classlookup, fnlookup, ctx);
         if (!cret.accept) return cret;
         else parr[i] = cret.type;
     }
@@ -42,22 +42,22 @@ export class ASTNode_functiondef extends ASTNode {
     }
 
     codepathAnalysis(): util.SemanticCheckReturn {
-        let cret = this.statementlist.codepathAnalysis(false);
+        const cret = this.statementlist.codepathAnalysis(false);
         if (!cret.accept) return cret;
         if (cret.returns || this.returntype.type.isVoid()) return new util.SemanticCheckReturn();
         else return new util.SemanticCheckReturn(new SemanticError(`function/method does not return a value, at ${this.name.area}`, ErrorCode.NOT_ALWAYS_RETURN));
     }
 
     makeSymbolTable(classname: string, classlookup: util.ClassLookup): util.SemanticCheckReturn {
-        let symboltable = new util.SymbolFrame(null);
+        const symboltable = new util.SymbolFrame(null);
         // this._symboltable = symboltable;
         this._tmpregidgen = new IdGen();
         if (classname) {
             // for method
             symboltable.add("this", new util.SymbolAttrs(new util.Type(classname, 0), this._tmpregidgen.next(), noArea));
         }
-        for (let vardeclare of this.argumentlist.children) {
-            let cret = vardeclare.makeSymbolTable(symboltable, classlookup, this._tmpregidgen);
+        for (const vardeclare of this.argumentlist.children) {
+            const cret = vardeclare.makeSymbolTable(symboltable, classlookup, this._tmpregidgen);
             if (!cret.accept) return cret;
         }
         this._argtmpregidupper = this._tmpregidgen.cur;
@@ -166,17 +166,18 @@ export class ASTNode_statementlist extends ASTNode_statement {
     constructor(public children: Array<ASTNode_statement>) { super(); }
 
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
-        for (let l of this.children) {
-            let cret = l.typeAnalysis(classlookup, fnlookup, ctx);
+        for (const l of this.children) {
+            const cret = l.typeAnalysis(classlookup, fnlookup, ctx);
             if (!cret.accept) return cret;
         }
         return new util.SemanticCheckReturn();
     }
 
     codepathAnalysis(inloop: boolean): util.SemanticCheckReturn {
-        let i = 0, len = this.children.length;
+        let i = 0;
+        const len = this.children.length;
         for (; i < len; ++i) {
-            let mret = this.children[i].codepathAnalysis(inloop);
+            const mret = this.children[i].codepathAnalysis(inloop);
             if (!mret.accept) return mret;
             if (mret.returns) break;
         }
@@ -187,15 +188,15 @@ export class ASTNode_statementlist extends ASTNode_statement {
 
     makeSymbolTable(symboltable: util.SymbolFrame, classlookup: util.ClassLookup, tmpRegIdGen: IdGen): util.SemanticCheckReturn {
         this._symboltable = symboltable;
-        for (let stmt of this.children) {
-            let cret = stmt.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
+        for (const stmt of this.children) {
+            const cret = stmt.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
             if (!cret.accept) return cret;
         }
         return new util.SemanticCheckReturn();
     }
 
     genIntermediateCode(codelines: Array<CodeLine>, context: util.IcContext, tmpRegIdGen: IdGen) {
-        for (let c of this.children) c.genIntermediateCode(codelines, context, tmpRegIdGen);
+        for (const c of this.children) c.genIntermediateCode(codelines, context, tmpRegIdGen);
     }
 }
 
@@ -206,7 +207,7 @@ export class ASTNode_vardeclare extends ASTNode_statement {
         this._symboltable = symboltable;
         if (this.name.rawstr === "this") return new util.SemanticCheckReturn(new SemanticError(`cannot use "this" as a variable name: at ${this.name.area}`, ErrorCode.THIS_AS_VARNAME));
         if (symboltable.hasOnTop(this.name.rawstr)) return new util.SemanticCheckReturn(new SemanticError(`duplicate variable declaration: ${this.name.rawstr} at ${this.name.area}`, ErrorCode.DUP_VARIABLE));
-        let type = this.type.type;
+        const type = this.type.type;
         if (!util.isType(type.basetype, classlookup)) return createInvalidTypeReturn(type.basetype, this.type.area);
         symboltable.add(this.name.rawstr, new util.SymbolAttrs(type, tmpRegIdGen.next(), this.name.area));
         return new util.SemanticCheckReturn();
@@ -217,20 +218,20 @@ export class ASTNode_if extends ASTNode_statement {
     constructor(public cond: ASTNode_expr, public thenstat: ASTNode_statement, public elsestat: ASTNode_statement) { super(); }
 
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
-        let cretcond = this.cond.typeAnalysis(classlookup, fnlookup, ctx);
+        const cretcond = this.cond.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cretcond.accept) return cretcond;
         if (!cretcond.type.isBool()) return new util.SemanticCheckReturn(new SemanticError(`expression of condition does not return bool at ${this.cond.area}`, ErrorCode.COND_TAKES_BOOL));
-        let cret = this.thenstat.typeAnalysis(classlookup, fnlookup, ctx);
+        const cret = this.thenstat.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cret.accept) return cret;
         return this.elsestat.typeAnalysis(classlookup, fnlookup, ctx);
     }
 
     codepathAnalysis(inloop: boolean): util.SemanticCheckReturn {
-        let mret1 = this.thenstat.codepathAnalysis(inloop);
+        const mret1 = this.thenstat.codepathAnalysis(inloop);
         if (!mret1.accept) return mret1;
-        let mret2 = this.elsestat.codepathAnalysis(inloop);
+        const mret2 = this.elsestat.codepathAnalysis(inloop);
         if (!mret2.accept) return mret2;
-        let ret = new util.SemanticCheckReturn();
+        const ret = new util.SemanticCheckReturn();
         if (mret1.returns && mret2.returns) ret.setReturns();
         return ret;
     }
@@ -245,8 +246,8 @@ export class ASTNode_if extends ASTNode_statement {
     }
 
     genIntermediateCode(codelines: Array<CodeLine>, context: util.IcContext, tmpRegIdGen: IdGen) {
-        let condreg = this.cond.genIntermediateCode_expr(codelines, tmpRegIdGen);
-        let truelabel = new util.CodeLabel(), endlabel = new util.CodeLabel();
+        const condreg = this.cond.genIntermediateCode_expr(codelines, tmpRegIdGen);
+        const truelabel = new util.CodeLabel(), endlabel = new util.CodeLabel();
         codelines.push(new CodeLine(new tc.TAC_btrue(truelabel, condreg)));
         this.elsestat.genIntermediateCode(codelines, context, tmpRegIdGen);
         codelines.push(new CodeLine(new tc.TAC_branch(endlabel)));
@@ -260,7 +261,7 @@ export class ASTNode_while extends ASTNode_statement {
     constructor(public cond: ASTNode_expr, public bodystmt: ASTNode_statement) { super(); }
 
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
-        let cretcond = this.cond.typeAnalysis(classlookup, fnlookup, ctx);
+        const cretcond = this.cond.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cretcond.accept) return cretcond;
         if (!cretcond.type.isBool()) return new util.SemanticCheckReturn(new SemanticError(`expression of condition does not return bool at ${this.cond.area}`, ErrorCode.COND_TAKES_BOOL));
         return this.bodystmt.typeAnalysis(classlookup, fnlookup, ctx);
@@ -268,25 +269,25 @@ export class ASTNode_while extends ASTNode_statement {
 
     codepathAnalysis(inloop: boolean): util.SemanticCheckReturn {
         //even if this.bodystmt returns, while statement does not return
-        let mret = this.bodystmt.codepathAnalysis(true);
+        const mret = this.bodystmt.codepathAnalysis(true);
         if (!mret.accept) return mret;
         return new util.SemanticCheckReturn();
     }
 
     makeSymbolTable(symboltable: util.SymbolFrame, classlookup: util.ClassLookup, tmpRegIdGen: IdGen): util.SemanticCheckReturn {
         this._symboltable = symboltable;
-        let cret = this.cond.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
+        const cret = this.cond.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
         if (!cret.accept) return cret;
         else return this.bodystmt.makeSymbolTable(symboltable.newFrame(), classlookup, tmpRegIdGen);
     }
 
     genIntermediateCode(codelines: Array<CodeLine>, context: util.IcContext, tmpRegIdGen: IdGen) {
-        let condlabel = new util.CodeLabel(), endlabel = new util.CodeLabel();
-        let old_lelabel = context.loopEndLabel, old_allabel = context.afterLoopLabel;
+        const condlabel = new util.CodeLabel(), endlabel = new util.CodeLabel();
+        const old_lelabel = context.loopEndLabel, old_allabel = context.afterLoopLabel;
         context.loopEndLabel = condlabel;
         context.afterLoopLabel = endlabel;
         codelines.push(new CodeLine(new tc.TAC_noop(), condlabel));
-        let condreg = this.cond.genIntermediateCode_expr(codelines, tmpRegIdGen);
+        const condreg = this.cond.genIntermediateCode_expr(codelines, tmpRegIdGen);
         codelines.push(new CodeLine(new tc.TAC_bfalse(endlabel, condreg)));
         this.bodystmt.genIntermediateCode(codelines, context, tmpRegIdGen);
         codelines.push(new CodeLine(new tc.TAC_branch(condlabel)));
@@ -304,13 +305,13 @@ export class ASTNode_dowhile extends ASTNode_while {
     }
 
     genIntermediateCode(codelines: Array<CodeLine>, context: util.IcContext, tmpRegIdGen: IdGen) {
-        let startlabel = new util.CodeLabel(), endlabel = new util.CodeLabel();
-        let old_lelabel = context.loopEndLabel, old_allabel = context.afterLoopLabel;
+        const startlabel = new util.CodeLabel(), endlabel = new util.CodeLabel();
+        const old_lelabel = context.loopEndLabel, old_allabel = context.afterLoopLabel;
         context.loopEndLabel = startlabel;
         context.afterLoopLabel = endlabel;
         codelines.push(new CodeLine(new tc.TAC_noop(), startlabel));
         this.bodystmt.genIntermediateCode(codelines, context, tmpRegIdGen);
-        let condreg = this.cond.genIntermediateCode_expr(codelines, tmpRegIdGen);
+        const condreg = this.cond.genIntermediateCode_expr(codelines, tmpRegIdGen);
         codelines.push(new CodeLine(new tc.TAC_btrue(startlabel, condreg)));
         codelines.push(new CodeLine(new tc.TAC_noop(), endlabel));
         //restore the old label context
@@ -358,13 +359,13 @@ export class ASTNode_for extends ASTNode_statement {
     }
 
     genIntermediateCode(codelines: Array<CodeLine>, context: util.IcContext, tmpRegIdGen: IdGen) {
-        let condlabel = new util.CodeLabel(), loopendlabel = new util.CodeLabel(), afterlooplabel = new util.CodeLabel();
+        const condlabel = new util.CodeLabel(), loopendlabel = new util.CodeLabel(), afterlooplabel = new util.CodeLabel();
         this.initstmt.genIntermediateCode(codelines, context, tmpRegIdGen);
-        let old_lelabel = context.loopEndLabel, old_allabel = context.afterLoopLabel;
+        const old_lelabel = context.loopEndLabel, old_allabel = context.afterLoopLabel;
         context.loopEndLabel = loopendlabel;
         context.afterLoopLabel = afterlooplabel;
         codelines.push(new CodeLine(new tc.TAC_noop(), condlabel));
-        let condreg = this.cond.genIntermediateCode_expr(codelines, tmpRegIdGen);
+        const condreg = this.cond.genIntermediateCode_expr(codelines, tmpRegIdGen);
         codelines.push(new CodeLine(new tc.TAC_bfalse(afterlooplabel, condreg)));
         this.bodystmt.genIntermediateCode(codelines, context, tmpRegIdGen);
         codelines.push(new CodeLine(new tc.TAC_noop(), loopendlabel));
@@ -382,9 +383,9 @@ export class ASTNode_return extends ASTNode_statement {
 
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
         // for constructor, ctx.rettype is null
-        let returntype = ctx.rettype;
+        const returntype = ctx.rettype;
         if (!returntype || returntype.isVoid()) return new util.SemanticCheckReturn(new SemanticError(`function declares to return void, cannot return a value at ${this.area}`, ErrorCode.FN_RETURN_MISMATCH));
-        let cret = this.retexp.typeAnalysis(classlookup, fnlookup, ctx);
+        const cret = this.retexp.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cret.accept) return cret;
         if (util.assignable(cret.type, returntype, classlookup)) return new util.SemanticCheckReturn();
         else return createTypeAssignMismatchReturn(cret.type, returntype, this.retexp.area);
@@ -407,7 +408,7 @@ export class ASTNode_return extends ASTNode_statement {
 export class ASTNode_returnvoid extends ASTNode_statement {
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
         // for constructor, ctx.rettype is null
-        let returntype = ctx.rettype;
+        const returntype = ctx.rettype;
         if (returntype && !returntype.isVoid()) return new util.SemanticCheckReturn(new SemanticError(`function declares to return ${returntype}, not void, ${this.area}`, ErrorCode.FN_RETURN_MISMATCH));
         return new util.SemanticCheckReturn();
     }
@@ -447,27 +448,27 @@ export class ASTNode_vardefine extends ASTNode_statement {
     constructor(public type: ASTNode_type, public name: Token, public expr: ASTNode_expr) { super(); }
 
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
-        let cret = this.expr.typeAnalysis(classlookup, fnlookup, ctx);
+        const cret = this.expr.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cret.accept) return cret;
-        let type = this._symboltable.find(this.name.rawstr).type;
+        const type = this._symboltable.find(this.name.rawstr).type;
         if (!util.assignable(cret.type, type, classlookup)) return createTypeAssignMismatchReturn(cret.type, type, this.expr.area);
         return new util.SemanticCheckReturn();
     }
 
     makeSymbolTable(symboltable: util.SymbolFrame, classlookup: util.ClassLookup, tmpRegIdGen: IdGen): util.SemanticCheckReturn {
         this._symboltable = symboltable;
-        let cret = this.expr.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
+        const cret = this.expr.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
         if (!cret.accept) return cret;
         if (this.name.rawstr === "this") return new util.SemanticCheckReturn(new SemanticError(`cannot use "this" as a variable name: at ${this.name.area}`, ErrorCode.THIS_AS_VARNAME));
         if (symboltable.hasOnTop(this.name.rawstr)) return new util.SemanticCheckReturn(new SemanticError(`variable exists: ${this.name.rawstr} at ${this.name.area}`, ErrorCode.DUP_VARIABLE));
-        let type = this.type.type;
+        const type = this.type.type;
         if (!util.isType(type.basetype, classlookup)) return createInvalidTypeReturn(type.basetype, this.type.area);
         symboltable.add(this.name.rawstr, new util.SymbolAttrs(type, tmpRegIdGen.next(), this.name.area));
         return new util.SemanticCheckReturn();
     }
 
     genIntermediateCode(codelines: Array<CodeLine>, context: util.IcContext, tmpRegIdGen: IdGen) {
-        let exprreg = this.expr.genIntermediateCode_expr(codelines, tmpRegIdGen);
+        const exprreg = this.expr.genIntermediateCode_expr(codelines, tmpRegIdGen);
         codelines.push(new CodeLine(new tc.TAC_mov(exprreg, this._symboltable.find(this.name.rawstr).tmpRegId)));
     }
 }
@@ -488,9 +489,9 @@ export class ASTNode_assignment extends ASTNode_expr {
     constructor(public lval: ASTNode_leftval, public expr: ASTNode_expr) { super(); }
 
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
-        let cret = this.lval.typeAnalysis(classlookup, fnlookup, ctx);
+        const cret = this.lval.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cret.accept) return cret;
-        let cretexpr = this.expr.typeAnalysis(classlookup, fnlookup, ctx);
+        const cretexpr = this.expr.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cretexpr.accept) return cretexpr;
         if (!util.assignable(cretexpr.type, cret.type, classlookup)) return createTypeAssignMismatchReturn(cretexpr.type, cret.type, this.expr.area);
         return new util.SemanticCheckReturn().setType(cretexpr.type);
@@ -498,14 +499,14 @@ export class ASTNode_assignment extends ASTNode_expr {
 
     makeSymbolTable(symboltable: util.SymbolFrame, classlookup: util.ClassLookup, tmpRegIdGen: IdGen): util.SemanticCheckReturn {
         this._symboltable = symboltable;
-        let cret = this.lval.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
+        const cret = this.lval.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
         if (!cret.accept) return cret;
         return this.expr.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
     }
 
     genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
-        let exprreg = this.expr.genIntermediateCode_expr(codelines, tmpRegIdGen);
-        let lvalret = this.lval.genIntermediateCode_lval(codelines, tmpRegIdGen);
+        const exprreg = this.expr.genIntermediateCode_expr(codelines, tmpRegIdGen);
+        const lvalret = this.lval.genIntermediateCode_lval(codelines, tmpRegIdGen);
         if (lvalret.directReg) {
             codelines.push(new CodeLine(new tc.TAC_mov(exprreg, lvalret.reg)));
         }
@@ -523,11 +524,11 @@ export class ASTNode_opexpr extends ASTNode_expr {
     constructor(public op: Token, public expr1: ASTNode_expr, public expr2: ASTNode_expr) { super(); }
 
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
-        let cret1 = this.expr1.typeAnalysis(classlookup, fnlookup, ctx);
+        const cret1 = this.expr1.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cret1.accept) return cret1;
-        let cret2 = this.expr2.typeAnalysis(classlookup, fnlookup, ctx);
+        const cret2 = this.expr2.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cret2.accept) return cret2;
-        let booltype = util.Type.boolType(0), inttype = util.Type.intType(0);
+        const booltype = util.Type.boolType(0), inttype = util.Type.intType(0);
         switch (this.op.rawstr) {
             case "||":
             case "&&":
@@ -570,15 +571,15 @@ export class ASTNode_opexpr extends ASTNode_expr {
 
     makeSymbolTable(symboltable: util.SymbolFrame, classlookup: util.ClassLookup, tmpRegIdGen: IdGen): util.SemanticCheckReturn {
         this._symboltable = symboltable;
-        let cret = this.expr1.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
+        const cret = this.expr1.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
         if (!cret.accept) return cret;
         return this.expr2.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
     }
 
     genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
-        let exprreg1 = this.expr1.genIntermediateCode_expr(codelines, tmpRegIdGen);
-        let exprreg2 = this.expr2.genIntermediateCode_expr(codelines, tmpRegIdGen);
-        let retreg = tmpRegIdGen.next();
+        const exprreg1 = this.expr1.genIntermediateCode_expr(codelines, tmpRegIdGen);
+        const exprreg2 = this.expr2.genIntermediateCode_expr(codelines, tmpRegIdGen);
+        const retreg = tmpRegIdGen.next();
         codelines.push(new CodeLine(new tc.TAC_binary(this.op.rawstr, exprreg1, exprreg2, retreg)));
         return retreg;
     }
@@ -590,17 +591,18 @@ export class ASTNode_fncall extends ASTNode_expr {
     constructor(public fn: ASTNode_fnref | ASTNode_baseconstructorref, public parameters: ASTNode_exprlist) { super(); this._fndef = null; }
 
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
-        let plen = this.parameters.children.length;
-        let parr = new Array<util.Type>(plen);
-        let cret = typeAnalysisExprList(this.parameters.children, parr, classlookup, fnlookup, ctx);
+        const plen = this.parameters.children.length;
+        const parr = new Array<util.Type>(plen);
+        const cret = typeAnalysisExprList(this.parameters.children, parr, classlookup, fnlookup, ctx);
         if (!cret.accept) return cret;
-        let fn = this.fn, candidates: Array<util.FunctionDefinition>;
+        const fn = this.fn;
+        let candidates: Array<util.FunctionDefinition>;
         if (fn instanceof ASTNode_fnref) {
             candidates = fnlookup.getApplicableFn(fn.name.rawstr, parr, classlookup);
         }
         else {
             if (!ctx.inConstructor) return new util.SemanticCheckReturn(new SemanticError(`not in a constructor, cannot call super at ${fn.area}`, ErrorCode.SUPER_OUTSIDE_CONSTRUCTOR));
-            let consret = fnlookup.getApplicableConstructor(ctx.classdef.getParent(), parr, classlookup);
+            const consret = fnlookup.getApplicableConstructor(ctx.classdef.getParent(), parr, classlookup);
             if (consret.noop && plen === 0) return new util.SemanticCheckReturn().setType(util.Type.void); // no constructor can be applied, here this._fndef will stay null
             candidates = consret.candidates || [];
         }
@@ -612,8 +614,8 @@ export class ASTNode_fncall extends ASTNode_expr {
 
     makeSymbolTable(symboltable: util.SymbolFrame, classlookup: util.ClassLookup, tmpRegIdGen: IdGen): util.SemanticCheckReturn {
         this._symboltable = symboltable;
-        for (let expr of this.parameters.children) {
-            let cret = expr.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
+        for (const expr of this.parameters.children) {
+            const cret = expr.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
             if (!cret.accept) return cret;
         }
         return new util.SemanticCheckReturn();
@@ -623,16 +625,16 @@ export class ASTNode_fncall extends ASTNode_expr {
         //this._fndef is null means the function is a super-call but base class has no constructor, so it's safe to ignore this expression
         if (!this._fndef) return null;
         //TODO, if no constructor, ignore fncall
-        let pregs = new Array<number>();
-        for (let p of this.parameters.children) {
+        const pregs = new Array<number>();
+        for (const p of this.parameters.children) {
             pregs.push(p.genIntermediateCode_expr(codelines, tmpRegIdGen));
         }
-        for (let p of pregs.reverse()) {
+        for (const p of pregs.reverse()) {
             codelines.push(new CodeLine(new tc.TAC_param(p)));
         }
         if (this._fndef.name === util.ClassLookup.constructorFnName) //if this is a super-call
             codelines.push(new CodeLine(new tc.TAC_param(this._symboltable.find("this").tmpRegId)));
-        let retreg = tmpRegIdGen.next();
+        const retreg = tmpRegIdGen.next();
         codelines.push(new CodeLine(new tc.TAC_fncall(this._fndef, retreg)));
         return retreg;
     }
@@ -645,21 +647,21 @@ export class ASTNode_methodcall extends ASTNode_expr {
 
     //TODO: reuse code with ASTNode_fncall
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
-        let plen = this.parameters.children.length;
-        let parr = new Array<util.Type>(plen);
+        const plen = this.parameters.children.length;
+        const parr = new Array<util.Type>(plen);
         let cret = typeAnalysisExprList(this.parameters.children, parr, classlookup, fnlookup, ctx);
         if (!cret.accept) return cret;
         cret = this.obj.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cret.accept) return cret;
         if (cret.type.depth !== 0) return new util.SemanticCheckReturn(new SemanticError(`array of ${cret.type} has no method at ${this.obj.area}`, ErrorCode.ARRAY_NO_METHOD));
-        let classdef = classlookup.getClass(cret.type.basetype);
+        const classdef = classlookup.getClass(cret.type.basetype);
         if (!classdef) return new util.SemanticCheckReturn(new SemanticError(`variable not an instance of class, type ${cret.type} at ${this.obj.area}`, ErrorCode.PRIMITIVE_NO_METHOD));
         let candidates = new Array<{ seq: number, fndef: util.FunctionDefinition }>();
         for (let i = 0; i < classdef.vmethodTable.length; ++i) {
-            let fndef = classdef.vmethodTable[i];
+            const fndef = classdef.vmethodTable[i];
             if (this.method.rawstr === fndef.name) {
                 // ignore the match of "this" pointer here
-                let m = util.fnApplicable(fndef.argtypelist.slice(1), parr, classlookup);
+                const m = util.fnApplicable(fndef.argtypelist.slice(1), parr, classlookup);
                 if (m.match) {
                     if (m.perfect) {
                         candidates = [{ seq: i, fndef: fndef }];
@@ -677,8 +679,8 @@ export class ASTNode_methodcall extends ASTNode_expr {
 
     makeSymbolTable(symboltable: util.SymbolFrame, classlookup: util.ClassLookup, tmpRegIdGen: IdGen): util.SemanticCheckReturn {
         this._symboltable = symboltable;
-        for (let expr of this.parameters.children) {
-            let cret = expr.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
+        for (const expr of this.parameters.children) {
+            const cret = expr.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
             if (!cret.accept) return cret;
         }
         return this.obj.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
@@ -686,15 +688,15 @@ export class ASTNode_methodcall extends ASTNode_expr {
 
     genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
         //value of "this"
-        let objreg = this.obj.genIntermediateCode_expr(codelines, tmpRegIdGen);
-        let pregs = [objreg];
-        for (let p of this.parameters.children) {
+        const objreg = this.obj.genIntermediateCode_expr(codelines, tmpRegIdGen);
+        const pregs = [objreg];
+        for (const p of this.parameters.children) {
             pregs.push(p.genIntermediateCode_expr(codelines, tmpRegIdGen));
         }
-        for (let p of pregs.reverse()) {
+        for (const p of pregs.reverse()) {
             codelines.push(new CodeLine(new tc.TAC_param(p)));
         }
-        let retreg = tmpRegIdGen.next();
+        const retreg = tmpRegIdGen.next();
         //now retreg has the address of vtable
         codelines.push(new CodeLine(new tc.TAC_lw(objreg, 0, retreg)));
         //now retreg has the runtime address of method
@@ -731,7 +733,7 @@ export class ASTNode_varref extends ASTNode_leftval {
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
         if (!this._symboltable.has(this.token.rawstr)) return new util.SemanticCheckReturn(new SemanticError(`variable not found: ${this.token.rawstr} at ${this.token.area}`, ErrorCode.VAR_NOTFOUND));
         else {
-            let symbol = this._symboltable.find(this.token.rawstr);
+            const symbol = this._symboltable.find(this.token.rawstr);
             if (varUsedBeforeDeclared(this.token.area, symbol.declaredArea)) return new util.SemanticCheckReturn(new SemanticError(`variable used before declared: ${this.token.rawstr}, at ${this.token.area}`, ErrorCode.VAR_USED_BEFORE_DECLARED));
             return new util.SemanticCheckReturn().setType(symbol.type);
         }
@@ -754,22 +756,22 @@ export class ASTNode_arrderef extends ASTNode_leftval {
     constructor(public expr: ASTNode_expr, public indexexpr: ASTNode_expr) { super(); }
 
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
-        let cret1 = this.expr.typeAnalysis(classlookup, fnlookup, ctx);
+        const cret1 = this.expr.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cret1.accept) return cret1;
         if (cret1.type.depth === 0) return new util.SemanticCheckReturn(new SemanticError(`type ${cret1.type} is not an array at ${this.expr.area}`, ErrorCode.NOT_AN_ARRAY));
-        let cret2 = this.indexexpr.typeAnalysis(classlookup, fnlookup, ctx);
+        const cret2 = this.indexexpr.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cret2.accept) return cret2;
         if (!cret2.type.isInt()) return new util.SemanticCheckReturn(new SemanticError(`not an integer: ${cret2.type} at ${this.indexexpr.area}`, ErrorCode.NOT_INT_FOR_INT_OP));
-        let rettype = new util.Type(cret1.type.basetype, cret1.type.depth - 1);
+        const rettype = new util.Type(cret1.type.basetype, cret1.type.depth - 1);
         this._itemisbyte = rettype.isBool();
         return new util.SemanticCheckReturn().setType(rettype);
     }
 
     //storage address register
     private _addr_reg(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
-        let basereg = this.expr.genIntermediateCode_expr(codelines, tmpRegIdGen);
-        let indexreg = this.indexexpr.genIntermediateCode_expr(codelines, tmpRegIdGen);
-        let addrreg = tmpRegIdGen.next();
+        const basereg = this.expr.genIntermediateCode_expr(codelines, tmpRegIdGen);
+        const indexreg = this.indexexpr.genIntermediateCode_expr(codelines, tmpRegIdGen);
+        const addrreg = tmpRegIdGen.next();
         codelines.push(new CodeLine(new tc.TAC_binary_int("*", indexreg, this._itemisbyte ? 1 : 4, addrreg)));
         codelines.push(new CodeLine(new tc.TAC_binary("+", basereg, addrreg, addrreg)));
         return addrreg;
@@ -777,14 +779,14 @@ export class ASTNode_arrderef extends ASTNode_leftval {
 
     makeSymbolTable(symboltable: util.SymbolFrame, classlookup: util.ClassLookup, tmpRegIdGen: IdGen): util.SemanticCheckReturn {
         this._symboltable = symboltable;
-        let cret = this.expr.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
+        const cret = this.expr.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
         if (!cret.accept) return cret;
         return this.indexexpr.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
     }
 
     //for read
     genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
-        let retreg = tmpRegIdGen.next();
+        const retreg = tmpRegIdGen.next();
         codelines.push(new CodeLine(new tc.TAC_lw(this._addr_reg(codelines, tmpRegIdGen), 0, retreg)));
         return retreg;
     }
@@ -802,12 +804,12 @@ export class ASTNode_fieldref extends ASTNode_leftval {
     constructor(public expr: ASTNode_expr, public token: Token) { super(); }
 
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
-        let cret1 = this.expr.typeAnalysis(classlookup, fnlookup, ctx);
+        const cret1 = this.expr.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cret1.accept) return cret1;
         if (cret1.type.depth !== 0) return new util.SemanticCheckReturn(new SemanticError(`type ${cret1.type} is an array at ${this.expr.area}`, ErrorCode.NOT_A_CLASS));
-        let classdef = classlookup.getClass(cret1.type.basetype);
+        const classdef = classlookup.getClass(cret1.type.basetype);
         if (classdef == null) return new util.SemanticCheckReturn(new SemanticError(`type ${cret1.type} is not a class at ${this.expr.area}`, ErrorCode.NOT_A_CLASS));
-        let field = classdef.getField(this.token.rawstr);
+        const field = classdef.getField(this.token.rawstr);
         if (field == null) return new util.SemanticCheckReturn(new SemanticError(`class ${cret1.type} has no field ${this.token.rawstr} at ${this.expr.area}`, ErrorCode.FIELD_NOTFOUND));
         this._fieldisbyte = field.type.isBool();
         this._fieldoffset = field.offset;
@@ -821,15 +823,15 @@ export class ASTNode_fieldref extends ASTNode_leftval {
 
     //storage address register
     private _addr_reg(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
-        let basereg = this.expr.genIntermediateCode_expr(codelines, tmpRegIdGen);
-        let addrreg = tmpRegIdGen.next();
+        const basereg = this.expr.genIntermediateCode_expr(codelines, tmpRegIdGen);
+        const addrreg = tmpRegIdGen.next();
         codelines.push(new CodeLine(new tc.TAC_binary_int("+", basereg, this._fieldoffset, addrreg)));
         return addrreg;
     }
 
     //for read
     genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
-        let addrreg = this._addr_reg(codelines, tmpRegIdGen), retreg = tmpRegIdGen.next();
+        const addrreg = this._addr_reg(codelines, tmpRegIdGen), retreg = tmpRegIdGen.next();
         if (this._fieldisbyte)
             codelines.push(new CodeLine(new tc.TAC_lb(addrreg, 0, retreg)));
         else
@@ -853,7 +855,7 @@ export class ASTNode_literal_integer extends ASTNode_literal {
     }
 
     genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
-        let retreg = tmpRegIdGen.next();
+        const retreg = tmpRegIdGen.next();
         codelines.push(new CodeLine(new tc.TAC_loadint(Number(this.literal.rawstr), retreg)));
         return retreg;
     }
@@ -867,7 +869,7 @@ export class ASTNode_literal_boolean extends ASTNode_literal {
     }
 
     genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
-        let retreg = tmpRegIdGen.next();
+        const retreg = tmpRegIdGen.next();
         codelines.push(new CodeLine(new tc.TAC_loadint(this.literal.rawstr.toLowerCase() === "true" ? 1 : 0, retreg)));
         return retreg;
     }
@@ -879,7 +881,7 @@ export class ASTNode_literal_null extends ASTNode_literal {
     }
 
     genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
-        let retreg = tmpRegIdGen.next();
+        const retreg = tmpRegIdGen.next();
         codelines.push(new CodeLine(new tc.TAC_loadint(0, retreg)));
         return retreg;
     }
@@ -892,17 +894,17 @@ export class ASTNode_newinstance extends ASTNode_expr {
     constructor(public classname: Token, public parameters: ASTNode_exprlist) { super(); this._constructfndef = null; this._classdef = null; }
 
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
-        let plen = this.parameters.children.length;
-        let parr = new Array<util.Type>(plen);
-        let cret = typeAnalysisExprList(this.parameters.children, parr, classlookup, fnlookup, ctx);
+        const plen = this.parameters.children.length;
+        const parr = new Array<util.Type>(plen);
+        const cret = typeAnalysisExprList(this.parameters.children, parr, classlookup, fnlookup, ctx);
         if (!cret.accept) return cret;
-        let classdef = classlookup.getClass(this.classname.rawstr);
+        const classdef = classlookup.getClass(this.classname.rawstr);
         if (!classdef) return new util.SemanticCheckReturn(new SemanticError(`class not found: ${this.classname.rawstr}, at: ${this.classname.area}`, ErrorCode.CLASS_NOTFOUND));
-        let rettype = new util.Type(this.classname.rawstr, 0);
+        const rettype = new util.Type(this.classname.rawstr, 0);
         this._classdef = classdef;
-        let consret = fnlookup.getApplicableConstructor(classdef, parr, classlookup);
+        const consret = fnlookup.getApplicableConstructor(classdef, parr, classlookup);
         if (consret.noop && plen === 0) return new util.SemanticCheckReturn().setType(rettype);
-        let candidates = consret.candidates || [];
+        const candidates = consret.candidates || [];
         if (candidates.length === 0) return new util.SemanticCheckReturn(new SemanticError(`no constructor with given parameter is applicable, at ${this.classname.area}`, ErrorCode.FN_NOTFOUND));
         if (candidates.length > 1) return new util.SemanticCheckReturn(new SemanticError(`ambiguous constructor with given parameter are applicable, at ${this.classname.area}`, ErrorCode.FN_AMBIGUOUS));
         else {
@@ -913,25 +915,25 @@ export class ASTNode_newinstance extends ASTNode_expr {
 
     makeSymbolTable(symboltable: util.SymbolFrame, classlookup: util.ClassLookup, tmpRegIdGen: IdGen): util.SemanticCheckReturn {
         this._symboltable = symboltable;
-        for (let expr of this.parameters.children) {
-            let cret = expr.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
+        for (const expr of this.parameters.children) {
+            const cret = expr.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
             if (!cret.accept) return cret;
         }
         return new util.SemanticCheckReturn();
     }
 
     genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
-        let objreg = tmpRegIdGen.next(), tmpreg = tmpRegIdGen.next();
+        const objreg = tmpRegIdGen.next(), tmpreg = tmpRegIdGen.next();
         codelines.push(new CodeLine(new tc.TAC_loadint(this._classdef.byteLength, objreg)));
         codelines.push(new CodeLine(new tc.TAC_allocate(objreg, objreg)));
         codelines.push(new CodeLine(new tc.TAC_la(tmpreg, this._classdef.getMIPSVTableLabel())));
         codelines.push(new CodeLine(new tc.TAC_sw(objreg, 0, tmpreg)));
         if (this._constructfndef) {
-            let pregs = new Array<number>();
-            for (let p of this.parameters.children) {
+            const pregs = new Array<number>();
+            for (const p of this.parameters.children) {
                 pregs.push(p.genIntermediateCode_expr(codelines, tmpRegIdGen));
             }
-            for (let p of pregs.reverse()) {
+            for (const p of pregs.reverse()) {
                 codelines.push(new CodeLine(new tc.TAC_param(p)));
             }
             // value of "this"
@@ -951,7 +953,7 @@ export class ASTNode_newarray extends ASTNode_expr {
         if (this.type.depth === 0) return new util.SemanticCheckReturn(new SemanticError(`not an array: ${this.type}, at ${this.exprlist.area}`, ErrorCode.NOT_AN_ARRAY));
         if (!util.isType(this.type.basetype.rawstr, classlookup)) return new util.SemanticCheckReturn(new SemanticError(`not a valid type at ${this.type.basetype.area}`, ErrorCode.TYPE_NOTFOUND));
         if (this.exprlist.children.length !== 1) return new util.SemanticCheckReturn(new SemanticError(`only one parameter can be passed to array initialization at ${this.exprlist.area}`, ErrorCode.ARRAY_CONSTRUCTOR_PARAMS));
-        let cretexpr = this.exprlist.children[0].typeAnalysis(classlookup, fnlookup, ctx);
+        const cretexpr = this.exprlist.children[0].typeAnalysis(classlookup, fnlookup, ctx);
         if (!cretexpr.accept) return cretexpr;
         if (!cretexpr.type.isInt()) return new util.SemanticCheckReturn(new SemanticError(`expression returns ${cretexpr.type}, not int at ${this.exprlist.children[0].area}`, ErrorCode.NOT_INT_FOR_INT_OP));
         this._itembyte = new util.Type(this.type.basetype.rawstr, this.type.depth - 1).isBool();
@@ -960,16 +962,16 @@ export class ASTNode_newarray extends ASTNode_expr {
 
     makeSymbolTable(symboltable: util.SymbolFrame, classlookup: util.ClassLookup, tmpRegIdGen: IdGen): util.SemanticCheckReturn {
         this._symboltable = symboltable;
-        for (let expr of this.exprlist.children) {
-            let cret = expr.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
+        for (const expr of this.exprlist.children) {
+            const cret = expr.makeSymbolTable(symboltable, classlookup, tmpRegIdGen);
             if (!cret.accept) return cret;
         }
         return new util.SemanticCheckReturn();
     }
 
     genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
-        let exprreg = this.exprlist.children[0].genIntermediateCode_expr(codelines, tmpRegIdGen);
-        let objreg = tmpRegIdGen.next();
+        const exprreg = this.exprlist.children[0].genIntermediateCode_expr(codelines, tmpRegIdGen);
+        const objreg = tmpRegIdGen.next();
         codelines.push(new CodeLine(new tc.TAC_binary_int("*", exprreg, this._itembyte ? 1 : 4, objreg)));
         codelines.push(new CodeLine(new tc.TAC_allocate(objreg, objreg)));
         return objreg;
@@ -980,7 +982,7 @@ export class ASTNode_unaryopexpr extends ASTNode_expr {
     constructor(public token: Token, public expr: ASTNode_expr) { super(); }
 
     typeAnalysis(classlookup: util.ClassLookup, fnlookup: util.FunctionLookup, ctx: util.SemContext): util.SemanticCheckReturn {
-        let cretexpr = this.expr.typeAnalysis(classlookup, fnlookup, ctx);
+        const cretexpr = this.expr.typeAnalysis(classlookup, fnlookup, ctx);
         if (!cretexpr.accept) return cretexpr;
         switch (this.token.rawstr) {
             case "~":
@@ -1001,8 +1003,8 @@ export class ASTNode_unaryopexpr extends ASTNode_expr {
     }
 
     genIntermediateCode_expr(codelines: Array<CodeLine>, tmpRegIdGen: IdGen): number {
-        let exprreg = this.expr.genIntermediateCode_expr(codelines, tmpRegIdGen);
-        let retreg = tmpRegIdGen.next();
+        const exprreg = this.expr.genIntermediateCode_expr(codelines, tmpRegIdGen);
+        const retreg = tmpRegIdGen.next();
         codelines.push(new CodeLine(new tc.TAC_unary(this.token.rawstr, exprreg, retreg)));
         return retreg;
     }

@@ -15,9 +15,9 @@ export default class RegEx {
     get pattern(): string { return this._pattern; }
 
     constructor(pattern: string) {
-        let lexret = lex(pattern, prodSet);
+        const lexret = lex(pattern, prodSet);
         if (!lexret.accept) throw new Error(lexret.error.toString());
-        let parseret = parser.parse(lexret.tokens);
+        const parseret = parser.parse(lexret.tokens);
         if (!parseret.accept) throw new Error(parseret.error.toString());
         this._dfa = astToNFA(astConverter.toAST(parseret.root)).toDFA().dfa;
         this._pattern = pattern;

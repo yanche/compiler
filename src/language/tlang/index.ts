@@ -19,22 +19,22 @@ export function compile(input: string, flag: CompileOutputFlag): {
     mips?: string;
     error?: CompileError;
 } {
-    let lexret = lex(input, prodSet);
+    const lexret = lex(input, prodSet);
     if (!lexret.accept) return { error: lexret.error };
-    let parseret = parser.parse(lexret.tokens);
+    const parseret = parser.parse(lexret.tokens);
     if (!parseret.accept) return { error: parseret.error };
-    let ast = <ASTNode_globaldefs>astConverter.toAST(parseret.root);
-    let gret = buildGlobalTypes(ast);
+    const ast = <ASTNode_globaldefs>astConverter.toAST(parseret.root);
+    const gret = buildGlobalTypes(ast);
     if (!gret.result.accept) return { error: gret.result.error };
-    let classlookup = gret.classlookup;
-    let fnlookup = gret.fnlookup;
-    let tret = semanticAnalysize(classlookup, fnlookup);
+    const classlookup = gret.classlookup;
+    const fnlookup = gret.fnlookup;
+    const tret = semanticAnalysize(classlookup, fnlookup);
     if (!tret.accept) return { error: tret.error };
-    let code = generateIntermediateCode(classlookup, fnlookup);
-    let iccode = flag & CompileOutputFlag.IntermediateCode ? code.toString() : "";
-    let mips = generateMIPSCode(code, classlookup, fnlookup.mainfnmipslabel);
-    let mipscode = flag & CompileOutputFlag.MIPS ? mips.toString() : "";
-    let icafterregallo = flag & CompileOutputFlag.ICAfterRegAlloc ? code.toString() : "";
+    const code = generateIntermediateCode(classlookup, fnlookup);
+    const iccode = flag & CompileOutputFlag.IntermediateCode ? code.toString() : "";
+    const mips = generateMIPSCode(code, classlookup, fnlookup.mainfnmipslabel);
+    const mipscode = flag & CompileOutputFlag.MIPS ? mips.toString() : "";
+    const icafterregallo = flag & CompileOutputFlag.ICAfterRegAlloc ? code.toString() : "";
     return {
         intermediateCode: iccode,
         icAfterRegAlloc: icafterregallo,

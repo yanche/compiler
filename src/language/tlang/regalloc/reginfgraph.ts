@@ -8,10 +8,10 @@ export class RIG {
     private _map: Map<number, Set<number>>;
 
     removeReg(regnum: number): this {
-        let s = this._map.get(regnum);
+        const s = this._map.get(regnum);
         if (s) {
             this._map.delete(regnum);
-            for (let r of s)
+            for (const r of s)
                 this._map.get(r).delete(regnum);
         }
         return this;
@@ -19,7 +19,7 @@ export class RIG {
 
     // complete linkage
     addRelateRegs(regnums: Array<number>): this {
-        let rlen = regnums.length;
+        const rlen = regnums.length;
         if (rlen === 1) {
             this._getOrCreateSet(regnums[0]);
         }
@@ -37,7 +37,7 @@ export class RIG {
     addRelateRegsForOne(regnum: number, regnums: Array<number>): this {
         if (regnums.length === 0) this._getOrCreateSet(regnum);
         else {
-            let rlen = regnums.length;
+            const rlen = regnums.length;
             for (let i = 0; i < rlen; ++i) {
                 this._addRelatedRegs(regnums[i], regnum);
             }
@@ -63,23 +63,23 @@ export class RIG {
     }
 
     allocate(): { succeed: boolean, spill?: number, map?: Map<number, number> } {
-        let removables = new Array<number>(), unremovable = new Set<number>(), rarr = new Array<number>(), tmpregcount = this._map.size, tmpmap = new Map<number, Set<number>>();
-        for (let x of this._map) {
+        const removables = new Array<number>(), unremovable = new Set<number>(), rarr = new Array<number>(), tmpregcount = this._map.size, tmpmap = new Map<number, Set<number>>();
+        for (const x of this._map) {
             // less than regCount neighbors
             if (x[1].size < regCount) removables.push(x[0]);
             else unremovable.add(x[0]);
-            let tset = new Set<number>();
+            const tset = new Set<number>();
             // clone the set
-            for (let n of x[1]) tset.add(n);
+            for (const n of x[1]) tset.add(n);
             tmpmap.set(x[0], tset);
         }
         while (true) {
             // remove nodes from graph marked by "removables"
             while (removables.length > 0) {
-                let rnum = removables.pop();
+                const rnum = removables.pop();
                 rarr.push(rnum);
-                for (let n of tmpmap.get(rnum)) {
-                    let s = tmpmap.get(n);
+                for (const n of tmpmap.get(rnum)) {
+                    const s = tmpmap.get(n);
                     s.delete(rnum);
                     if (s.size < regCount && unremovable.has(n)) {
                         // now neighbor count is less than regCount, move to "removables"
@@ -93,7 +93,7 @@ export class RIG {
                 break;
             else {
                 let maxsize = -1, maxnum = -1;
-                for (let t of tmpmap) {
+                for (const t of tmpmap) {
                     if (maxsize < t[1].size) {
                         maxsize = t[1].size;
                         maxnum = t[0];
@@ -106,17 +106,18 @@ export class RIG {
             }
         }
         if (tmpmap.size !== 0) throw new Error("defensive code, impossible code path " + tmpmap.size);
-        let regmap = new Map<number, number>(), i = rarr.length - 1;
+        const regmap = new Map<number, number>();
+        let i = rarr.length - 1;
         while (i >= 0) {
-            let rnum = rarr[i];
-            let nei = this._map.get(rnum);
+            const rnum = rarr[i];
+            const nei = this._map.get(rnum);
             // assignedneibor: list of neighbor nodes that already got real register allocation
-            let assignedneibor = new Array<number>(), regs = new Array<boolean>(regCount);
+            const assignedneibor = new Array<number>(), regs = new Array<boolean>(regCount);
             for (let j = i + 1; j < rarr.length; ++j) {
                 if (nei.has(rarr[j]))
                     assignedneibor.push(rarr[j]);
             }
-            for (let n of assignedneibor) regs[regmap.get(n)] = true;
+            for (const n of assignedneibor) regs[regmap.get(n)] = true;
             let j = 0;
             for (; j < regCount; ++j) {
                 if (regs[j] !== true) {

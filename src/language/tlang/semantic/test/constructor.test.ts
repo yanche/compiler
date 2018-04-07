@@ -5,7 +5,7 @@ import { ErrorCode } from "../../error";
 
 describe("constructor test cases", () => {
     it("defined in itself", () => {
-        let code = `
+        const code = `
         class C {
             constructor() {
 
@@ -15,24 +15,24 @@ describe("constructor test cases", () => {
             C c = new C();
         }
         `;
-        let sret = getSemanticResult(code);
+        const sret = getSemanticResult(code);
         assert.ok(sret.accept);
     });
 
     it("not defined", () => {
-        let code = `
+        const code = `
         class C {
         }
         void main() {
             C c = new C();
         }
         `;
-        let sret = getSemanticResult(code);
+        const sret = getSemanticResult(code);
         assert.ok(sret.accept);
     });
 
     it("with parameters", () => {
-        let code = `
+        const code = `
         class C {
             constructor(int a) {}
         }
@@ -40,12 +40,12 @@ describe("constructor test cases", () => {
             C c = new C(1);
         }
         `;
-        let sret = getSemanticResult(code);
+        const sret = getSemanticResult(code);
         assert.ok(sret.accept);
     });
 
     it("not found", () => {
-        let code = `
+        const code = `
         class C {
             constructor(int a) {}
         }
@@ -53,13 +53,13 @@ describe("constructor test cases", () => {
             C c = new C(1, 2);
         }
         `;
-        let sret = getSemanticResult(code);
+        const sret = getSemanticResult(code);
         assert.ok(!sret.accept);
         assert.strictEqual(sret.error.errCode, ErrorCode.FN_NOTFOUND);
     });
 
     it("find the right one", () => {
-        let code = `
+        const code = `
         class C {
             constructor(int a) {}
             constructor(int a, int b) {}
@@ -68,12 +68,12 @@ describe("constructor test cases", () => {
             C c = new C(1, 2);
         }
         `;
-        let sret = getSemanticResult(code);
+        const sret = getSemanticResult(code);
         assert.ok(sret.accept);
     });
 
     it("not defined, use constructor from parent", () => {
-        let code = `
+        const code = `
         class C {
             constructor(int a) {}
         }
@@ -84,12 +84,12 @@ describe("constructor test cases", () => {
             D d = new D(1);
         }
         `;
-        let sret = getSemanticResult(code);
+        const sret = getSemanticResult(code);
         assert.ok(sret.accept);
     });
 
     it("not defined, use constructor from parent, not found", () => {
-        let code = `
+        const code = `
         class C {
             constructor(int a) {}
         }
@@ -100,13 +100,13 @@ describe("constructor test cases", () => {
             D d = new D();
         }
         `;
-        let sret = getSemanticResult(code);
+        const sret = getSemanticResult(code);
         assert.ok(!sret.accept);
         assert.strictEqual(sret.error.errCode, ErrorCode.FN_NOTFOUND);
     });
 
     it("not defined, won't use constructor from parent", () => {
-        let code = `
+        const code = `
         class B {
             constructor(int a, int b) {}
         }
@@ -120,7 +120,7 @@ describe("constructor test cases", () => {
             D d = new D(1, 2);
         }
         `;
-        let sret = getSemanticResult(code);
+        const sret = getSemanticResult(code);
         assert.ok(!sret.accept);
         assert.strictEqual(sret.error.errCode, ErrorCode.FN_NOTFOUND);
     });

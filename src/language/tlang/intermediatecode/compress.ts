@@ -7,11 +7,12 @@ import { LivenessInfo } from "./livenessinfer";
 
 // remove noop instruction
 export function compress(codelines: Array<CodeLine>, liveInfers: Array<LivenessInfo>, labelIdGen: IdGen) {
-    let clen = codelines.length, lastcl: CodeLine = null;
+    const clen = codelines.length;
+    let lastcl: CodeLine = null;
     // move the LABEL on tac.noop to its next following tac
     for (let j = clen - 1; j >= 0; --j) {
-        let cl = codelines[j];
-        let tac = cl.tac;
+        const cl = codelines[j];
+        const tac = cl.tac;
         if (tac instanceof TAC_noop) {
             if (cl.label) {
                 if (!lastcl) throw new Error("defensive code, jump to noop till end of code");
@@ -20,8 +21,8 @@ export function compress(codelines: Array<CodeLine>, liveInfers: Array<LivenessI
                     cl.label.owner = lastcl;
                 }
                 else {
-                    for (let ucl of cl.label.upstreams) {
-                        let utac = <TAC_branch>ucl.tac;
+                    for (const ucl of cl.label.upstreams) {
+                        const utac = <TAC_branch>ucl.tac;
                         utac.label = lastcl.label;
                     }
                 }
@@ -32,11 +33,11 @@ export function compress(codelines: Array<CodeLine>, liveInfers: Array<LivenessI
     }
     finalizeLabelRef(codelines);
     // keep the non tac.noop instructions
-    let keepCLidx = codelines.map((cl, idx) => { return { ignore: cl.tac instanceof TAC_noop, idx: idx } }).filter(x => !x.ignore).map(x => x.idx);
-    let compressedCodelines = new Array<CodeLine>(keepCLidx.length), compressedRegLiveness = new Array<LivenessInfo>(keepCLidx.length);
+    const keepCLidx = codelines.map((cl, idx) => { return { ignore: cl.tac instanceof TAC_noop, idx: idx } }).filter(x => !x.ignore).map(x => x.idx);
+    const compressedCodelines = new Array<CodeLine>(keepCLidx.length), compressedRegLiveness = new Array<LivenessInfo>(keepCLidx.length);
     for (let i = 0; i < keepCLidx.length; ++i) {
-        let idx = keepCLidx[i];
-        let cl = codelines[idx];
+        const idx = keepCLidx[i];
+        const cl = codelines[idx];
         // reset the number on labels
         if (cl.label) cl.label.num = labelIdGen.next();
         compressedCodelines[i] = cl;

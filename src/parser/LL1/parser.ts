@@ -13,17 +13,17 @@ export default class LL1Parser extends Parser {
         this._valid = true;
 
         const followSets = prodset.followSet();
-        for (let nont of prodset.getNonTerminals()) {
+        for (const nont of prodset.getNonTerminals()) {
             this._getOrCreateParseRow(nont);
-            for (let prodId of prodset.getProds(nont)) {
+            for (const prodId of prodset.getProds(nont)) {
                 const rhsIds = prodset.getProdRef(prodId).rhsIds;
                 // calc the first set of RHS of production
                 const { nullable, firstSet } = prodset.firstSetOfSymbols(rhsIds);
                 // when nont encounters symbol s, use production w/ prodid
-                for (let s of firstSet) this._bookKeeping(nont, s, prodId);
+                for (const s of firstSet) this._bookKeeping(nont, s, prodId);
                 // if nullable, add follow set
                 if (nullable) {
-                    for (let f of followSets[nont]) this._bookKeeping(nont, f, prodId);
+                    for (const f of followSets[nont]) this._bookKeeping(nont, f, prodId);
                 }
             }
         }
@@ -72,29 +72,26 @@ export default class LL1Parser extends Parser {
 
     private _bookKeeping(ntsym: number, tsym: number, prodId: number): this {
         const row = this._getOrCreateParseRow(ntsym);
-        let col = row.get(tsym);
-        let dup = false;
-        if (!col) {
-            col = [];
-            row.set(tsym, col);
+        if (!row.has(tsym)) {
+            row.set(tsym, []);
         }
-        else {
-            if (col.some(x => x === prodId)) dup = true;
-            else {
+        const col = row.get(tsym)!;
+
+        if (col.every(x => x !== prodId)) {
+            const ambiguity = col.some(x => x !== prodId);
+            if (ambiguity) {
                 // more than one choice for same non-termial/terminal pair, conflict happens
                 this._valid = false;
             }
+            col.push(prodId);
         }
-        if (!dup) col.push(prodId);
         return this;
     }
 
     private _getOrCreateParseRow(ntsym: number): Map<number, number[]> {
-        let row = this._table.get(ntsym);
-        if (!row) {
-            row = new Map<number, number[]>();
-            this._table.set(ntsym, row);
+        if (!this._table.has(ntsym)) {
+            this._table.set(ntsym, new Map<number, number[]>());
         }
-        return row;
+        return this._table.get(ntsym)!;
     }
 }

@@ -5,12 +5,12 @@ import { finalizeLabelRef } from "./util";
 
 // remove unnecessary branch(jump)
 export function removeBranch(codelines: Array<CodeLine>): void {
-    let clen = codelines.length;
+    const clen = codelines.length;
     for (let i = 0; i < clen - 1; ++i) {
-        let cl = codelines[i];
-        let tac = cl.tac;
+        const cl = codelines[i];
+        const tac = cl.tac;
         if (tac instanceof TAC_branch) {
-            let tidx = tac.label.owner.linenum;
+            const tidx = tac.label.owner.linenum;
             if (tidx > i) {
                 let j = i + 1;
                 // if all instructions before the jump target is NOOP, then this jump is unnecessary

@@ -7,12 +7,12 @@ import lex from "../../lex";
  import { assert } from "chai";
 
 export function getSemanticResult(code: string): SemanticCheckReturn {
-    let lexRet = lex(code, prodSet);
+    const lexRet = lex(code, prodSet);
     assert.ok(lexRet.accept);
-    let parseRet = parser.parse(lexRet.tokens);
+    const parseRet = parser.parse(lexRet.tokens);
     assert.ok(parseRet.accept);
-    let ast = <ASTNode_globaldefs>astConverter.toAST(parseRet.root);
-    let gRet = buildGlobalTypes(ast);
+    const ast = <ASTNode_globaldefs>astConverter.toAST(parseRet.root);
+    const gRet = buildGlobalTypes(ast);
     assert.ok(gRet.result.accept);
     return semanticAnalysize(gRet.classlookup, gRet.fnlookup);
 }

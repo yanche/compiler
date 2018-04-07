@@ -3,25 +3,25 @@ import { ProdSet } from "../../../productions";
 import { LexReturn, Token, noArea, Posi, Area, InvalidTokenError } from "../../../compile";
 
 
-let tripples = [">>>"];
-let doubles = ["&&", "||", "!=", "==", ">=", "<=", ">>", "<<"];
-let singles = ["(", ")", "{", "}", ",", ":", ";", "+", "-", "*", "/", ".", "~", "[", "]", "&", "|", "!", "=", ">", "<"];
-let keywords = ["void", "class", "constructor", "while", "do", "for", "if", "else", "return", "super", "new", "null", "break", "continue"];
+const tripples = [">>>"];
+const doubles = ["&&", "||", "!=", "==", ">=", "<=", ">>", "<<"];
+const singles = ["(", ")", "{", "}", ",", ":", ";", "+", "-", "*", "/", ".", "~", "[", "]", "&", "|", "!", "=", ">", "<"];
+const keywords = ["void", "class", "constructor", "while", "do", "for", "if", "else", "return", "super", "new", "null", "break", "continue"];
 
 
 // | * + ( ) . char [ ] -
-let chnum_a = "a".charCodeAt(0);
-let chnum_z = "z".charCodeAt(0);
-let chnum_A = "A".charCodeAt(0);
-let chnum_Z = "Z".charCodeAt(0);
-let chnum_0 = "0".charCodeAt(0);
-let chnum_9 = "9".charCodeAt(0);
-let chnum__ = "_".charCodeAt(0);
-let chnum_space = " ".charCodeAt(0);
-let chnum_return = "\r".charCodeAt(0);
-let chnum_newline = "\n".charCodeAt(0);
-let chnum_tab = "\t".charCodeAt(0);
-let chtoignore = [chnum_space, chnum_return, chnum_newline, chnum_tab];
+const chnum_a = "a".charCodeAt(0);
+const chnum_z = "z".charCodeAt(0);
+const chnum_A = "A".charCodeAt(0);
+const chnum_Z = "Z".charCodeAt(0);
+const chnum_0 = "0".charCodeAt(0);
+const chnum_9 = "9".charCodeAt(0);
+const chnum__ = "_".charCodeAt(0);
+const chnum_space = " ".charCodeAt(0);
+const chnum_return = "\r".charCodeAt(0);
+const chnum_newline = "\n".charCodeAt(0);
+const chnum_tab = "\t".charCodeAt(0);
+const chtoignore = [chnum_space, chnum_return, chnum_newline, chnum_tab];
 
 function isDigitChCode(chcode: number): boolean {
     return chnum_0 <= chcode && chcode <= chnum_9;
@@ -41,13 +41,15 @@ function areaWithColNext(posi: Posi, strlen: number): Area {
 }
 
 export default function lex(input: string, prodset: ProdSet): LexReturn {
-    let len = input.length, i = 0, tokens = new Array<Token>(), row = 1, col = 1, commentblock = false, commentline = false;
+    const len = input.length, tokens = new Array<Token>();
+    let row = 1, col = 1, commentblock = false, commentline = false;
+    let i = 0;
 
     while (i < len) {
         //go thru all space, tab, newline, till next solid character
         let gonextchar = true;
         while (gonextchar && i < len) {
-            let chc = input.charCodeAt(i);
+            const chc = input.charCodeAt(i);
             gonextchar = commentline || chtoignore.some(ch => ch === chc);
             if (gonextchar) {
                 //ignore character, go to next
@@ -62,8 +64,8 @@ export default function lex(input: string, prodset: ProdSet): LexReturn {
         }
         if (i === len) break;
 
-        let ch = input[i], chcode = input.charCodeAt(i), posi = new Posi(row, col);
-        let next2 = input.slice(i, i + 2), next3 = input.slice(i, i + 3);
+        const ch = input[i], chcode = input.charCodeAt(i), posi = new Posi(row, col);
+        const next2 = input.slice(i, i + 2), next3 = input.slice(i, i + 3);
         //here commentline must be false
         let continueandmove = 0;
         if (commentblock) {
@@ -95,18 +97,18 @@ export default function lex(input: string, prodset: ProdSet): LexReturn {
         else if (doubles.some(c => c === next2)) { tokens.push(new Token(next2, prodset.getSymId(next2), areaWithColNext(posi, 2))); col++; i++; }
         else if (singles.some(c => c === ch)) tokens.push(new Token(ch, prodset.getSymId(ch), areaWithColNext(posi, 1)));
         else if (isDigitChCode(chcode)) {
-            let startpos = i;
+            const startpos = i;
             ++i;
             while (i < len && isDigitChCode(input.charCodeAt(i)))++i;
-            let rawstr = input.slice(startpos, i--);
+            const rawstr = input.slice(startpos, i--);
             tokens.push(new Token(rawstr, prodset.getSymId("integer"), areaWithColNext(posi, rawstr.length)));
             col += i - startpos;
         }
         else if (isIdStartChCode(chcode)) {
-            let startpos = i;
+            const startpos = i;
             ++i;
             while (i < len && isIdChCode(input.charCodeAt(i)))++i;
-            let idstr = input.slice(startpos, i--);
+            const idstr = input.slice(startpos, i--);
             col += i - startpos;
             if (idstr === "true" || idstr === "false")
                 tokens.push(new Token(idstr, prodset.getSymId("boolean"), areaWithColNext(posi, idstr.length)));
