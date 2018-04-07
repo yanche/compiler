@@ -1,5 +1,5 @@
 
-import { closure, Edge, IdGen, range } from "../utility";
+import { closure, Edge, IdGen, range, createSelfInitMapOfArray, SelfInitMap } from "../utility";
 
 //terminal symbol or non-terminal symbol, used in productions
 export class Symbol {
@@ -56,7 +56,7 @@ export interface ProductionRef {
 //also an integer will be assigned to each production, starts from 0
 export class ProdSet {
     private _startNonTerminalId: number; //integer for start symbol
-    private _nonTerminalProdMap: Map<number, number[]>; //integer of non-terminal -> array of id of productions by it as lhs
+    private _nonTerminalProdMap: SelfInitMap<number, number[]>; //integer of non-terminal -> array of id of productions by it as lhs
     private _idProdMap: ProductionRef[];  //production id -> production
     private _symbolIdMap: SymbolIdMap; //integer of symbol <--> string of symbol
     private _terminalsCount: number;       //count of terminal symbols
@@ -109,7 +109,7 @@ export class ProdSet {
         if (!this._nonTerminalProdMap.has(lhsSymId)) {
             throw new Error(`given LHS symbol id does not map to productions: ${lhsSymId}`)
         }
-        return this._nonTerminalProdMap.get(lhsSymId)!;
+        return this._nonTerminalProdMap.get(lhsSymId);
     }
 
     //from 0 -> n-1, n is the size of productions
@@ -196,11 +196,11 @@ export class ProdSet {
 
         const retset = new Set<number>();
         const nonTerminalsToProcess: number[] = [];
-        const dependencyMap = new Map<number, { rhsIds: number[], next: number, lsymId: number }[]>();
+        const dependencyMap = createSelfInitMapOfArray<number, { rhsIds: number[], next: number, lsymId: number }>();
 
         for (const nont of this.getNonTerminals()) {
-            for (const prodid of this.getProds(nont)) {
-                const rhsIds = this.getProdRef(prodid).rhsIds;
+            for (const prodId of this.getProds(nont)) {
+                const rhsIds = this.getProdRef(prodId).rhsIds;
                 if (rhsIds.length === 0) {
                     // no right hand side, nullable
                     if (!retset.has(nont)) {
@@ -210,14 +210,14 @@ export class ProdSet {
                     break;
                 }
                 if (this.isSymIdTerminal(rhsIds[0])) continue;
-                // if for symbol rnums[0] becomes nullable, then lnum has a change to become nullable
-                addToMapOfArr(dependencyMap, rhsIds[0], { rhsIds: rhsIds, next: 1, lsymId: nont });
+                // if for symbol rhsIds[0] becomes nullable, then lsymId has a chance to become nullable
+                dependencyMap.get(rhsIds[0]).push({ rhsIds: rhsIds, next: 1, lsymId: nont });
             }
         }
 
         while (nonTerminalsToProcess.length > 0) {
-            const lnum = nonTerminalsToProcess.pop()!;
-            for (const dependentItem of (dependencyMap.get(lnum) || [])) {
+            const nullableNonT = nonTerminalsToProcess.pop()!;
+            for (const dependentItem of dependencyMap.get(nullableNonT)) {
                 // the non-terminal symbol of dependentItem is already marked as nullable, no further action required
                 if (retset.has(dependentItem.lsymId)) continue;
                 let next = dependentItem.next;
@@ -232,7 +232,7 @@ export class ProdSet {
                     // if blocked by terminal symbol, never get a change to be nullable
                     if (this.isSymIdTerminal(symId)) continue;
                     // now the "able to produce nullable" depends on symbol "symId"
-                    addToMapOfArr(dependencyMap, symId, { rhsIds: dependentItem.rhsIds, next: next + 1, lsymId: dependentItem.lsymId });
+                    dependencyMap.get(symId).push({ rhsIds: dependentItem.rhsIds, next: next + 1, lsymId: dependentItem.lsymId });
                 }
             }
         }
@@ -275,21 +275,21 @@ export class ProdSet {
 }
 
 function leftFactoring(lstr: string, rhsArr: Symbol[][], lfidx: number, prods: Production[], idGen: IdGen) {
-    const lfmap = new Map<string, Symbol[][]>();
+    const lfmap = createSelfInitMapOfArray<string, Symbol[]>();;
     const lfset = new Set<string>();
     let gonull = false;
     for (const rsymArr of rhsArr) {
         if (rsymArr.length === lfidx) gonull = true;
         else {
             const lfname = rsymArr[lfidx].getName();
-            addToMapOfArr(lfmap, lfname, rsymArr);
+            lfmap.get(lfname).push(rsymArr);
             lfset.add(lfname);
         }
     }
     const lsymbol = new Symbol(false, lstr);
     if (gonull) prods.push(new Production(lsymbol, []));
     for (const lfname of lfset) {
-        const rights = lfmap.get(lfname)!;
+        const rights = lfmap.get(lfname);
         if (rights.length === 1) prods.push(new Production(lsymbol, lfidx > 0 ? rights[0].slice(lfidx) : rights[0]));
         else {
             let i = 1, lfidx0 = lfidx, anchor: string;
@@ -311,11 +311,6 @@ function leftFactoring(lstr: string, rhsArr: Symbol[][], lfidx: number, prods: P
     }
 }
 
-function addToMapOfArr<K, T>(map: Map<K, T[]>, key: K, item: T) {
-    if (!map.has(key)) map.set(key, [item]);
-    else map.get(key)!.push(item);
-}
-
 function addRangeToArrayOfSet<T>(map: Set<T>[], key: number, item: Iterable<T>) {
     let set = map[key];
     if (!set) set = map[key] = new Set<T>();
@@ -324,9 +319,8 @@ function addRangeToArrayOfSet<T>(map: Set<T>[], key: number, item: Iterable<T>) 
 
 function mergeClosureSet(symIds: Iterable<number>, closuremap: Map<number, closure.Closure>, map: Set<number>[]) {
     for (const symId of symIds) {
-        const closure = closuremap.get(symId);
-        if (!closure) continue;
-        for (const num of closure.getNodes()) {
+        if (!closuremap.has(symId)) continue;
+        for (const num of closuremap.get(symId)!.getNodes()) {
             if (num === symId) continue;
             const symset = map[num];
             if (!symset) continue;
@@ -377,11 +371,11 @@ function makeSymbolIdMap(prods: Production[]): {
 function prodProcess(prods: Production[], symbolIdMap: SymbolIdMap): {
     idProdMap: ProductionRef[];
     linkToNonTerminal: Edge[];
-    nonTerminalProdMap: Map<number, number[]>;
+    nonTerminalProdMap: SelfInitMap<number, number[]>;
 } {
     const idProdMap: ProductionRef[] = [];
     const linkToNonTerminal: Edge[] = [];
-    const nonTerminalProdMap = new Map<number, number[]>();
+    const nonTerminalProdMap = createSelfInitMapOfArray<number, number>();
     for (const prod of prods) {
         const lhsId = symbolIdMap.getId(prod.getLHS().getName());
         const rhs = prod.getRHS();
@@ -396,7 +390,7 @@ function prodProcess(prods: Production[], symbolIdMap: SymbolIdMap): {
                 return rnum;
             })
         });
-        addToMapOfArr(nonTerminalProdMap, lhsId, prodId);
+        nonTerminalProdMap.get(lhsId).push(prodId);
     }
     return { idProdMap, linkToNonTerminal, nonTerminalProdMap };
 }

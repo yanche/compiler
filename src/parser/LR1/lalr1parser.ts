@@ -1,6 +1,7 @@
 
 import { ProdSet } from '../../productions';
 import { LRParser, LR0Item, LR0DFA, calcLR1ItemId, parseLR1Item, getLR0ItemByProdId, calcLR1LookAheadSymbols } from './util';
+import { createSelfInitMapOfSet, SelfInitMap } from "../../utility";
 
 
 // function itemInStr(item: LR0Item, prodset: ProdSet): string {
@@ -26,14 +27,11 @@ export default class LALR1Parser extends LRParser {
 
         const lr0DFA = new LR0DFA(prodset);
         // TODO: optimize this map to not save all LR1 items
-        const dfaStateLR1ItemMap = new Map<number, Set<number>>();
+        // we're going to build a new dfa_state_map, here is initialization
+        const dfaStateLR1ItemMap = createSelfInitMapOfSet<number, number>();
         const stack: StackItem[] = [];
         // totalLookAhead: the count of all possible look-ahead symbols, all terminal symbols plus $
         const totalLookAhead = prodset.getTerminals().length + 1;
-        // we're going to build a new dfa_state_map, here is initialization
-        for (const dfaId of lr0DFA.getStateNums()) {
-            dfaStateLR1ItemMap.set(dfaId, new Set<number>());
-        }
         const dfaStartStateId = lr0DFA.getStartState();
         const finSymId = prodset.getSymId("$");
         const startNonTerminalId = prodset.getStartNonTerminal();
@@ -63,25 +61,24 @@ export default class LALR1Parser extends LRParser {
                 }
             }
         }
-
+        
         // this._dfaitemmap = dfaStateLR1ItemMap;
         // this._totalLookAhead = totalLookAhead;
         this._startState = dfaStartStateId;
 
         // construct parsing table LALR(1)
         this.addAcceptAction(lr0DFA.acceptableDFAState, finSymId);
-        for (const dstate of dfaStateLR1ItemMap) {
-            const dfaId = dstate[0];
-            for (const tran of lr0DFA.getTransitionMap(dfaId)) {
-                this.addShiftAction(dfaId, prodset.getSymId(tran[0]), tran[1]);
+        for (const dfaStateId of dfaStateLR1ItemMap.keys) {
+            for (const tran of lr0DFA.getTransitionMap(dfaStateId)) {
+                this.addShiftAction(dfaStateId, prodset.getSymId(tran[0]), tran[1]);
             }
-            const lr1ItemIds = dstate[1];
+            const lr1ItemIds = dfaStateLR1ItemMap.get(dfaStateId);
             for (const lr1ItemId of lr1ItemIds) {
                 // state number of NFA is the number of item
                 const { lr0ItemId, lookAheadSymId } = parseLR1Item(lr1ItemId, totalLookAhead);
                 const lr0Item = lr0DFA.lr0ItemsPack.getItem(lr0ItemId);
                 if (lr0Item.dot === lr0Item.prod.rhsIds.length && lr0Item.prod.lhsId !== startNonTerminalId) {
-                    this.addReduceAction(dfaId, lookAheadSymId, lr0Item.prod.lhsId, lr0Item.dot, lr0Item.prodId);
+                    this.addReduceAction(dfaStateId, lookAheadSymId, lr0Item.prod.lhsId, lr0Item.dot, lr0Item.prodId);
                 }
             }
         }
@@ -112,9 +109,9 @@ export default class LALR1Parser extends LRParser {
 }
 
 // return new stack top (point to last element in stack)
-function addIntoStackIfNotProcessed(stack: StackItem[], stackLength: number, dfaStateId: number, lr0Item: LR0Item, lookAheadSymId: number, totalLookAhead: number, processedLR1Items: Map<number, Set<number>>): number {
+function addIntoStackIfNotProcessed(stack: StackItem[], stackLength: number, dfaStateId: number, lr0Item: LR0Item, lookAheadSymId: number, totalLookAhead: number, processedLR1Items: SelfInitMap<number, Set<number>>): number {
     const lr1ItemId = calcLR1ItemId(lr0Item.itemId, lookAheadSymId, totalLookAhead);
-    const stateProcessedItems = processedLR1Items.get(dfaStateId)!;
+    const stateProcessedItems = processedLR1Items.get(dfaStateId);
     if (!stateProcessedItems.has(lr1ItemId)) {
         stateProcessedItems.add(lr1ItemId);
         stack[stackLength] = {

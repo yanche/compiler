@@ -2,19 +2,19 @@
 import { ProdSet } from "../../productions";
 import { ParseTreeNode, Token, ParseTreeMidNode, ParseTreeTermNode, ParseReturn, Parser } from "../../compile";
 import { NeedMoreTokensError, TooManyTokensError, NotAcceptableError, createParseErrorReturn } from "../error";
+import { SelfInitTable, createSelfInitTableOfArray } from "../../utility";
 
 export default class LL1Parser extends Parser {
-    private _table: Map<number, Map<number, number[]>>;
+    private _table: SelfInitTable<number, number, number[]>;
     private _valid: boolean;
 
     constructor(prodset: ProdSet) {
         super(prodset);
-        this._table = new Map<number, Map<number, number[]>>();
+        this._table = createSelfInitTableOfArray<number, number, number>();
         this._valid = true;
 
         const followSets = prodset.followSet();
         for (const nont of prodset.getNonTerminals()) {
-            this._getOrCreateParseRow(nont);
             for (const prodId of prodset.getProds(nont)) {
                 const rhsIds = prodset.getProdRef(prodId).rhsIds;
                 // calc the first set of RHS of production
@@ -52,7 +52,7 @@ export default class LL1Parser extends Parser {
                 ++i;
             }
             else if (node instanceof ParseTreeMidNode) {
-                const prods = this._table.get(stacktop.symId)!.get(token.symId) || [];
+                const prods = this._table.getCell(stacktop.symId, token.symId);
                 if (prods.length === 0) return createParseErrorReturn(new NotAcceptableError(`unexpected symbol: ${tokenSymStr} at ${token.area}`));
                 if (prods.length > 1) throw new Error(`defensive code, more than 1 productions are found for: ${node.symId}, ${token.symId}`);
                 const prodId = prods[0];
@@ -71,27 +71,14 @@ export default class LL1Parser extends Parser {
     }
 
     private _bookKeeping(ntsym: number, tsym: number, prodId: number): this {
-        const row = this._getOrCreateParseRow(ntsym);
-        if (!row.has(tsym)) {
-            row.set(tsym, []);
-        }
-        const col = row.get(tsym)!;
-
-        if (col.every(x => x !== prodId)) {
-            const ambiguity = col.some(x => x !== prodId);
-            if (ambiguity) {
+        const prodIdList = this._table.getCell(ntsym, tsym);
+        if (prodIdList.every(p => p !== prodId)) {
+            if (prodIdList.length > 0) {
                 // more than one choice for same non-termial/terminal pair, conflict happens
                 this._valid = false;
             }
-            col.push(prodId);
+            prodIdList.push(prodId);
         }
         return this;
-    }
-
-    private _getOrCreateParseRow(ntsym: number): Map<number, number[]> {
-        if (!this._table.has(ntsym)) {
-            this._table.set(ntsym, new Map<number, number[]>());
-        }
-        return this._table.get(ntsym)!;
     }
 }

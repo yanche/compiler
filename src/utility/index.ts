@@ -3,6 +3,8 @@
 import * as closure from "./closure";
 import * as automata from "./automata";
 
+export * from "./safecollection";
+
 export { closure, automata };
 
 export function isNonNeg(num: number, int?: boolean): boolean {

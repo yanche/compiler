@@ -2,19 +2,9 @@
 import { ProdSet, ProductionRef } from "../../productions";
 import { DFA } from "../../DFA";
 import { ParseReturn, ParseTreeMidNode, ParseTreeTermNode, ParseTreeNode, Token, Parser, Area, noArea } from "../../compile";
-import { range, automata } from "../../utility";
+import { range, automata, createSelfInitTableOfArray, SelfInitTable, SelfInitMap, createSelfInitMapOfSet } from "../../utility";
 import { createNFA } from '../../NFA';
 import { NeedMoreTokensError, TooManyTokensError, NotAcceptableError, createParseErrorReturn } from "../error";
-
-//FOR LR parse-table
-abstract class Action { }
-class ShiftAction extends Action {
-    constructor(public toStateId: number) { super(); }
-}
-class ReduceAction extends Action {
-    constructor(public nonTerminal: number, public rhsLen: number, public prodId: number) { super(); }
-}
-class AcceptAction extends Action { }
 
 export interface LR0Item {
     prodId: number;
@@ -62,14 +52,14 @@ export class LR0ItemsPack {
 
 export abstract class LRParser extends Parser {
     // parsing table
-    private _ptable: Map<number, Map<number, Array<Action>>>;
-    private _ambCells: Map<number, Set<number>>;
+    private _ptable: SelfInitTable<number, number, Action[]>;
+    private _ambCells: SelfInitMap<number, Set<number>>;
     protected abstract _startState: number;
 
     constructor(prodset: ProdSet) {
         super(prodset);
-        this._ptable = new Map<number, Map<number, Array<Action>>>();
-        this._ambCells = new Map<number, Set<number>>();
+        this._ptable = createSelfInitTableOfArray<number, number, Action>();;
+        this._ambCells = createSelfInitMapOfSet<number, number>();;
     }
 
     // stringifyAmbCells(): string {
@@ -102,22 +92,24 @@ export abstract class LRParser extends Parser {
         while (i < len) {
             const token = tokens[i];
             const stackItem = stack[stackTop];
-            const act = this._getSingleAct(stackItem.state, token.symId, token.area);
-            if (act instanceof ShiftAction) {
-                stack[++stackTop] = { tnode: new ParseTreeTermNode(token.symId, token), state: act.toStateId };
+            const { action, errReturn } = this._getSingleAct(stackItem.state, token.symId, token.area);
+            if (errReturn) return errReturn;
+            if (action instanceof ShiftAction) {
+                stack[++stackTop] = { tnode: new ParseTreeTermNode(token.symId, token), state: action.toStateId };
                 ++i;
             }
-            else if (act instanceof ReduceAction) {
-                let newStackTop = stackTop - act.rhsLen;
-                const midnode = new ParseTreeMidNode(act.nonTerminal, act.prodId, stack.slice(newStackTop + 1, stackTop + 1).map(x => x.tnode));
-                const newAct = this._getSingleAct(stack[newStackTop].state, act.nonTerminal, noArea);
+            else if (action instanceof ReduceAction) {
+                let newStackTop = stackTop - action.rhsLen;
+                const midnode = new ParseTreeMidNode(action.nonTerminal, action.prodId, stack.slice(newStackTop + 1, stackTop + 1).map(x => x.tnode));
+                const { action: newAct, errReturn: errReturn2 } = this._getSingleAct(stack[newStackTop].state, action.nonTerminal, noArea);
+                if (errReturn2) return errReturn2;
                 if (newAct instanceof ShiftAction) {
                     stack[++newStackTop] = { tnode: midnode, state: newAct.toStateId };
                     stackTop = newStackTop;
                 }
                 else throw new Error("something wrong with parsing table, by taking a non-terminal symbol state should always shift in");
             }
-            else if (act instanceof AcceptAction) {
+            else if (action instanceof AcceptAction) {
                 if (i !== len - 1) return createParseErrorReturn(new TooManyTokensError());
                 else if (stackTop !== 1) return createParseErrorReturn(new NeedMoreTokensError());
                 else return new ParseReturn(<ParseTreeMidNode>stackItem.tnode);
@@ -140,35 +132,22 @@ export abstract class LRParser extends Parser {
     }
 
     private _addAction(dfaStateId: number, symId: number, action: Action): this {
-        const row = this._initRow(dfaStateId);
-        if (!row.has(symId)) row.set(symId, [action]);
-        else {
-            row.get(symId)!.push(action);
-            this._markAmbiguousCell(dfaStateId, symId);
+        const cell = this._ptable.getCell(dfaStateId, symId);
+        if (cell.every(c => !c.equivalent(action))) {
+            if (cell.length > 0) {
+                this._ambCells.get(dfaStateId).add(symId);
+            }
+            cell.push(action);
         }
         return this;
     }
 
-    private _markAmbiguousCell(dfaStateId: number, symId: number): this {
-        if (this._ambCells.has(dfaStateId)) this._ambCells.get(dfaStateId)!.add(symId);
-        else this._ambCells.set(dfaStateId, new Set<number>().add(symId));
-        return this;
-    }
-
-    private _initRow(dfaStateId: number): Map<number, Action[]> {
-        if (!this._ptable.has(dfaStateId)) {
-            this._ptable.set(dfaStateId, new Map<number, Array<Action>>());
-        }
-        return this._ptable.get(dfaStateId)!;
-    }
-
-    private _getSingleAct(stateId: number, symId: number, area: Area): Action {
-        if (!this._ptable.has(stateId)) throw new Error(`bad parsing table, no action is records for state: ${stateId}`);
-        const acts = this._ptable.get(stateId)!.get(symId) || [];
+    private _getSingleAct(stateId: number, symId: number, area: Area): { action?: Action, errReturn?: ParseReturn } {
+        const acts = this._ptable.getCell(stateId, symId);
         const tokenSymStr = this._prodset.getSymInStr(symId);
-        if (acts.length === 0) return createParseErrorReturn(new NotAcceptableError(`input not acceptable: ${tokenSymStr} at ${area}`));
+        if (acts.length === 0) return { errReturn: createParseErrorReturn(new NotAcceptableError(`input not acceptable, state: ${stateId}, token: ${tokenSymStr} at ${area}`)) };
         else if (acts.length > 1) throw new Error(`defensive code, more than 1 actions are found for state: ${stateId}, ${tokenSymStr}`);
-        return acts[0];
+        return { action: acts[0] };
     }
 
     // ambCells(): Set<number> {
@@ -313,4 +292,39 @@ export function calcLR1LookAheadSymbols(prodset: ProdSet, symIds: number[], look
     const nonTerminalFollowSet = firstSet;
     if (nullable) nonTerminalFollowSet.add(lookAheadSymId);
     return nonTerminalFollowSet;
+}
+
+//FOR LR parse-table
+abstract class Action {
+    abstract equivalent(action: Action): boolean
+}
+
+class ShiftAction extends Action {
+    constructor(public toStateId: number) {
+        super();
+    }
+
+    public equivalent(action: Action): boolean {
+        return action instanceof ShiftAction
+            && action.toStateId === this.toStateId;
+    }
+}
+
+class ReduceAction extends Action {
+    constructor(public nonTerminal: number, public rhsLen: number, public prodId: number) {
+        super();
+    }
+
+    public equivalent(action: Action): boolean {
+        return action instanceof ReduceAction
+            && action.nonTerminal === this.nonTerminal
+            && action.rhsLen === this.rhsLen
+            && action.prodId === this.prodId;
+    }
+}
+
+class AcceptAction extends Action {
+    public equivalent(action: Action): boolean {
+        return action instanceof AcceptAction;
+    }
 }
