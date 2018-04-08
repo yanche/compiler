@@ -1,5 +1,5 @@
 
-import { closure, Edge, IdGen, range, createSelfInitMapOfArray, SelfInitMap } from "../utility";
+import { closure, Edge, IdGen, range, createMapBuilderOfArray } from "../utility";
 
 //terminal symbol or non-terminal symbol, used in productions
 export class Symbol {
@@ -56,7 +56,7 @@ export interface ProductionRef {
 //also an integer will be assigned to each production, starts from 0
 export class ProdSet {
     private _startNonTerminalId: number; //integer for start symbol
-    private _nonTerminalProdMap: SelfInitMap<number, number[]>; //integer of non-terminal -> array of id of productions by it as lhs
+    private _nonTerminalProdMap: ReadonlyMap<number, number[]>; //integer of non-terminal -> array of id of productions by it as lhs
     private _idProdMap: ProductionRef[];  //production id -> production
     private _symbolIdMap: SymbolIdMap; //integer of symbol <--> string of symbol
     private _terminalsCount: number;       //count of terminal symbols
@@ -196,7 +196,7 @@ export class ProdSet {
 
         const retset = new Set<number>();
         const nonTerminalsToProcess: number[] = [];
-        const dependencyMap = createSelfInitMapOfArray<number, { rhsIds: number[], next: number, lsymId: number }>();
+        const dependencyMap = createMapBuilderOfArray<number, { rhsIds: number[], next: number, lsymId: number }>();
 
         for (const nont of this.getNonTerminals()) {
             for (const prodId of this.getProds(nont)) {
@@ -275,7 +275,7 @@ export class ProdSet {
 }
 
 function leftFactoring(lstr: string, rhsArr: Symbol[][], lfidx: number, prods: Production[], idGen: IdGen) {
-    const lfmap = createSelfInitMapOfArray<string, Symbol[]>();;
+    const lfmap = createMapBuilderOfArray<string, Symbol[]>();;
     const lfset = new Set<string>();
     let gonull = false;
     for (const rsymArr of rhsArr) {
@@ -317,10 +317,10 @@ function addRangeToArrayOfSet<T>(map: Set<T>[], key: number, item: Iterable<T>) 
     for (const s of item) set.add(s);
 }
 
-function mergeClosureSet(symIds: Iterable<number>, closuremap: Map<number, closure.Closure>, map: Set<number>[]) {
+function mergeClosureSet(symIds: Iterable<number>, closureMap: ReadonlyMap<number, closure.Closure>, map: Set<number>[]) {
     for (const symId of symIds) {
-        if (!closuremap.has(symId)) continue;
-        for (const num of closuremap.get(symId)!.getNodes()) {
+        if (!closureMap.has(symId)) continue;
+        for (const num of closureMap.get(symId)!.getNodes()) {
             if (num === symId) continue;
             const symset = map[num];
             if (!symset) continue;
@@ -371,11 +371,11 @@ function makeSymbolIdMap(prods: Production[]): {
 function prodProcess(prods: Production[], symbolIdMap: SymbolIdMap): {
     idProdMap: ProductionRef[];
     linkToNonTerminal: Edge[];
-    nonTerminalProdMap: SelfInitMap<number, number[]>;
+    nonTerminalProdMap: ReadonlyMap<number, number[]>;
 } {
     const idProdMap: ProductionRef[] = [];
     const linkToNonTerminal: Edge[] = [];
-    const nonTerminalProdMap = createSelfInitMapOfArray<number, number>();
+    const nonTerminalProdMapBuilder = createMapBuilderOfArray<number, number>();
     for (const prod of prods) {
         const lhsId = symbolIdMap.getId(prod.getLHS().getName());
         const rhs = prod.getRHS();
@@ -390,8 +390,9 @@ function prodProcess(prods: Production[], symbolIdMap: SymbolIdMap): {
                 return rnum;
             })
         });
-        nonTerminalProdMap.get(lhsId).push(prodId);
+        nonTerminalProdMapBuilder.get(lhsId).push(prodId);
     }
+    const nonTerminalProdMap = nonTerminalProdMapBuilder.complete();
     return { idProdMap, linkToNonTerminal, nonTerminalProdMap };
 }
 

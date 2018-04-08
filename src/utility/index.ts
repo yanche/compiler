@@ -3,7 +3,8 @@
 import * as closure from "./closure";
 import * as automata from "./automata";
 
-export * from "./safecollection";
+export * from "./collectionbuilder";
+export * from "./stack";
 
 export { closure, automata };
 
@@ -27,9 +28,13 @@ export class IdGen {
     }
 }
 
+export type NodeId = number;
+
+export type Index = number;
+
 export interface Edge {
-    src: number;
-    tgt: number;
+    src: NodeId;
+    tgt: NodeId;
 }
 
 function strictEqual(i1: any, i2: any): boolean { return i1 === i2; };

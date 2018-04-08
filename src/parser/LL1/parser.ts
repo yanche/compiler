@@ -2,15 +2,15 @@
 import { ProdSet } from "../../productions";
 import { ParseTreeNode, Token, ParseTreeMidNode, ParseTreeTermNode, ParseReturn, Parser } from "../../compile";
 import { NeedMoreTokensError, TooManyTokensError, NotAcceptableError, createParseErrorReturn } from "../error";
-import { SelfInitTable, createSelfInitTableOfArray } from "../../utility";
+import { createTableBuilderOfArray, TableBuilder } from "../../utility";
 
 export default class LL1Parser extends Parser {
-    private _table: SelfInitTable<number, number, number[]>;
+    private _table: TableBuilder<number, number, number[]>;
     private _valid: boolean;
 
     constructor(prodset: ProdSet) {
         super(prodset);
-        this._table = createSelfInitTableOfArray<number, number, number>();
+        this._table = createTableBuilderOfArray<number, number, number>();
         this._valid = true;
 
         const followSets = prodset.followSet();

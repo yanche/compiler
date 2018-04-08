@@ -2,7 +2,7 @@
 import { ProdSet, ProductionRef } from "../../productions";
 import { DFA } from "../../DFA";
 import { ParseReturn, ParseTreeMidNode, ParseTreeTermNode, ParseTreeNode, Token, Parser, Area, noArea } from "../../compile";
-import { range, automata, createSelfInitTableOfArray, SelfInitTable, SelfInitMap, createSelfInitMapOfSet } from "../../utility";
+import { range, automata, createTableBuilderOfArray, TableBuilder, MapBuilder, createMapBuilderOfSet } from "../../utility";
 import { createNFA } from '../../NFA';
 import { NeedMoreTokensError, TooManyTokensError, NotAcceptableError, createParseErrorReturn } from "../error";
 
@@ -52,14 +52,14 @@ export class LR0ItemsPack {
 
 export abstract class LRParser extends Parser {
     // parsing table
-    private _ptable: SelfInitTable<number, number, Action[]>;
-    private _ambCells: SelfInitMap<number, Set<number>>;
+    private _ptable: TableBuilder<number, number, Action[]>;
+    private _ambCells: MapBuilder<number, Set<number>>;
     protected abstract _startState: number;
 
     constructor(prodset: ProdSet) {
         super(prodset);
-        this._ptable = createSelfInitTableOfArray<number, number, Action>();;
-        this._ambCells = createSelfInitMapOfSet<number, number>();;
+        this._ptable = createTableBuilderOfArray<number, number, Action>();;
+        this._ambCells = createMapBuilderOfSet<number, number>();;
     }
 
     // stringifyAmbCells(): string {
