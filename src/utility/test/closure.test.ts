@@ -145,7 +145,7 @@ function closuresShareNodes(closures: Closure[], nodes: number[]) {
 function closuresOwners(closures: Closure[], owners: number[]) {
     const set = new Set<number>();
     for (const c of closures)
-        for (const n of c.getOwnerNodes())
+        for (const n of (<any>c).getOwnerNodes())
             set.add(n);
     arrEqual(owners, [...set]);
 };

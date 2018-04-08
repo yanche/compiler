@@ -1,14 +1,14 @@
 
-import * as utility from "../utility";
+import { Transition } from "../utility";
 
 export default class DFA {
     private _statemap: Map<number, State>;
     private _start: number;
     private _terminalset: Set<number>;
-    private _trans: Iterable<utility.automata.Transition>;
+    private _trans: Iterable<Transition>;
     // private _statect: number;
 
-    constructor(trans: Iterable<utility.automata.Transition>, start: number, terminals: Iterable<number>) {
+    constructor(trans: Iterable<Transition>, start: number, terminals: Iterable<number>) {
         const statemap = new Map<number, State>();
         for (const tran of trans) {
             let state = statemap.get(tran.src);
@@ -57,7 +57,7 @@ export default class DFA {
         }
         return this.isTerminal(curstate);
     }
-    
+
     toString(): string {
         const strarr = [`${this._statemap.size} states in total`, `start state: ${this._start}`, `terminal states: ${[...this._terminalset].join(",")}`];
         for (const tran of this._trans) strarr.push(tran.toString());

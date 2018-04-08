@@ -1,157 +1,162 @@
 
-import * as utility from "./index";
+import { Edge, NodeId, Stack } from "./index";
+import { createMapBuilderOfSet, MapBuilder } from "./collectionbuilder";
 
-export class Closure {
-    private _set: Set<number>; //contains nodes
-    private _owners: Set<number>; //owners
-
-    addNode(nodenum: number): this {
-        this._set.add(nodenum);
-        return this;
-    }
-
-    // the nodes share this closure
-    addOwnerNode(nodenum: number): this {
-        this._owners.add(nodenum);
-        return this;
-    }
-
-    getNodes(): Set<number> {
-        return this._set;
-    }
-
-    getOwnerNodes(): Set<number> {
-        return this._owners;
-    }
-
-    constructor() {
-        this._set = new Set<number>();
-        this._owners = new Set<number>();
-    }
+export interface Closure {
+    getNodes(): Set<NodeId>;
 }
 
-interface DirectedGraph {
-    nodes: Set<number>;
-    edgemap: Map<number, Set<number>>;
-}
-
-enum Color {
-    white,
-    grey,
-    black
-}
-
-function createGraph(arr: Iterable<utility.Edge>): DirectedGraph {
-    const map = new Map<number, Set<number>>(), allnodes = new Set<number>();
-    for (const edge of arr) {
-        const srcnum = edge.src, tgtnum = edge.tgt;
-        let edgeset: Set<number>;
-        if (!map.has(srcnum)) {
-            edgeset = new Set<number>();
-            map.set(srcnum, edgeset);
-        } else {
-            edgeset = map.get(srcnum)!;
-        }
-        edgeset.add(tgtnum);
-        allnodes.add(tgtnum).add(srcnum);
-    }
-    return { nodes: allnodes, edgemap: map };
-}
-
-// the closure of graph
-function _calcClosure(graph: DirectedGraph): Map<number, Closure> {
-    const colormap = new Map<number, Color>(), closuremap = new Map<number, Closure>(), nlen = graph.nodes.size;
-    if (nlen === 0) return closuremap;
-    for (const i of graph.nodes) colormap.set(i, Color.white);
-    let blackidx = 0;
-    const nodenums = [...graph.nodes];
-    while (blackidx < nlen) {
-        calcClosureOfNode([], 0, nodenums[blackidx], colormap, graph.edgemap, closuremap);
-        while (blackidx < nlen && colormap.get(nodenums[blackidx]) === Color.black)++blackidx;
-    }
-    return closuremap;
-}
-
-// the closure of each node
-// all the nodes in stack from 0 to stacktop is parent of nodenum
-function calcClosureOfNode(stack: Array<number>, stacktop: number, nodenum: number, colormap: Map<number, Color>, edgesmap: Map<number, Set<number>>, closuremap: Map<number, Closure>) {
-    stack[stacktop] = nodenum;
-    addNodesToClosure(stack, 0, stacktop, [nodenum], closuremap);
-    colormap.set(nodenum, Color.grey); //grey, in process
-    const edgeset = edgesmap.get(nodenum);
-    if (edgeset != null) {
-        for (const adjnodenum of [...edgeset]) {
-            if (adjnodenum === nodenum) continue; //self, ignore
-            const adjcolor = colormap.get(adjnodenum);
-            const adjclosure = closuremap.get(adjnodenum)!;
-            if (adjcolor === Color.black) //adj is black
-                addNodesToClosure(stack, 0, stacktop, adjclosure.getNodes(), closuremap);
-            else if (adjcolor === Color.grey) {
-                // adj is grey, grey means a lot from some point in stack, all nodes in a loop share the same closure
-                let adjidx = 0;
-                while (adjidx <= stacktop && stack[adjidx] !== adjnodenum)++adjidx;
-                ++adjidx;
-                while (adjidx <= stacktop) {
-                    const processedowners = new Set<number>();
-                    for (const ownernodenum of closuremap.get(stack[adjidx++])!.getOwnerNodes()) {
-                        if (!processedowners.has(ownernodenum)) {
-                            closuremap.set(ownernodenum, adjclosure);
-                            adjclosure.addOwnerNode(ownernodenum);
-                            processedowners.add(ownernodenum);
-                        }
-                    }
-                }
-            }
-            else //adj is white, then process adj first
-                calcClosureOfNode(stack, stacktop + 1, adjnodenum, colormap, edgesmap, closuremap);
-        }
-    }
-    colormap.set(nodenum, 2); //black, finished
-}
-
-function addNodesToClosure(nodearr: Array<number>, s: number, e: number, closurenodenums: Iterable<number>, closuremap: Map<number, Closure>) {
-    while (s <= e) {
-        const snodenum = nodearr[s];
-        let closure = closuremap.get(snodenum);
-        if (closure == null) {
-            closure = new Closure();
-            closure.addOwnerNode(snodenum);
-            closuremap.set(snodenum, closure);
-        }
-        for (const i of closurenodenums) closure.addNode(i);
-        ++s;
-    }
-}
-
-export function calcClosure(arr: Iterable<utility.Edge>): Map<number, Closure> {
+export function calcClosure(arr: Iterable<Edge>): ReadonlyMap<NodeId, Closure> {
     return _calcClosure(createGraph(arr));
 }
 
-export function closureOfNodes(nodenums: Iterable<number>, closuremap: Map<number, Closure>): Set<number> {
-    const ret = new Set<number>();
-    for (const nodenum of nodenums) {
-        for (const cnodenum of closuremap.get(nodenum)!.getNodes())
-            ret.add(cnodenum);
+export function closureOfNodes(nodeIds: Iterable<NodeId>, closureMap: ReadonlyMap<NodeId, Closure>): Set<NodeId> {
+    const ret = new Set<NodeId>();
+    for (const nodeId of nodeIds) {
+        if (closureMap.has(nodeId)) {
+            for (const cnodeId of closureMap.get(nodeId)!.getNodes())
+                ret.add(cnodeId);
+        }
     }
     return ret;
 }
 
-function _calcClosureOfOneNode(edgemap: Map<number, Set<number>>, nodenum: number) {
-    const set = new Set<number>().add(nodenum), queue = [nodenum];
-    while (queue.length > 0) {
-        const nnum = queue.pop()!;
-        const adjset = edgemap.get(nnum);
+export function calcClosureOfOneNode(edges: Iterable<Edge>, nodeId: NodeId): ReadonlySet<NodeId> {
+    return _calcClosureOfOneNode(createGraph(edges).edgeMap, nodeId);
+}
+
+enum Color {
+    WHITE,
+    GREY,
+    BLACK
+}
+
+interface DirectedGraph {
+    readonly nodes: ReadonlySet<NodeId>;
+    readonly edgeMap: ReadonlyMap<NodeId, ReadonlySet<NodeId>>;
+}
+
+function _calcClosureOfOneNode(edgeMap: ReadonlyMap<NodeId, ReadonlySet<NodeId>>, nodeId: NodeId): ReadonlySet<NodeId> {
+    const set = new Set<NodeId>().add(nodeId);
+    const queue = new Stack<NodeId>(nodeId);
+    while (queue.size > 0) {
+        const nId = queue.pop()!;
+        const adjset = edgeMap.get(nId);
         if (adjset === undefined) continue;
-        for (const adjnum of adjset) {
-            if (!set.has(adjnum)) {
-                set.add(adjnum);
-                queue.push(adjnum);
+        for (const adjNodeId of adjset) {
+            if (!set.has(adjNodeId)) {
+                set.add(adjNodeId);
+                queue.push(adjNodeId);
             }
         }
     }
     return set;
 };
 
-export function calcClosureOfOneNode(arr: Iterable<utility.Edge>, nodenum: number) {
-    return _calcClosureOfOneNode(createGraph(arr).edgemap, nodenum);
+function createGraph(edges: Iterable<Edge>): DirectedGraph {
+    const edgeMapBuilder = createMapBuilderOfSet<NodeId, NodeId>();
+    const nodes = new Set<NodeId>();
+    for (const edge of edges) {
+        const srcNodeId = edge.src;
+        const tgtNodeId = edge.tgt;
+        edgeMapBuilder.get(srcNodeId).add(tgtNodeId);
+        nodes.add(tgtNodeId).add(srcNodeId);
+    }
+    const edgeMap = edgeMapBuilder.complete();
+    return { nodes, edgeMap };
+}
+
+// the closure of graph
+function _calcClosure(graph: DirectedGraph): ReadonlyMap<NodeId, Closure> {
+    const colorMapBuilder = new MapBuilder<NodeId, Color>(() => Color.WHITE);
+    const closureMap = new MapBuilder<NodeId, ClosureBuilder>(nodeId => new ClosureBuilder(nodeId));
+    const nlen = graph.nodes.size;
+    if (nlen === 0) return closureMap.complete();
+    let blackIdx = 0;
+    const nodeIds = [...graph.nodes];
+    while (blackIdx < nlen) {
+        calcClosureOfNode(new Stack<NodeId>(), nodeIds[blackIdx], colorMapBuilder, graph.edgeMap, closureMap);
+        while (blackIdx < nlen && colorMapBuilder.get(nodeIds[blackIdx]) === Color.BLACK)++blackIdx;
+    }
+    return closureMap.complete();
+}
+
+// the closure of each node
+// all the nodes in stack from 0 to stacktop is parent of "nodeId"
+function calcClosureOfNode(stack: Stack<NodeId>, nodeId: NodeId, colorMapBuilder: MapBuilder<NodeId, Color>, edgesMap: ReadonlyMap<NodeId, ReadonlySet<NodeId>>, closureMap: MapBuilder<NodeId, ClosureBuilder>) {
+    stack.push(nodeId);
+    addNodesToClosure(stack, [nodeId], closureMap);
+    colorMapBuilder.set(nodeId, Color.GREY); // grey, in process
+    const edgeSet = edgesMap.get(nodeId);
+    if (edgeSet) {
+        for (const adjNodeId of [...edgeSet]) {
+            if (adjNodeId === nodeId) continue; // self, ignore
+            const adjColor = colorMapBuilder.get(adjNodeId);
+            const adjClosure = closureMap.get(adjNodeId);
+            if (adjColor === Color.BLACK) // adj is black
+                addNodesToClosure(stack, adjClosure.getNodes(), closureMap);
+            else if (adjColor === Color.GREY) {
+                // adj is grey, grey means a node from some point in stack, all nodes in a loop share the same closure
+                let adjIdx = 0;
+                while (adjIdx < stack.size && stack.peek(adjIdx) !== adjNodeId)++adjIdx;
+                if (adjIdx >= stack.size) throw new Error(`defensive code`);
+                ++adjIdx;
+                while (adjIdx < stack.size) {
+                    const processedOwners = new Set<NodeId>();
+                    for (const ownerNodeId of closureMap.get(stack.peek(adjIdx++)!).getOwnerNodes()) {
+                        if (!processedOwners.has(ownerNodeId)) {
+                            closureMap.set(ownerNodeId, adjClosure);
+                            adjClosure.addOwnerNode(ownerNodeId);
+                            processedOwners.add(ownerNodeId);
+                        }
+                    }
+                }
+            }
+            else {
+                // adj is WHITE, then process adj first
+                calcClosureOfNode(stack, adjNodeId, colorMapBuilder, edgesMap, closureMap);
+            }
+        }
+    }
+    colorMapBuilder.set(nodeId, Color.BLACK); // black, finished
+    stack.pop();
+}
+
+function addNodesToClosure(stack: Stack<NodeId>, closedNodeIds: Iterable<NodeId>, closureMap: MapBuilder<NodeId, ClosureBuilder>) {
+    let i = 0;
+    while (i < stack.size) {
+        const nodeId = stack.peek(i++)!;
+        closureMap.get(nodeId).addNodes(closedNodeIds);
+    }
+}
+
+class ClosureBuilder implements Closure {
+    private _set: Set<NodeId>; //contains nodes
+    private _owners: Set<NodeId>; //owners
+
+    public addNodes(nodeIds: Iterable<NodeId>): this {
+        for (const nodeId of nodeIds) {
+            this._set.add(nodeId);
+        }
+        return this;
+    }
+
+    // the nodes share this closure
+    public addOwnerNode(nodeId: NodeId): this {
+        this._owners.add(nodeId);
+        return this;
+    }
+
+    public getNodes(): Set<NodeId> {
+        return this._set;
+    }
+
+    public getOwnerNodes(): Set<NodeId> {
+        return this._owners;
+    }
+
+    constructor(nodeId: NodeId) {
+        this._set = new Set<NodeId>();
+        this._owners = new Set<NodeId>().add(nodeId);
+    }
 }

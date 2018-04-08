@@ -1,7 +1,7 @@
 
 import { assert } from 'chai';
-import * as utility from '../../utility';
-import {createNFA} from '../index';
+import { Transition } from '../../utility';
+import { createNFA } from '../index';
 import NFA from '../nfa';
 
 
@@ -21,8 +21,8 @@ function acceptStrings(arr: Array<string>, nfa: NFA) {
     bulkValidate(arr.map(function (str) { return { str: str, expected: true } }), nfa);
 };
 
-function tran(src: number, tgt: number, str: string): utility.automata.Transition {
-    return new utility.automata.Transition(src, tgt, str);
+function tran(src: number, tgt: number, str: string): Transition {
+    return new Transition(src, tgt, str);
 };
 
 describe('nfa-acceptance', function () {

@@ -1,6 +1,6 @@
 
 import { assert } from 'chai';
-import * as utility from '../../utility';
+import { Transition } from '../../utility';
 import { createDFA } from '../index';
 import DFA from '../dfa';
 
@@ -20,8 +20,8 @@ function bulkValidate(arr: Array<AcceptValidor>, dfa: DFA) {
 //     bulkValidate(arr.map(function (str) { return { str: str, expected: true } }), dfa);
 // };
 
-function tran(src: number, tgt: number, str: string): utility.automata.Transition {
-    return new utility.automata.Transition(src, tgt, str);
+function tran(src: number, tgt: number, str: string): Transition {
+    return new Transition(src, tgt, str);
 };
 
 describe('dfa-acceptance', function () {

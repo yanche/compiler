@@ -1,6 +1,6 @@
 
 import { ProdSet } from "../../productions";
-import { automata } from "../../utility";
+import { Transition } from "../../utility";
 import { createNFA } from "../../NFA";
 import { LRParser, LR0ItemsPack, calcLR1ItemId, parseLR1Item, getLR0ItemByProdId, calcLR1LookAheadSymbols } from "./util";
 
@@ -17,7 +17,7 @@ export default class LR1Parser extends LRParser {
     constructor(prodset: ProdSet) {
         super(prodset);
         const processedItems = new Set<number>();
-        const nfaTrans: automata.Transition[] = [];
+        const nfaTrans: Transition[] = [];
         const totalLookAhead = prodset.getTerminals().length + 1;
         const finSymId = prodset.getSymId("$");
 
@@ -37,7 +37,7 @@ export default class LR1Parser extends LRParser {
                 const dotSymId = rhsIds[lr0Item.dot];
                 const gotoLR0ItemId = getLR0ItemByProdId(lr0ItemsPack, lr0Item.prodId, lr0Item.dot + 1).itemId;
                 const gotoLR1ItemId = calcLR1ItemId(gotoLR0ItemId, lookAheadSymId, totalLookAhead);
-                stackTop = addNFATran(new automata.Transition(lr1ItemId, gotoLR1ItemId, prodset.getSymInStr(dotSymId)), nfaTrans, lr1ItemStack, stackTop + 1, processedItems);
+                stackTop = addNFATran(new Transition(lr1ItemId, gotoLR1ItemId, prodset.getSymInStr(dotSymId)), nfaTrans, lr1ItemStack, stackTop + 1, processedItems);
                 // non-terminal, add epsilon transition
                 if (!prodset.isSymIdTerminal(dotSymId)) {
                     const nonTerminalFollowSet = calcLR1LookAheadSymbols(prodset, rhsIds.slice(lr0Item.dot + 1), lookAheadSymId);
@@ -45,7 +45,7 @@ export default class LR1Parser extends LRParser {
                         const nextProdLR0ItemId = lr0ItemsPack.getItemIdsByProdId(prodId)[0];
                         for (const f of nonTerminalFollowSet) {
                             const nextProdLR1ItemId = calcLR1ItemId(nextProdLR0ItemId, f, totalLookAhead);
-                            stackTop = addNFATran(new automata.Transition(lr1ItemId, nextProdLR1ItemId, ""), nfaTrans, lr1ItemStack, stackTop + 1, processedItems);
+                            stackTop = addNFATran(new Transition(lr1ItemId, nextProdLR1ItemId, ""), nfaTrans, lr1ItemStack, stackTop + 1, processedItems);
                         }
                     }
                 }
@@ -113,7 +113,7 @@ export default class LR1Parser extends LRParser {
 }
 
 // return new stack top (point to last element in stack)
-function addNFATran(tran: automata.Transition, trans: Array<automata.Transition>, lr1ItemStack: number[], stackLength: number, processedItems: Set<number>): number {
+function addNFATran(tran: Transition, trans: Array<Transition>, lr1ItemStack: number[], stackLength: number, processedItems: Set<number>): number {
     trans.push(tran);
     if (!processedItems.has(tran.tgt)) {
         processedItems.add(tran.tgt);

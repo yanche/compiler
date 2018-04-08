@@ -1,12 +1,9 @@
 
 
-import * as closure from "./closure";
-import * as automata from "./automata";
-
+export * from "./closure";
+export * from "./automata";
 export * from "./collectionbuilder";
 export * from "./stack";
-
-export { closure, automata };
 
 export function isNonNeg(num: number, int?: boolean): boolean {
     return num >= 0 && (!int || Math.ceil(num) === num);

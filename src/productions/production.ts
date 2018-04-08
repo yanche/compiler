@@ -1,5 +1,5 @@
 
-import { closure, Edge, IdGen, range, createMapBuilderOfArray } from "../utility";
+import { calcClosureOfOneNode, calcClosure, Closure, Edge, IdGen, range, createMapBuilderOfArray } from "../utility";
 
 //terminal symbol or non-terminal symbol, used in productions
 export class Symbol {
@@ -77,7 +77,7 @@ export class ProdSet {
         this._startNonTerminalId = symbolIdMap.getId(ProdSet.reservedStartNonTerminal);
 
         if (nonTerminalProdMap.size !== nonTerminalsCount) throw new Error("not all non-terminals appear at LHS");
-        if (closure.calcClosureOfOneNode(linkToNonTerminal, this._startNonTerminalId).size !== nonTerminalsCount) throw new Error("some non-terminals are unreachable from start symbol");
+        if (calcClosureOfOneNode(linkToNonTerminal, this._startNonTerminalId).size !== nonTerminalsCount) throw new Error("some non-terminals are unreachable from start symbol");
 
         this._nonTerminalProdMap = nonTerminalProdMap;
         this._idProdMap = idProdMap;
@@ -146,7 +146,7 @@ export class ProdSet {
             }
         }
 
-        mergeClosureSet(nonTerminals, closure.calcClosure(edges), retmap);
+        mergeClosureSet(nonTerminals, calcClosure(edges), retmap);
 
         for (const t of this.getTerminals()) retmap[t] = new Set<number>().add(t);
 
@@ -186,7 +186,7 @@ export class ProdSet {
             }
         }
 
-        mergeClosureSet(range(1, this._totalSymbolCount + 1), closure.calcClosure(edges), retmap);
+        mergeClosureSet(range(1, this._totalSymbolCount + 1), calcClosure(edges), retmap);
 
         return this._followSet = retmap;
     }
@@ -317,7 +317,7 @@ function addRangeToArrayOfSet<T>(map: Set<T>[], key: number, item: Iterable<T>) 
     for (const s of item) set.add(s);
 }
 
-function mergeClosureSet(symIds: Iterable<number>, closureMap: ReadonlyMap<number, closure.Closure>, map: Set<number>[]) {
+function mergeClosureSet(symIds: Iterable<number>, closureMap: ReadonlyMap<number, Closure>, map: Set<number>[]) {
     for (const symId of symIds) {
         if (!closureMap.has(symId)) continue;
         for (const num of closureMap.get(symId)!.getNodes()) {

@@ -1,11 +1,11 @@
 
 import { assert } from 'chai';
-import * as utility from '../../utility';
-import {createNFA} from '../index';
-import {createDFA} from '../../DFA';
+import { Transition } from '../../utility';
+import { createNFA } from '../index';
+import { createDFA } from '../../DFA';
 
 function tran(src: number, tgt: number, str: string) {
-    return new utility.automata.Transition(src, tgt, str);
+    return new Transition(src, tgt, str);
 };
 
 describe('nfa convert to dfa', function () {

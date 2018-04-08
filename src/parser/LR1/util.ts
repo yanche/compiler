@@ -2,7 +2,7 @@
 import { ProdSet, ProductionRef } from "../../productions";
 import { DFA } from "../../DFA";
 import { ParseReturn, ParseTreeMidNode, ParseTreeTermNode, ParseTreeNode, Token, Parser, Area, noArea } from "../../compile";
-import { range, automata, createTableBuilderOfArray, TableBuilder, MapBuilder, createMapBuilderOfSet } from "../../utility";
+import { range, Transition, createTableBuilderOfArray, TableBuilder, MapBuilder, createMapBuilderOfSet } from "../../utility";
 import { createNFA } from '../../NFA';
 import { NeedMoreTokensError, TooManyTokensError, NotAcceptableError, createParseErrorReturn } from "../error";
 
@@ -243,8 +243,8 @@ export class LR0DFA extends DFA {
     }
 }
 
-function makeLR0ItemNFA(lr0ItemsPack: LR0ItemsPack, prodset: ProdSet): automata.Transition[] {
-    const nfaTrans: automata.Transition[] = [];
+function makeLR0ItemNFA(lr0ItemsPack: LR0ItemsPack, prodset: ProdSet): Transition[] {
+    const nfaTrans: Transition[] = [];
 
     for (const prodId of prodset.getProdIds()) {
         const prod = prodset.getProdRef(prodId);
@@ -253,11 +253,11 @@ function makeLR0ItemNFA(lr0ItemsPack: LR0ItemsPack, prodset: ProdSet): automata.
             const rhsSymId = prod.rhsIds[i];
             const curItem = itemIdArr[i];
             const rhsSymStr = prodset.getSymInStr(rhsSymId);
-            nfaTrans.push(new automata.Transition(curItem, itemIdArr[i + 1], rhsSymStr));
+            nfaTrans.push(new Transition(curItem, itemIdArr[i + 1], rhsSymStr));
             if (!prodset.isSymIdTerminal(rhsSymId)) {
                 for (const prodId2 of prodset.getProds(rhsSymId)) {
                     // epsilon transition
-                    nfaTrans.push(new automata.Transition(curItem, lr0ItemsPack.getItemIdsByProdId(prodId2)[0], ""));
+                    nfaTrans.push(new Transition(curItem, lr0ItemsPack.getItemIdsByProdId(prodId2)[0], ""));
                 }
             }
         }

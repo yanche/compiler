@@ -1,7 +1,7 @@
 
-import * as utility from "./index";
+import { Edge } from "./index";
 
-export class Transition implements utility.Edge {
+export class Transition implements Edge {
     src: number;
     tgt: number;
     sym: string;

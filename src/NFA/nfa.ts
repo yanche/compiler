@@ -1,5 +1,5 @@
 
-import * as utility from '../utility';
+import { Closure, Transition, calcClosure, closureOfNodes, Edge, IdGen } from '../utility';
 import { createDFA, DFA } from '../DFA';
 
 class State {
@@ -36,10 +36,10 @@ class State {
 export default class NFA {
     private _statemap: Map<number, State>;
     private _terminalset: Set<number>;
-    private _epsilonclosuremap: Map<number, utility.closure.Closure>;
+    private _epsilonclosuremap: ReadonlyMap<number, Closure>;
     private _startclosure: Set<number>;
 
-    constructor(trans: Iterable<utility.automata.Transition>, starts: Iterable<number>, terminals: Iterable<number>) {
+    constructor(trans: Iterable<Transition>, starts: Iterable<number>, terminals: Iterable<number>) {
         const statemap = new Map<number, State>();
         for (const tran of trans) {
             let state = statemap.get(tran.src);
@@ -54,7 +54,7 @@ export default class NFA {
         }
         if (statemap.size === 0) throw new Error('zero state is not good for NFA');
 
-        const epsilontrans: Array<utility.Edge> = [];
+        const epsilontrans: Array<Edge> = [];
         for (const item of statemap) {
             const statenum = item[0];
             const epset = statemap.get(statenum).getTransition('');
@@ -78,12 +78,12 @@ export default class NFA {
 
         this._statemap = statemap;
         this._terminalset = terminalset;
-        this._epsilonclosuremap = utility.closure.calcClosure(epsilontrans);
+        this._epsilonclosuremap = calcClosure(epsilontrans);
         this._startclosure = this.epsilonClosureOfStates(startset);
     }
 
     epsilonClosureOfStates(statenums: Iterable<number>) {
-        return utility.closure.closureOfNodes(statenums, this._epsilonclosuremap);
+        return closureOfNodes(statenums, this._epsilonclosuremap);
     }
 
     hasTerminal(statenums: Iterable<number>): boolean {
@@ -119,13 +119,13 @@ export default class NFA {
     }
 
     getDFATrans(): {
-        dfaTrans: Array<utility.automata.Transition>,
+        dfaTrans: Array<Transition>,
         startid: number,
         terminals: Set<number>,
         dfa2nfaStateMap: Map<number, Set<number>>,
         nfa2dfaStateMap: Map<number, Set<number>>
     } {
-        const dfaTrans: Array<utility.automata.Transition> = [], dfaIdGen = new utility.IdGen();
+        const dfaTrans: Array<Transition> = [], dfaIdGen = new IdGen();
         const dfastatemap = new Map<string, number>(), startid = dfaIdGen.next(), terminals = new Set<number>();
         const nfaidofstarts = statesId([...this._startclosure]), dfa2nfaStateMap = new Map<number, Set<number>>();
         dfastatemap.set(nfaidofstarts, startid);
@@ -160,7 +160,7 @@ export default class NFA {
                 }
                 else
                     dfaid = dfastatemap.get(nfastatesid);
-                dfaTrans.push(new utility.automata.Transition(cur.dfaid, dfaid, str));
+                dfaTrans.push(new Transition(cur.dfaid, dfaid, str));
             }
         }
         // construct the mapping from original nfa state -> owner dfa states
