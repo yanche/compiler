@@ -1,5 +1,5 @@
 
-import { DFA } from "../../DFA";
+import { DFA } from "../../automata";
 import lex from "./lex";
 import { astToNFA } from "./astprocess";
 import { parser, astConverter, prodSet } from "./syntax";

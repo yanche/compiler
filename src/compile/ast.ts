@@ -12,7 +12,7 @@ export class ASTConverter {
         this._handlermap = handlermap;
     }
 
-    toAST(root: ParseTreeMidNode): ASTNode {
+    public toAST(root: ParseTreeMidNode): ASTNode {
         const handler = this._handlermap.get(root.prodId);
         if (!handler) throw new Error(`handler not found for prodId: ${root.prodId}`);
         return handler(root);
@@ -20,14 +20,14 @@ export class ASTConverter {
 }
 
 export interface ParseTreeHandlerItem {
-    production: string;
-    handler: (node: ParseTreeMidNode) => ASTNode;
+    readonly production: string;
+    readonly handler: (node: ParseTreeMidNode) => ASTNode;
 }
 
 export interface SyntaxProcessor {
-    prodSet: ProdSet;
-    parser: Parser;
-    astConverter: ASTConverter;
+    readonly prodSet: ProdSet;
+    readonly parser: Parser;
+    readonly astConverter: ASTConverter;
 }
 
 export function defineSyntaxProcessor(prodHandlers: ParseTreeHandlerItem[], parserCreator: (prodset: ProdSet) => Parser, astConverterCreator?: (handlermap: Map<number, (node: ParseTreeMidNode) => ASTNode>) => ASTConverter): SyntaxProcessor {

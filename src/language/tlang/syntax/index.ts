@@ -9,7 +9,7 @@ class TLangASTConverter extends ASTConverter {
     }
     toAST(root: ParseTreeMidNode): a.ASTNode {
         const ret = <a.ASTNode>super.toAST(root);
-        ret.area = root.area();
+        ret.area = root.area;
         return ret;
     }
 }

@@ -1,7 +1,6 @@
 
 
 export * from "./closure";
-export * from "./automata";
 export * from "./collectionbuilder";
 export * from "./stack";
 

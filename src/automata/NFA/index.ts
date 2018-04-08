@@ -1,5 +1,5 @@
 
-import { Transition } from '../utility';
+import { Transition } from '../index';
 import NFA from './nfa';
 
 export function createNFA(trans: Iterable<Transition>, starts: Iterable<number>, terminals: Iterable<number>): NFA {

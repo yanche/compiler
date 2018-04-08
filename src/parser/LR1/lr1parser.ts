@@ -1,7 +1,6 @@
 
 import { ProdSet } from "../../productions";
-import { Transition } from "../../utility";
-import { createNFA } from "../../NFA";
+import { createNFA, Transition } from "../../automata";
 import { LRParser, LR0ItemsPack, calcLR1ItemId, parseLR1Item, getLR0ItemByProdId, calcLR1LookAheadSymbols } from "./util";
 
 

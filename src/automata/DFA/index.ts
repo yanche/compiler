@@ -1,5 +1,5 @@
 
-import { Transition } from '../utility';
+import { Transition } from '../index';
 import DFA from './dfa';
 
 export function createDFA(trans: Iterable<Transition>, start: number, terminals: Iterable<number>): DFA {

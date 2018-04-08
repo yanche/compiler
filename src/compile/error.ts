@@ -1,23 +1,10 @@
 
 export class CompileError {
-    protected _errmsg: string;
-    protected _errcode: number;
-
-    get errMsg(): string {
-        return this._errmsg;
+    public toString(): string {
+        return `error code: ${this.errCode}, error msg: ${this.errMsg}`;
     }
 
-    get errCode(): number {
-        return this._errcode;
-    }
-
-    toString(): string {
-        return `error code: ${this._errcode}, error msg: ${this._errmsg}`;
-    }
-
-    constructor(errmsg: string, errcode: number) {
-        this._errmsg = errmsg;
-        this._errcode = errcode;
+    constructor(public readonly errMsg: string, public readonly errCode: number) {
     }
 }
 

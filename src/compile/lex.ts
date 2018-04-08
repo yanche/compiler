@@ -12,21 +12,21 @@ export class InvalidTokenError extends LexError {
 }
 
 export class Token {
-    constructor(public rawstr: string, public symId: number, public area: Area) { };
+    constructor(public readonly rawstr: string, public readonly symId: number, public readonly area: Area) { };
 }
 
 export class Posi {
-    constructor(public row: number, public col: number) { }
+    constructor(public readonly row: number, public readonly col: number) { }
 
-    toString(): string {
+    public toString(): string {
         return `(row:${this.row},col:${this.col})`;
     }
 }
 
 export class Area {
-    constructor(public start: Posi, public end: Posi) { }
+    constructor(public readonly start: Posi, public readonly end: Posi) { }
 
-    toString(): string {
+    public toString(): string {
         if (this.start.row === this.end.row) {
             if (this.start.col === this.end.col) return this.start.toString();
             else return `(row:${this.start.row},col:${this.start.col}-${this.end.col})`;

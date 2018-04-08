@@ -1,9 +1,8 @@
 
 import { ProdSet, ProductionRef } from "../../productions";
-import { DFA } from "../../DFA";
+import { DFA, createNFA, Transition } from "../../automata";
 import { ParseReturn, ParseTreeMidNode, ParseTreeTermNode, ParseTreeNode, Token, Parser, Area, noArea } from "../../compile";
-import { range, Transition, createTableBuilderOfArray, TableBuilder, MapBuilder, createMapBuilderOfSet } from "../../utility";
-import { createNFA } from '../../NFA';
+import { range, createTableBuilderOfArray, TableBuilder, MapBuilder, createMapBuilderOfSet } from "../../utility";
 import { NeedMoreTokensError, TooManyTokensError, NotAcceptableError, createParseErrorReturn } from "../error";
 
 export interface LR0Item {

@@ -1,5 +1,5 @@
 
-import { Transition } from "../utility";
+import { Transition } from "../index";
 
 export default class DFA {
     private _statemap: Map<number, State>;

@@ -1,7 +1,7 @@
 
-import { Transition, IdGen, flatten } from "../../utility";
+import { IdGen, flatten } from "../../utility";
 import { ASTNode } from "../../compile";
-import { createNFA, NFA } from "../../NFA";
+import { createNFA, NFA, Transition } from "../../automata";
 
 export class ASTNode_OR extends ASTNode {
     constructor(public children: Array<ASTNode>) { super(); }
