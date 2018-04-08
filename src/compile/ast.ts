@@ -34,7 +34,7 @@ export function defineSyntaxProcessor(prodHandlers: ParseTreeHandlerItem[], pars
     const prods = prodHandlers.map(h => h.production);
     const prodset = createProdSet(prods);
     // the first N prodId are set corresponding to the input productions
-    const prodIds = prodset.getProdIds();
+    const prodIds = prodset.prodIds;
     const handlermap = new Map<number, (node: ParseTreeMidNode) => ASTNode>();
     prodHandlers.forEach((h, idx) => {
         handlermap.set(prodIds[idx], h.handler);

@@ -5,8 +5,8 @@ import { createProdSetWithSplitter } from "../index";
 import * as prod from "../production";
 
 function validate(pset: prod.ProdSet, expected: Array<{ lhs: string, rhsArr: Array<Array<{ str: string, terminal: boolean }>> }>) {
-    const startsymnum = pset.getStartNonTerminal();
-    const allLHS = [...pset.getNonTerminals()].filter(n => n != startsymnum).map(n => pset.getSymInStr(n));
+    const startsymnum = pset.startNonTerminalId;
+    const allLHS = [...pset.nonTerminals].filter(n => n != startsymnum).map(n => pset.getSymInStr(n));
     assert.equal(true, utility.arrayEquivalent([...allLHS], expected.map(e => e.lhs)));
     for (let i = 0; i < expected.length; ++i) {
         const item = expected[i];

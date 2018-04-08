@@ -4,7 +4,7 @@ import * as utility from "../../utility";
 import { createProdSetWithSplitter, ProdSet } from "../index";
 
 function validate(prodset: ProdSet, expected: Array<{ symbol: string, follow: Array<string> }>) {
-    const startsymnum = prodset.getStartNonTerminal();
+    const startsymnum = prodset.startNonTerminalId;
     const finsymnum = prodset.getSymId("$");
     const followsets = prodset.followSet();
     const testedset = followsets.filter((x, idx) => idx !== startsymnum && idx !== finsymnum);

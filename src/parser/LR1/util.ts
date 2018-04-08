@@ -27,7 +27,7 @@ export class LR0ItemsPack {
     public getItem(lr0ItemId: number): LR0Item { return this._idItemMap[lr0ItemId]; }
 
     constructor(prodset: ProdSet) {
-        const prodIds = prodset.getProdIds();
+        const prodIds = prodset.prodIds;
         const prodItemsMap = new Array<number[]>(prodIds.length);
         const idItemMap: LR0Item[] = [];
 
@@ -46,7 +46,7 @@ export class LR0ItemsPack {
 
         this._prodItemsMap = prodItemsMap;
         this._idItemMap = idItemMap;
-        this._startItems = prodset.getProds(prodset.getStartNonTerminal()).map(p => prodItemsMap[p][0]);
+        this._startItems = prodset.getProds(prodset.startNonTerminalId).map(p => prodItemsMap[p][0]);
     }
 }
 
@@ -246,7 +246,7 @@ export class LR0DFA extends DFA {
 function makeLR0ItemNFA(lr0ItemsPack: LR0ItemsPack, prodset: ProdSet): Transition[] {
     const nfaTrans: Transition[] = [];
 
-    for (const prodId of prodset.getProdIds()) {
+    for (const prodId of prodset.prodIds) {
         const prod = prodset.getProdRef(prodId);
         const itemIdArr = lr0ItemsPack.getItemIdsByProdId(prodId);
         for (let i = 0; i < prod.rhsIds.length; ++i) {

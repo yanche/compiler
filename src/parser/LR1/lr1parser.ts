@@ -18,7 +18,7 @@ export default class LR1Parser extends LRParser {
         super(prodset);
         const processedItems = new Set<number>();
         const nfaTrans: Transition[] = [];
-        const totalLookAhead = prodset.getTerminals().length + 1;
+        const totalLookAhead = prodset.terminals.length + 1;
         const finSymId = prodset.getSymId("$");
 
         // number of item, is the number of NFA
@@ -63,7 +63,7 @@ export default class LR1Parser extends LRParser {
         //construct parsing table LR(1)
         this._startState = dfa.getStartState();
 
-        const startNonTerminalId = prodset.getStartNonTerminal();
+        const startNonTerminalId = prodset.startNonTerminalId;
         const startProds = prodset.getProds(startNonTerminalId);
         if (startProds.length !== 1) throw new Error(`defensive code, only one start production from: ${ProdSet.reservedStartNonTerminal} should be`);
         const startProdLR0Items = lr0ItemsPack.getItemIdsByProdId(startProds[0]);

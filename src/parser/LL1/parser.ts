@@ -14,7 +14,7 @@ export default class LL1Parser extends Parser {
         this._valid = true;
 
         const followSets = prodset.followSet();
-        for (const nont of prodset.getNonTerminals()) {
+        for (const nont of prodset.nonTerminals) {
             for (const prodId of prodset.getProds(nont)) {
                 const rhsIds = prodset.getProdRef(prodId).rhsIds;
                 // calc the first set of RHS of production
@@ -35,7 +35,7 @@ export default class LL1Parser extends Parser {
         if (tokens.length === 0 || tokens[tokens.length - 1].symId !== 0) throw new Error("the last token must be '$', stands for the end of tokens");
         if (!this.valid) throw new Error("the grammar is not a valid LL(1)");
 
-        const startsym = this._prodset.getStartNonTerminal();
+        const startsym = this._prodset.startNonTerminalId;
         const root = new ParseTreeMidNode(startsym);
         const stack: { node: ParseTreeNode, symId: number }[] = [{ node: root, symId: startsym }];
         let i = 0;

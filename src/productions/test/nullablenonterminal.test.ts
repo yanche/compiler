@@ -5,7 +5,7 @@ import { createProdSetWithSplitter } from "../index";
 import { ProdSet } from "../production";
 
 function validate(pset: ProdSet, symarr: string[]) {
-    const startsymnum = pset.getStartNonTerminal();
+    const startsymnum = pset.startNonTerminalId;
     assert.equal(true, utility.arrayEquivalent([...pset.nullableNonTerminals()].filter(n => n !== startsymnum).map(n => pset.getSymInStr(n)), symarr));
 }
 
