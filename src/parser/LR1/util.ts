@@ -201,9 +201,9 @@ export abstract class LRParser extends Parser {
 
 // PRIVATE CLASS, represent the DFA of SLR1 parser
 export class LR0DFA extends DFA {
-    private _lr0ItemsPack: LR0ItemsPack;
-    private _dfaItemsMap: Map<number, Set<number>>;
-    private _acceptableDFAState: number;
+    private readonly _lr0ItemsPack: LR0ItemsPack;
+    private readonly _dfaItemsMap: ReadonlyMap<number, ReadonlySet<number>>;
+    private readonly _acceptableDFAState: number;
 
     get lr0ItemsPack(): LR0ItemsPack { return this._lr0ItemsPack; }
 
@@ -224,7 +224,7 @@ export class LR0DFA extends DFA {
         // WHY? range(lr0ItemsPack.size)
         const dfat = createNFA(nfsTrans, lr0ItemsPack.getStartItemIds(), range(lr0ItemsPack.size)).getDFATrans();
 
-        super(dfat.dfaTrans, dfat.startid, dfat.terminals);
+        super(dfat.dfaTrans, dfat.dfaStartId, dfat.dfaTerminalStateIds);
 
         this._dfaItemsMap = dfat.dfa2nfaStateMap;
         this._lr0ItemsPack = lr0ItemsPack;

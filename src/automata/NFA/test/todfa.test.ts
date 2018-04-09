@@ -32,7 +32,7 @@ describe('nfa convert to dfa', function () {
             tran(12, 13, 'd'),
             tran(13, 13, 'd')
         ], 10, [10, 11, 12, 13]);
-        assert.equal(true, dfA2.equivalent(dfA));
-        assert.equal(true, dfA.equivalent(dfA2));
+        assert.equal(dfA2.equivalent(dfA), true);
+        assert.equal(dfA.equivalent(dfA2), true);
     });
 });

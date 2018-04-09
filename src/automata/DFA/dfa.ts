@@ -3,7 +3,7 @@ import { Transition } from "../index";
 import { NodeId, MapBuilder, Stack } from "../../utility";
 
 export default class DFA {
-    private readonly _stateMap: ReadonlyMap<NodeId, StateBuilder>;
+    private readonly _stateMap: ReadonlyMap<NodeId, DFAStateBuilder>;
     private readonly _terminalSet: ReadonlySet<NodeId>;
     private readonly _trans: Iterable<Transition>;
 
@@ -11,7 +11,7 @@ export default class DFA {
     public readonly startState: NodeId;
 
     constructor(trans: Iterable<Transition>, start: NodeId, terminals: Iterable<NodeId>) {
-        const stateMapBuilder = new MapBuilder<NodeId, StateBuilder>(srcStateId => new StateBuilder(srcStateId));
+        const stateMapBuilder = new MapBuilder<NodeId, DFAStateBuilder>(srcStateId => new DFAStateBuilder(srcStateId));
         for (const tran of trans) {
             const srcState = stateMapBuilder.get(tran.src);
             // init target state (if not yet)
@@ -96,7 +96,7 @@ export default class DFA {
     }
 }
 
-class StateBuilder {
+class DFAStateBuilder {
     private readonly _id: NodeId;
     private readonly _tranMap: Map<string, NodeId>;
 
@@ -114,6 +114,7 @@ class StateBuilder {
     }
 
     public addTransition(sym: string, state: NodeId): this {
+        if (sym.length === 0) throw new Error("empty string is not acceptable for DFA");
         if (this._tranMap.has(sym)) throw new Error(`State ${this._id} already had a transition by given string: ${sym}, to ${this._tranMap.get(sym)}`);
         this._tranMap.set(sym, state);
         return this;

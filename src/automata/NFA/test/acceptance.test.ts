@@ -4,11 +4,11 @@ import { Transition } from '../../index';
 import { createNFA } from '../index';
 import NFA from '../nfa';
 
-
 interface AcceptValidor {
     str: string;
     expected: boolean;
 }
+
 //arr: array of {str:, expected: bool}
 function bulkValidate(arr: Array<AcceptValidor>, nfa: NFA) {
     for (const item of arr) {
@@ -25,9 +25,9 @@ function tran(src: number, tgt: number, str: string): Transition {
     return new Transition(src, tgt, str);
 };
 
-describe('nfa-acceptance', function () {
-    describe('no epsilon move', function () {
-        it('1 state', function () {
+describe('nfa-acceptance', () => {
+    describe('no epsilon move', () => {
+        it('1 state', () => {
             bulkValidate([
                 { str: 'aaaaa', expected: true },
                 { str: 'a', expected: true },
@@ -36,14 +36,14 @@ describe('nfa-acceptance', function () {
             ], createNFA([tran(0, 0, 'a')], [0], [0]));
         });
 
-        it('2 states', function () {
+        it('2 states', () => {
             bulkValidate([
                 { str: 'aaaaa', expected: false },
                 { str: 'a', expected: true }
             ], createNFA([tran(0, 1, 'a')], [0], [1]));
         });
 
-        it('3 states', function () {
+        it('3 states', () => {
             bulkValidate([
                 { str: 'ab', expected: true },
                 { str: 'a', expected: false }
@@ -51,8 +51,8 @@ describe('nfa-acceptance', function () {
         });
     });
 
-    describe('epsilon moves', function () {
-        it('4 states', function () {
+    describe('epsilon moves', () => {
+        it('4 states', () => {
             acceptStrings(['a', 'b', 'c', 'd', 'aa', 'bb', 'cc', 'dd', 'abcd',
                 'aabbccdd', 'ad', 'accdd', 'bbcd',
                 'bbdd'], createNFA([

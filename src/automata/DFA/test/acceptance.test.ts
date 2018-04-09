@@ -24,8 +24,8 @@ function tran(src: number, tgt: number, str: string): Transition {
     return new Transition(src, tgt, str);
 };
 
-describe('dfa-acceptance', function () {
-    it('1 state', function () {
+describe('dfa-acceptance', () => {
+    it('1 state', () => {
         bulkValidate([
             { str: 'aaaaa', expected: true },
             { str: 'a', expected: true },
@@ -34,7 +34,7 @@ describe('dfa-acceptance', function () {
         ], createDFA([tran(0, 0, 'a')], 0, [0]));
     });
 
-    it('2 states', function () {
+    it('2 states', () => {
         bulkValidate([
             { str: 'aaaaa', expected: false },
             { str: 'a', expected: true },
@@ -43,7 +43,7 @@ describe('dfa-acceptance', function () {
         ], createDFA([tran(0, 1, 'a')], 0, [1]));
     });
 
-    it('star', function () {
+    it('star', () => {
         bulkValidate([
             { str: 'aaaaa', expected: false },
             { str: 'a', expected: true },
