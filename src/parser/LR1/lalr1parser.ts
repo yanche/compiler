@@ -1,7 +1,7 @@
 
 import { ProdSet } from '../../productions';
 import { LRParser, LR0Item, LR0DFA, calcLR1ItemId, parseLR1Item, getLR0ItemByProdId, calcLR1LookAheadSymbols } from './util';
-import { createMapBuilderOfSet, MapBuilder } from "../../utility";
+import { createMapBuilderOfSet, MapBuilder, StateId, LR1ItemId, SymbolId } from "../../utility";
 
 
 // function itemInStr(item: LR0Item, prodset: ProdSet): string {
@@ -20,7 +20,7 @@ export default class LALR1Parser extends LRParser {
     // private _dfaitemmap: Map<number, Set<number>>;
     // private _totalLookAhead: number;
     // private _lr0DFA: lr0DFA;
-    protected _startState: number;
+    protected readonly _startState: StateId;
 
     constructor(prodset: ProdSet) {
         super(prodset);
@@ -28,7 +28,7 @@ export default class LALR1Parser extends LRParser {
         const lr0DFA = new LR0DFA(prodset);
         // TODO: optimize this map to not save all LR1 items
         // we're going to build a new dfa_state_map, here is initialization
-        const dfaStateLR1ItemMapBuilder = createMapBuilderOfSet<number, number>();
+        const dfaStateLR1ItemMapBuilder = createMapBuilderOfSet<StateId, LR1ItemId>();
         const stack: StackItem[] = [];
         // totalLookAhead: the count of all possible look-ahead symbols, all terminal symbols plus $
         const totalLookAhead = prodset.terminals.length + 1;
@@ -109,7 +109,7 @@ export default class LALR1Parser extends LRParser {
 }
 
 // return new stack top (point to last element in stack)
-function addIntoStackIfNotProcessed(stack: StackItem[], stackLength: number, dfaStateId: number, lr0Item: LR0Item, lookAheadSymId: number, totalLookAhead: number, processedLR1Items: MapBuilder<number, Set<number>>): number {
+function addIntoStackIfNotProcessed(stack: StackItem[], stackLength: number, dfaStateId: StateId, lr0Item: LR0Item, lookAheadSymId: SymbolId, totalLookAhead: number, processedLR1Items: MapBuilder<StateId, Set<LR1ItemId>>): number {
     const lr1ItemId = calcLR1ItemId(lr0Item.itemId, lookAheadSymId, totalLookAhead);
     const stateProcessedItems = processedLR1Items.get(dfaStateId);
     if (!stateProcessedItems.has(lr1ItemId)) {
@@ -125,8 +125,8 @@ function addIntoStackIfNotProcessed(stack: StackItem[], stackLength: number, dfa
 }
 
 interface StackItem {
-    dfaStateId: number;
-    lr0Item: LR0Item;
+    readonly dfaStateId: StateId;
+    readonly lr0Item: LR0Item;
     // symId to reduce the item (the following symbol)
-    lookAheadSymId: number;
+    readonly lookAheadSymId: SymbolId;
 }

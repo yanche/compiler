@@ -1,6 +1,7 @@
 
 import * as prod from "../../productions";
 import { LR0DFA, LRParser } from "./util";
+import { StateId } from "../../utility";
 
 
 // function itemInStr(item: LR0Item, prodset: prod.ProdSet): string {
@@ -16,13 +17,14 @@ import { LR0DFA, LRParser } from "./util";
 // }
 
 export default class SLR1Parser extends LRParser {
-    private _isLR0: boolean;
+    public readonly isLR0: boolean;
+
     // private _lr0dfa: LR0DFA;
-    protected _startState: number;
+    protected readonly _startState: StateId;
 
     constructor(prodset: prod.ProdSet) {
         super(prodset);
-        this._isLR0 = true;
+        this.isLR0 = true;
         const lr0DFA = new LR0DFA(prodset);
 
         const followsets = prodset.followSet();
@@ -46,14 +48,12 @@ export default class SLR1Parser extends LRParser {
                         this.addReduceAction(dfaId, f, item.prod.lhsId, item.prod.rhsIds.length, item.prodId);
                 }
             }
-            if (this._isLR0 && hasReduceMove && lr0Items.length > 1) {
+            if (this.isLR0 && hasReduceMove && lr0Items.length > 1) {
                 // LR0: if state has reduce action, then it must be the only one action (thus only one item), it does not look at follow set
-                this._isLR0 = false;
+                this.isLR0 = false;
             }
         }
     }
-
-    public get isLR0(): boolean { return this._isLR0; }
 
     // stringifyDFA(): string {
     //     const strarr = ["DFA:", lr0DFA.toString()];

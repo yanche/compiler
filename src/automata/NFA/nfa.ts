@@ -23,7 +23,7 @@ export default class NFA {
 
         const epsilonTrans: Edge[] = [];
         for (const [stateId, state] of this._stateMap) {
-            if (!state.hasTransition("")) epsilonTrans.push({ src: stateId, tgt: stateId }); // TODO, why ? self loop, for closure calculation purpose
+            if (!state.hasTransition("")) epsilonTrans.push({ src: stateId, tgt: stateId }); // self loop, for closure calculation purpose
             else {
                 for (const epstate of state.getTransition("")!) {
                     epsilonTrans.push({ src: stateId, tgt: epstate });

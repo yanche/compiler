@@ -1,5 +1,5 @@
 
-import { calcClosureOfOneNode, calcClosure, Closure, Edge, IdGen, range, createMapBuilderOfArray } from "../utility";
+import { calcClosureOfOneNode, calcClosure, Closure, Edge, IdGen, range, createMapBuilderOfArray, SymbolId } from "../utility";
 
 //terminal symbol or non-terminal symbol, used in productions
 export class Symbol {
@@ -17,7 +17,8 @@ export class Symbol {
 export class Production {
     public readonly LHS: Symbol;
     public readonly RHS: ReadonlyArray<Symbol>;
-    private _literal: string;
+    
+    private readonly _literal: string;
 
     constructor(lhs: Symbol, rhs: ReadonlyArray<Symbol>) {
         if (lhs.terminal) throw new Error("left-hand-side of production must be non-terminal");
@@ -253,11 +254,11 @@ export class ProdSet {
         return prods.length === (this._prodCount - 1) ? this : new ProdSet(prods);
     }
 
-    public firstSetOfSymbols(symbolIds: number[]): { firstSet: Set<number>; nullable: boolean } {
+    public firstSetOfSymbols(symbolIds: ReadonlyArray<SymbolId>): { firstSet: ReadonlySet<SymbolId>; nullable: boolean } {
         let nullable = true;
         let i = 0;
         const len = symbolIds.length;
-        const firstSet = new Set<number>();
+        const firstSet = new Set<SymbolId>();
         const firsts = this.firstSet();
         const nullables = this.nullableNonTerminals();
         while (nullable && i < len) {

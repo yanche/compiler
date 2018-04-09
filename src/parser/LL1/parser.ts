@@ -2,15 +2,15 @@
 import { ProdSet } from "../../productions";
 import { ParseTreeNode, Token, ParseTreeMidNode, ParseTreeTermNode, ParseReturn, Parser } from "../../compile";
 import { NeedMoreTokensError, TooManyTokensError, NotAcceptableError, createParseErrorReturn } from "../error";
-import { createTableBuilderOfArray, TableBuilder } from "../../utility";
+import { createTableBuilderOfArray, TableBuilder, SymbolId, ProductionId } from "../../utility";
 
 export default class LL1Parser extends Parser {
-    private _table: TableBuilder<number, number, number[]>;
+    private readonly _table: TableBuilder<SymbolId, SymbolId, ProductionId[]>;
     private _valid: boolean;
 
     constructor(prodset: ProdSet) {
         super(prodset);
-        this._table = createTableBuilderOfArray<number, number, number>();
+        this._table = createTableBuilderOfArray<SymbolId, SymbolId, ProductionId>();
         this._valid = true;
 
         const followSets = prodset.followSet();
@@ -31,13 +31,13 @@ export default class LL1Parser extends Parser {
 
     public get valid(): boolean { return this._valid; }
 
-    public parse(tokens: Token[]): ParseReturn {
+    public parse(tokens: ReadonlyArray<Token>): ParseReturn {
         if (tokens.length === 0 || tokens[tokens.length - 1].symId !== 0) throw new Error("the last token must be '$', stands for the end of tokens");
         if (!this.valid) throw new Error("the grammar is not a valid LL(1)");
 
         const startsym = this._prodset.startNonTerminalId;
         const root = new ParseTreeMidNode(startsym);
-        const stack: { node: ParseTreeNode, symId: number }[] = [{ node: root, symId: startsym }];
+        const stack: { node: ParseTreeNode, symId: SymbolId }[] = [{ node: root, symId: startsym }];
         let i = 0;
         while (stack.length > 0 && i < tokens.length) {
             const stacktop = stack.pop()!;
@@ -70,7 +70,7 @@ export default class LL1Parser extends Parser {
         else return createParseErrorReturn(new TooManyTokensError());
     }
 
-    private _bookKeeping(ntsym: number, tsym: number, prodId: number): this {
+    private _bookKeeping(ntsym: SymbolId, tsym: SymbolId, prodId: ProductionId): this {
         const prodIdList = this._table.getCell(ntsym, tsym);
         if (prodIdList.every(p => p !== prodId)) {
             if (prodIdList.length > 0) {

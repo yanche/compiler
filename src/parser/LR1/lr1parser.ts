@@ -2,6 +2,7 @@
 import { ProdSet } from "../../productions";
 import { createNFA, Transition } from "../../automata";
 import { LRParser, LR0ItemsPack, calcLR1ItemId, parseLR1Item, getLR0ItemByProdId, calcLR1LookAheadSymbols } from "./util";
+import { LR1ItemId, StateId } from "../../utility";
 
 
 export default class LR1Parser extends LRParser {
@@ -11,11 +12,11 @@ export default class LR1Parser extends LRParser {
     // private _totalLookAhead: number;
     // private _dfa: dfa.DFA;
     // private _lr0ItemsPack: LR0ItemsPack;
-    protected _startState: number;
+    protected readonly _startState: StateId;
 
     constructor(prodset: ProdSet) {
         super(prodset);
-        const processedItems = new Set<number>();
+        const processedItems = new Set<LR1ItemId>();
         const nfaTrans: Transition[] = [];
         const totalLookAhead = prodset.terminals.length + 1;
         const finSymId = prodset.getSymId("$");
@@ -23,7 +24,7 @@ export default class LR1Parser extends LRParser {
         // number of item, is the number of NFA
         const lr0ItemsPack = new LR0ItemsPack(prodset);
         // start items
-        const startLR1Items = lr0ItemsPack.getStartItemIds().map(lr0ItemId => calcLR1ItemId(lr0ItemId, finSymId, totalLookAhead));
+        const startLR1Items = lr0ItemsPack.startItemIds.map(lr0ItemId => calcLR1ItemId(lr0ItemId, finSymId, totalLookAhead));
         for (const i of startLR1Items) processedItems.add(i);
         const lr1ItemStack = startLR1Items.concat([]);
         let stackTop = lr1ItemStack.length - 1;
@@ -112,7 +113,7 @@ export default class LR1Parser extends LRParser {
 }
 
 // return new stack top (point to last element in stack)
-function addNFATran(tran: Transition, trans: Array<Transition>, lr1ItemStack: number[], stackLength: number, processedItems: Set<number>): number {
+function addNFATran(tran: Transition, trans: Array<Transition>, lr1ItemStack: LR1ItemId[], stackLength: number, processedItems: Set<LR1ItemId>): number {
     trans.push(tran);
     if (!processedItems.has(tran.tgt)) {
         processedItems.add(tran.tgt);
