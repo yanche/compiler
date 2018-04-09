@@ -1,92 +1,92 @@
 
 import { Transition } from "../index";
+import { NodeId, MapBuilder, Stack } from "../../utility";
 
 export default class DFA {
-    private _statemap: Map<number, State>;
-    private _start: number;
-    private _terminalset: Set<number>;
-    private _trans: Iterable<Transition>;
-    // private _statect: number;
+    private readonly _stateMap: ReadonlyMap<NodeId, StateBuilder>;
+    private readonly _terminalSet: ReadonlySet<NodeId>;
+    private readonly _trans: Iterable<Transition>;
 
-    constructor(trans: Iterable<Transition>, start: number, terminals: Iterable<number>) {
-        const statemap = new Map<number, State>();
+    public readonly stateIdList: ReadonlyArray<NodeId>;
+    public readonly startState: NodeId;
+
+    constructor(trans: Iterable<Transition>, start: NodeId, terminals: Iterable<NodeId>) {
+        const stateMapBuilder = new MapBuilder<NodeId, StateBuilder>(srcStateId => new StateBuilder(srcStateId));
         for (const tran of trans) {
-            let state = statemap.get(tran.src);
-            if (!state) {
-                state = new State(tran.src);
-                statemap.set(tran.src, state);
-            }
-            if (!statemap.has(tran.tgt)) {
-                statemap.set(tran.tgt, new State(tran.tgt));
-            }
-            state.addTransition(tran.sym, tran.tgt);
+            const srcState = stateMapBuilder.get(tran.src);
+            // init target state (if not yet)
+            stateMapBuilder.get(tran.tgt);
+            srcState.addTransition(tran.sym, tran.tgt);
         }
-        if (statemap.size === 0) throw new Error("empty transitions is not acceptable");
-        if (!statemap.has(start)) throw new Error(`start state number not found in transitions: ${start}`);
-        const terminalset = new Set<number>();
+        if (stateMapBuilder.size === 0) throw new Error("empty transitions is not acceptable");
+        if (!stateMapBuilder.has(start)) throw new Error(`start state number not found in transitions: ${start}`);
+        const terminalSet = new Set<NodeId>();
         for (const ter of terminals) {
-            if (!statemap.has(ter)) throw new Error(`terminal state number not found in transitions: ${ter}`);
-            terminalset.add(ter);
+            if (!stateMapBuilder.has(ter)) throw new Error(`terminal state number not found in transitions: ${ter}`);
+            terminalSet.add(ter);
         }
-        if (terminalset.size === 0) throw new Error("0 terminal state is not acceptable");
+        if (terminalSet.size === 0) throw new Error("0 terminal state is not acceptable");
 
-        this._start = start;
-        this._terminalset = terminalset;
-        this._statemap = statemap;
+        this._terminalSet = terminalSet;
+        this._stateMap = stateMapBuilder.complete();
         this._trans = trans;
+        this.stateIdList = [...this._stateMap].map(x => x[0]);
+        this.startState = start;
     }
 
-    getStateNums(): Array<number> { return [...this._statemap].map(x => x[0]); }
-
-    getStartState(): number { return this._start; }
-
-    getTransitionMap(statenum: number): Map<string, number> {
-        return this._statemap.get(statenum).getTransitionMap();
+    public getTransitionMap(stateId: NodeId): ReadonlyMap<string, NodeId> {
+        if (!this._stateMap.has(stateId)) throw new Error(`state does not exist: ${stateId}`);
+        return this._stateMap.get(stateId)!.getTransitionMap();
     }
 
-    isTerminal(statenum: number): boolean {
-        return this._terminalset.has(statenum);
+    public isTerminal(stateId: NodeId): boolean {
+        return this._terminalSet.has(stateId);
     }
 
-    accept(strarr: Iterable<string>, onfirstterminal: boolean = false): boolean {
-        let curstate = this._start;
-        for (const str of strarr) {
-            if (onfirstterminal && this.isTerminal(curstate)) return true;
-            curstate = this._statemap.get(curstate).getTransition(str);
-            if (curstate === undefined) return false;
+    public accept(strArr: Iterable<string>, onFirstTerminal: boolean = false): boolean {
+        let curState: number | undefined = this.startState;
+        for (const str of strArr) {
+            if (onFirstTerminal && this.isTerminal(curState)) return true;
+            curState = this._stateMap.get(curState)!.getTransition(str);
+            if (curState === undefined) return false;
         }
-        return this.isTerminal(curstate);
+        return this.isTerminal(curState);
     }
 
-    toString(): string {
-        const strarr = [`${this._statemap.size} states in total`, `start state: ${this._start}`, `terminal states: ${[...this._terminalset].join(",")}`];
+    public toString(): string {
+        const strarr = [`${this._stateMap.size} states in total`, `start state: ${this.startState}`, `terminal states: ${[...this._terminalSet].join(",")}`];
         for (const tran of this._trans) strarr.push(tran.toString());
         return strarr.join("\r\n");
     }
 
-    equivalent(dfa: DFA): boolean {
+    public equivalent(dfa: DFA): boolean {
         if (this === dfa) return true;
-        if (this._statemap.size !== dfa._statemap.size || this._terminalset.size != dfa._terminalset.size) return false
-        const statemap = new Map<number, number>(), stateset = new Set<number>(), queue = [this._start];
-        statemap.set(this._start, dfa._start);
-        stateset.add(dfa._start);
-        while (queue.length > 0) {
-            const statenum1 = queue.pop();
-            const trans1 = this._statemap.get(statenum1).getTransitionMap();
-            const state2 = dfa._statemap.get(statemap.get(statenum1));
+        if (this._stateMap.size !== dfa._stateMap.size || this._terminalSet.size !== dfa._terminalSet.size) return false;
+        const stateMap = new Map<NodeId, NodeId>();
+        const stateSet = new Set<NodeId>();
+        const stackToCheck = new Stack<NodeId>(this.startState);;
+        stateMap.set(this.startState, dfa.startState);
+        stateSet.add(dfa.startState);
+        while (stackToCheck.size > 0) {
+            const stateId1 = stackToCheck.pop()!;
+            const trans1 = this._stateMap.get(stateId1)!.getTransitionMap();
+            const state2 = dfa._stateMap.get(stateMap.get(stateId1)!)!;
             if (trans1.size != state2.getTransitionMap().size) return false;
             for (const tran of trans1) {
-                const str = tran[0], tgtstate = tran[1];
-                const tgtstate2 = state2.getTransition(str);
-                if (tgtstate2 == null) return false;
-                const map1has = statemap.has(tgtstate), sethas = stateset.has(tgtstate2);
-                if (!map1has && !sethas) {
-                    statemap.set(tgtstate, tgtstate2);
-                    stateset.add(tgtstate2);
-                    queue.push(tgtstate);
+                const str = tran[0];
+                const tgtStateId1 = tran[1];
+                const tgtStateId2 = state2.getTransition(str);
+                if (tgtStateId2 === undefined) return false;
+                const mapHas = stateMap.has(tgtStateId1);
+                const setHas = stateSet.has(tgtStateId2);
+                if (!mapHas && !setHas) {
+                    stateMap.set(tgtStateId1, tgtStateId2);
+                    stateSet.add(tgtStateId2);
+                    stackToCheck.push(tgtStateId1);
                 }
-                else if (map1has && sethas) {
-                    if (statemap.get(tgtstate) != tgtstate2) return false;
+                else if (mapHas && setHas) {
+                    // not map to same node
+                    if (stateMap.get(tgtStateId1)! !== tgtStateId2) return false;
                 }
                 else
                     return false;
@@ -96,26 +96,26 @@ export default class DFA {
     }
 }
 
-class State {
-    private _id: number;
-    private _tranmap: Map<string, number>;
+class StateBuilder {
+    private readonly _id: NodeId;
+    private readonly _tranMap: Map<string, NodeId>;
 
-    constructor(id: number) {
+    constructor(id: NodeId) {
         this._id = id;
-        this._tranmap = new Map<string, number>();
+        this._tranMap = new Map<string, NodeId>();
     }
 
-    getTransition(str: string): number {
-        return this._tranmap.get(str);
+    public getTransition(str: string): NodeId | undefined {
+        return this._tranMap.get(str);
     }
 
-    getTransitionMap(): Map<string, number> {
-        return this._tranmap;
+    public getTransitionMap(): ReadonlyMap<string, NodeId> {
+        return this._tranMap;
     }
 
-    addTransition(sym: string, state: number): this {
-        if (this._tranmap.has(sym)) throw new Error(`State ${this._id} already had a transition by given string: ${sym}, to ${this._tranmap.get(sym)}`);
-        this._tranmap.set(sym, state);
+    public addTransition(sym: string, state: NodeId): this {
+        if (this._tranMap.has(sym)) throw new Error(`State ${this._id} already had a transition by given string: ${sym}, to ${this._tranMap.get(sym)}`);
+        this._tranMap.set(sym, state);
         return this;
     }
 }

@@ -60,7 +60,7 @@ export default class LR1Parser extends LRParser {
         // this._lr0ItemsPack = lr0ItemsPack;
 
         //construct parsing table LR(1)
-        this._startState = dfa.getStartState();
+        this._startState = dfa.startState;
 
         const startNonTerminalId = prodset.startNonTerminalId;
         const startProds = prodset.getProds(startNonTerminalId);

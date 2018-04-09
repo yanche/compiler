@@ -32,7 +32,7 @@ export default class LALR1Parser extends LRParser {
         const stack: StackItem[] = [];
         // totalLookAhead: the count of all possible look-ahead symbols, all terminal symbols plus $
         const totalLookAhead = prodset.terminals.length + 1;
-        const dfaStartStateId = lr0DFA.getStartState();
+        const dfaStartStateId = lr0DFA.startState;
         const finSymId = prodset.getSymId("$");
         const startNonTerminalId = prodset.startNonTerminalId;
         for (const prodId of prodset.getProds(startNonTerminalId)) {

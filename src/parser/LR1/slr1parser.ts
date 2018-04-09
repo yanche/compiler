@@ -28,9 +28,9 @@ export default class SLR1Parser extends LRParser {
         const followsets = prodset.followSet();
         const startNonTerminalId = prodset.startNonTerminalId;
         // construct parsing table SLR(1)
-        this._startState = lr0DFA.getStartState();
+        this._startState = lr0DFA.startState;
         this.addAcceptAction(lr0DFA.acceptableDFAState, prodset.getSymId("$"));
-        for (const dfaId of lr0DFA.getStateNums()) {
+        for (const dfaId of lr0DFA.stateIdList) {
             // add shift actions
             for (const tran of lr0DFA.getTransitionMap(dfaId)) {
                 this.addShiftAction(dfaId, prodset.getSymId(tran[0]), tran[1]);
