@@ -1,12 +1,13 @@
 
-import { ParseTreeMidNode, ParseTreeTermNode, ASTNode, defineSyntaxProcessor } from "../../compile";
+import { ParseTreeMidNode, ParseTreeTermNode, defineSyntaxProcessor } from "../../compile";
 import { createSLR1Parser } from "../../parser";
-import * as ap from "./astprocess";
+import { ASTNode_OR, ASTNode_Single, ASTNode_Range, ASTNode_Concat, ASTNode_RStar, ASTNode_RPlus, ASTNode_RQues, ASTNode_REGEX } from "./astprocess";
+import { PTN2ASTNConverter } from "../../compile/ast";
 
 const straightThru0 = straightThruGen(0);
 const straightThru1 = straightThruGen(1);
 
-const processor = defineSyntaxProcessor([
+const processor = defineSyntaxProcessor<ASTNode_REGEX>([
     {
         production: "RE -> S-RE",
         handler: straightThru0
@@ -22,23 +23,25 @@ const processor = defineSyntaxProcessor([
     {
         production: "S-RE -> B-RE S-RE",
         handler: node => {
-            const left = childToAST(node, 0), right = childToAST(node, 1);
-            let children = left instanceof ap.ASTNode_Concat ? left.children : [left];
-            children = children.concat(right instanceof ap.ASTNode_Concat ? right.children : [right]);
-            return new ap.ASTNode_Concat(children);
+            const left = childToAST(node, 0);
+            const right = childToAST(node, 1);
+            let children = left instanceof ASTNode_Concat ? left.children : [left];
+            children = children.concat(right instanceof ASTNode_Concat ? right.children : [right]);
+            return new ASTNode_Concat(children);
         }
     },
     {
         production: "B-RE -> E-RE REPEAT",
         handler: node => {
-            const left = childToAST(node, 0), right = childToAST(node, 1);
-            if (right == null) return left;
+            const left = childToAST(node, 0);
+            const right = childToAST(node, 1);
+            if (right instanceof ASTNode_Empty) return left;
             else {
-                const sright = <ap.ASTNode_Single>right;
-                if (sright.ch === ch_star) return new ap.ASTNode_RStar(left);
-                else if (sright.ch === ch_plus) return new ap.ASTNode_RPlus(left);
-                else if (sright.ch === ch_ques) return new ap.ASTNode_RQues(left);
-                else throw new Error("impossible code path: " + sright.ch);
+                const sright = <ASTNode_Single>right;
+                if (sright.ch === ch_star) return new ASTNode_RStar(left);
+                else if (sright.ch === ch_plus) return new ASTNode_RPlus(left);
+                else if (sright.ch === ch_ques) return new ASTNode_RQues(left);
+                else throw new Error(`unknown character for REPEAT: ${sright.ch}`);
             }
         }
     },
@@ -56,7 +59,7 @@ const processor = defineSyntaxProcessor([
     },
     {
         production: "REPEAT -> ",
-        handler: node => null
+        handler: node => new ASTNode_Empty()
     },
     {
         production: "E-RE -> ( RE )",
@@ -120,39 +123,42 @@ const processor = defineSyntaxProcessor([
     }
 ], createSLR1Parser);
 
-//make the handlermap
-function straightThruGen(pos: number): (node: ParseTreeMidNode) => ASTNode {
-    return function (node: ParseTreeMidNode): ASTNode {
-        return processor.astConverter.toAST(<ParseTreeMidNode>node.children[pos]);
+// make the handlermap
+function straightThruGen(pos: number): PTN2ASTNConverter {
+    return (node: ParseTreeMidNode): ASTNode_REGEX => {
+        return childToAST(node, pos);
     };
 }
 
-//CONCAT & OR
-function glueChildrenGen_OR(posright: number): (node: ParseTreeMidNode) => ASTNode {
-    return function (node: ParseTreeMidNode): ASTNode {
-        const left = childToAST(node, 0), right = childToAST(node, posright);
-        let children = left instanceof ap.ASTNode_OR ? left.children : [left];
-        children = children.concat(right instanceof ap.ASTNode_OR ? right.children : [right]);
-        return new ap.ASTNode_OR(children);
+// CONCAT & OR
+function glueChildrenGen_OR(posright: number): PTN2ASTNConverter {
+    return (node: ParseTreeMidNode): ASTNode_REGEX => {
+        const left = childToAST(node, 0);
+        const right = childToAST(node, posright);
+        let children = left instanceof ASTNode_OR ? left.children : [left];
+        children = children.concat(right instanceof ASTNode_OR ? right.children : [right]);
+        return new ASTNode_OR(children);
     };
 }
 
-function single(node: ParseTreeMidNode): ASTNode {
-    return new ap.ASTNode_Single((<ParseTreeTermNode>node.children[0]).token.rawstr.charCodeAt(0));
+function single(node: ParseTreeMidNode): ASTNode_REGEX {
+    return new ASTNode_Single((<ParseTreeTermNode>node.children[0]).token.rawstr.charCodeAt(0));
 }
 
-function range(node: ParseTreeMidNode): ASTNode {
-    return new ap.ASTNode_Range((<ParseTreeTermNode>node.children[0]).token.rawstr.charCodeAt(0), (<ParseTreeTermNode>node.children[2]).token.rawstr.charCodeAt(0));
+function range(node: ParseTreeMidNode): ASTNode_REGEX {
+    return new ASTNode_Range((<ParseTreeTermNode>node.children[0]).token.rawstr.charCodeAt(0), (<ParseTreeTermNode>node.children[2]).token.rawstr.charCodeAt(0));
 }
 
-let ch_star = "*".charCodeAt(0);
-let ch_plus = "+".charCodeAt(0);
-let ch_ques = "?".charCodeAt(0);
+const ch_star = "*".charCodeAt(0);
+const ch_plus = "+".charCodeAt(0);
+const ch_ques = "?".charCodeAt(0);
 
-function childToAST(node: ParseTreeMidNode, pos: number): ASTNode {
+function childToAST(node: ParseTreeMidNode, pos: number): ASTNode_REGEX {
     return processor.astConverter.toAST(<ParseTreeMidNode>node.children[pos]);
 }
 
-let { prodSet, parser, astConverter } = processor;
+class ASTNode_Empty extends ASTNode_REGEX {}
+
+const { prodSet, parser, astConverter } = processor;
 
 export { prodSet, parser, astConverter };

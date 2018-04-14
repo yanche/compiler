@@ -1,5 +1,5 @@
 
-import { calcClosureOfOneNode, calcClosure, Closure, Edge, IdGen, range, createMapBuilderOfArray, SymbolId } from "../utility";
+import { calcClosureOfOneNode, calcClosure, Closure, Edge, IdGen, range, createMapBuilderOfArray, SymbolId, ProductionId } from "../utility";
 
 //terminal symbol or non-terminal symbol, used in productions
 export class Symbol {
@@ -17,7 +17,7 @@ export class Symbol {
 export class Production {
     public readonly LHS: Symbol;
     public readonly RHS: ReadonlyArray<Symbol>;
-    
+
     private readonly _literal: string;
 
     constructor(lhs: Symbol, rhs: ReadonlyArray<Symbol>) {
@@ -40,28 +40,28 @@ export class Production {
 // private struct to present a production
 export interface ProductionRef {
     readonly prod: Production;
-    readonly lhsId: number;
-    readonly rhsIds: number[];
-    readonly prodId: number;
+    readonly lhsId: SymbolId;
+    readonly rhsIds: ReadonlyArray<SymbolId>;
+    readonly prodId: ProductionId;
 }
 
 //a group of productions, will assign an integer to each symbol, "$" takes 0, then terminals, then non-terminals
 //also an integer will be assigned to each production, starts from 0
 export class ProdSet {
-    public static reservedNonTerminalPrefix: string = "D__";
-    public static reservedStartNonTerminal: string = "D__START";
+    public static readonly reservedNonTerminalPrefix: string = "D__";
+    public static readonly reservedStartNonTerminal: string = "D__START";
 
     // integer for start symbol
-    public readonly startNonTerminalId: number;
+    public readonly startNonTerminalId: SymbolId;
     // list of all prod-ids
-    public readonly prodIds: ReadonlyArray<number>;
+    public readonly prodIds: ReadonlyArray<ProductionId>;
     // all terminal ids
-    public readonly terminals: ReadonlyArray<number>;
+    public readonly terminals: ReadonlyArray<SymbolId>;
     // all non-terminal ids
-    public readonly nonTerminals: ReadonlyArray<number>;
+    public readonly nonTerminals: ReadonlyArray<SymbolId>;
 
     // integer of non-terminal -> array of id of productions by it as lhs
-    private readonly _nonTerminalProdMap: ReadonlyMap<number, number[]>;
+    private readonly _nonTerminalProdMap: ReadonlyMap<SymbolId, ProductionId[]>;
     // production id -> production
     private readonly _idProdMap: ReadonlyArray<ProductionRef>;
     // integer of symbol <--> string of symbol
@@ -74,11 +74,11 @@ export class ProdSet {
     private readonly _prodCount: number;
 
     // set of integer of non-terminal symbols which could produce epsilon
-    private _nullableNonTerminals: ReadonlySet<number> | undefined = undefined;
+    private _nullableNonTerminals: ReadonlySet<SymbolId> | undefined = undefined;
     // integer of symbol -> first set (epsilon is not included)
-    private _firstSet: ReadonlySet<number>[] | undefined = undefined;
+    private _firstSet: ReadonlySet<SymbolId>[] | undefined = undefined;
     // integer of symbol -> follow set
-    private _followSet: ReadonlySet<number>[] | undefined = undefined;
+    private _followSet: ReadonlySet<SymbolId>[] | undefined = undefined;
 
     constructor(prods: Production[]) {
         // include the reserved non-terminal symbol as a start production
@@ -103,31 +103,41 @@ export class ProdSet {
         this.terminals = range(1, this._terminalsCount + 1);
     }
 
-    public getSymInStr(num: number): string { return this._symbolIdMap.getSymbol(num); }
+    public getSymInStr(symId: SymbolId): string { return this._symbolIdMap.getSymbol(symId); }
 
-    public getSymId(sym: string): number { return this._symbolIdMap.getId(sym); }
+    public getSymId(sym: string): SymbolId {
+        if (!this._symbolIdMap.hasSym(sym)) {
+            throw new Error(`symbol: ${sym} does not exist in production set`);
+        }
+        return this._symbolIdMap.getId(sym);
+    }
 
-    public isSymIdTerminal(id: number): boolean { return id <= this._terminalsCount; }
+    public isSymIdTerminal(symId: SymbolId): boolean { return symId <= this._terminalsCount; }
 
-    public getProds(lhsSymId: number): ReadonlyArray<number> {
+    public getProds(lhsSymId: SymbolId): ReadonlyArray<ProductionId> {
         if (!this._nonTerminalProdMap.has(lhsSymId)) {
             throw new Error(`given LHS symbol id does not map to productions: ${lhsSymId}`)
         }
-        return this._nonTerminalProdMap.get(lhsSymId);
+        return this._nonTerminalProdMap.get(lhsSymId)!;
     }
 
-    public getProdRef(prodnum: number): ProductionRef { return this._idProdMap[prodnum]; }
+    public getProdRef(prodId: ProductionId): ProductionRef {
+        if (prodId >= this._idProdMap.length) {
+            throw new Error(`prodId not found: ${prodId}, max: ${this._idProdMap.length - 1}`);
+        }
+        return this._idProdMap[prodId];
+    }
 
-    public firstSet(): ReadonlySet<number>[] {
+    public firstSet(): ReadonlySet<SymbolId>[] {
         if (this._firstSet) return this._firstSet;
 
         const nullableNonTerminals = this.nullableNonTerminals();
-        const retmap = new Array<Set<number>>(this._totalSymbolCount + 1);
+        const retmap = new Array<Set<SymbolId>>(this._totalSymbolCount + 1);
         const edges: Edge[] = [];
         const nonTerminals = this.nonTerminals;
 
         for (const nont of nonTerminals) {
-            retmap[nont] = new Set<number>();
+            retmap[nont] = new Set<SymbolId>();
             for (const prodid of this.getProds(nont)) {
                 const prodref = this.getProdRef(prodid);
                 let genepsilon = true, i = 0;
@@ -149,15 +159,15 @@ export class ProdSet {
 
         mergeClosureSet(nonTerminals, calcClosure(edges), retmap);
 
-        for (const t of this.terminals) retmap[t] = new Set<number>().add(t);
+        for (const t of this.terminals) retmap[t] = new Set<SymbolId>().add(t);
 
         return this._firstSet = retmap;
     }
 
-    public followSet(): ReadonlySet<number>[] {
+    public followSet(): ReadonlySet<SymbolId>[] {
         if (this._followSet) return this._followSet;
 
-        const retmap = new Array<Set<number>>(this._totalSymbolCount + 1);
+        const retmap = new Array<Set<SymbolId>>(this._totalSymbolCount + 1);
         const firstSetMap = this.firstSet();
         const nullableNonTerminals = this.nullableNonTerminals();
         const edges: Edge[] = [];
@@ -165,7 +175,7 @@ export class ProdSet {
         retmap[this.startNonTerminalId] = new Set().add(0);
 
         for (const nont of this.nonTerminals) {
-            if (retmap[nont] == null) retmap[nont] = new Set<number>();
+            if (retmap[nont] == null) retmap[nont] = new Set<SymbolId>();
             for (const prodId of this.getProds(nont)) {
                 const rhsIds = this.getProdRef(prodId).rhsIds;
                 if (rhsIds.length === 0) continue;
@@ -192,12 +202,12 @@ export class ProdSet {
         return this._followSet = retmap;
     }
 
-    public nullableNonTerminals(): ReadonlySet<number> {
+    public nullableNonTerminals(): ReadonlySet<SymbolId> {
         if (this._nullableNonTerminals) return this._nullableNonTerminals;
 
-        const retset = new Set<number>();
-        const nonTerminalsToProcess: number[] = [];
-        const dependencyMap = createMapBuilderOfArray<number, { rhsIds: number[], next: number, lsymId: number }>();
+        const retset = new Set<SymbolId>();
+        const nonTerminalsToProcess: SymbolId[] = [];
+        const dependencyMap = createMapBuilderOfArray<SymbolId, { rhsIds: ReadonlyArray<SymbolId>, next: number, lsymId: SymbolId }>();
 
         for (const nont of this.nonTerminals) {
             for (const prodId of this.getProds(nont)) {
@@ -318,7 +328,7 @@ function addRangeToArrayOfSet<T>(map: Set<T>[], key: number, item: Iterable<T>) 
     for (const s of item) set.add(s);
 }
 
-function mergeClosureSet(symIds: Iterable<number>, closureMap: ReadonlyMap<number, Closure>, map: Set<number>[]) {
+function mergeClosureSet(symIds: Iterable<SymbolId>, closureMap: ReadonlyMap<SymbolId, Closure>, map: Set<SymbolId>[]) {
     for (const symId of symIds) {
         if (!closureMap.has(symId)) continue;
         for (const num of closureMap.get(symId)!.getNodes()) {
@@ -327,7 +337,7 @@ function mergeClosureSet(symIds: Iterable<number>, closureMap: ReadonlyMap<numbe
             if (!symset) continue;
             let set = map[symId];
             if (!set)
-                set = map[symId] = new Set<number>();
+                set = map[symId] = new Set<SymbolId>();
             for (const s of symset) set.add(s);
         };
     };
@@ -372,11 +382,11 @@ function makeSymbolIdMap(prods: Production[]): {
 function prodProcess(prods: Production[], symbolIdMap: SymbolIdMap): {
     idProdMap: ProductionRef[];
     linkToNonTerminal: Edge[];
-    nonTerminalProdMap: ReadonlyMap<number, number[]>;
+    nonTerminalProdMap: ReadonlyMap<SymbolId, ProductionId[]>;
 } {
     const idProdMap: ProductionRef[] = [];
     const linkToNonTerminal: Edge[] = [];
-    const nonTerminalProdMapBuilder = createMapBuilderOfArray<number, number>();
+    const nonTerminalProdMapBuilder = createMapBuilderOfArray<SymbolId, ProductionId>();
     for (const prod of prods) {
         const lhsId = symbolIdMap.getId(prod.LHS.name);
         const rhs = prod.RHS;
@@ -398,11 +408,11 @@ function prodProcess(prods: Production[], symbolIdMap: SymbolIdMap): {
 }
 
 class SymbolIdMap {
-    private _idmap: Map<string, number>;
+    private _idmap: Map<string, SymbolId>;
     private _symmap: string[];
 
     constructor() {
-        this._idmap = new Map<string, number>();
+        this._idmap = new Map<string, SymbolId>();
         this._symmap = [];
     }
 
@@ -415,6 +425,10 @@ class SymbolIdMap {
                 this._symmap.push(symbol);
             }
         }
+    }
+
+    public hasSym(sym: string): boolean {
+        return this._idmap.has(sym);
     }
 
     public getId(symbol: string): number {

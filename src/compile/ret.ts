@@ -10,9 +10,9 @@ export abstract class StageReturn<T extends CompileError> {
         this._error = error;
     }
 
-    get accept(): boolean { return !this._error; }
+    public get accept(): boolean { return !this._error; }
 
-    get error(): T | undefined { return this._error; }
+    public get error(): T | undefined { return this._error; }
 }
 
 export class CompileReturn extends StageReturn<CompileError> { }
@@ -28,7 +28,7 @@ export class ParseReturn extends StageReturn<SyntaxError> {
         this._root = root;
     }
 
-    get root(): ParseTreeMidNode | undefined { return this._root; }
+    public get root(): ParseTreeMidNode | undefined { return this._root; }
 }
 
 export class LexReturn extends StageReturn<LexError> {
@@ -42,7 +42,7 @@ export class LexReturn extends StageReturn<LexError> {
         this._tokens = tokens;
     }
 
-    get tokens(): Token[] | undefined { return this._tokens; }
+    public get tokens(): Token[] | undefined { return this._tokens; }
 }
 
 export abstract class SemanticCheckReturn extends StageReturn<SemanticError> {

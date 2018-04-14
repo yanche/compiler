@@ -1,6 +1,6 @@
 
 export class Stack<T> {
-    private _arr: T[];
+    private readonly _arr: T[];
 
     public pop(): T | undefined {
         return this._arr.pop();

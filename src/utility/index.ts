@@ -34,6 +34,8 @@ export type ProductionId = number;
 
 export type StateId = number;
 
+export type CharCode = number;
+
 export interface Edge {
     src: NodeId;
     tgt: NodeId;
@@ -53,7 +55,9 @@ export function range(start: number, end?: number): Array<number> {
     return ret;
 }
 
-export function flatten<T>(arr: Array<T | Array<T>>): Array<T> {
+export function flatten<T>(arr: ReadonlyArray<T | ReadonlyArray<T>>): Array<T>;
+export function flatten<T>(arr: Array<T | Array<T>>): Array<T>;
+export function flatten<T>(arr: Array<T | Array<T>> | ReadonlyArray<T | ReadonlyArray<T>>): Array<T> {
     return Array.prototype.concat.apply([], arr);
 }
 

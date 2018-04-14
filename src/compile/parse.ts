@@ -2,74 +2,81 @@
 import { Area, Token, noArea } from "./lex";
 import { ProdSet } from '../productions';
 import { ParseReturn } from './ret';
+import { SymbolId, ProductionId } from "../utility";
 
 export abstract class ParseTreeNode {
-    protected _symId: number;
-    // private _prodset: prod.ProdSet;
-
-    public get symId(): number { return this._symId; }
-
-    // get symstr(): string { return this._prodset.getSymInStr(this._symId); }
+    public readonly symId: SymbolId;
 
     abstract get area(): Area;
 
-    constructor(sym: number) {
-        this._symId = sym;
-        // this._prodset = prodset;
+    constructor(symId: SymbolId) {
+        this.symId = symId;
     }
 }
 
 export class ParseTreeMidNode extends ParseTreeNode {
-    private _children: Array<ParseTreeNode>;
-    private _area: Area;
-    public prodId: number;
+    private _children: ReadonlyArray<ParseTreeNode> | undefined;
+    private _area: Area | undefined;
+    private _prodId: ProductionId | undefined;
 
-    constructor(symId: number, prodId?: number, children?: Array<ParseTreeNode>) {
-        super(symId);
-        this._children = children;
-        this.prodId = prodId;
+    public get prodId(): ProductionId {
+        if (this._prodId === undefined) throw new Error("prodId not initialized");
+        return this._prodId;
     }
 
-    public get children(): Array<ParseTreeNode> {
+    public set prodId(p: ProductionId) {
+        if (this._prodId !== undefined) throw new Error("prodId has been initialized");
+        this._prodId = p;
+    }
+
+    constructor(symId: SymbolId, prodId?: ProductionId, children?: ReadonlyArray<ParseTreeNode>) {
+        super(symId);
+        this._children = children;
+        this._prodId = prodId;
+    }
+
+    public get children(): ReadonlyArray<ParseTreeNode> {
+        if (!this._children) throw new Error("children not initialized");
         return this._children;
     }
 
-    public set children(c: Array<ParseTreeNode>) {
-        if (this._children) throw new Error("children exists");
+    public set children(c: ReadonlyArray<ParseTreeNode>) {
+        if (this._children) throw new Error("children has been initialized");
         this._children = c;
     }
 
     public get area(): Area {
         if (this._area) return this._area;
         else {
-            let area: Area = null;
-            if (this._children.length === 0) area = noArea;
-            else area = new Area(this._children[0].area.start, this._children[this._children.length - 1].area.end);
-            return this._area = area;
+            if (this.children.length === 0) this._area = noArea;
+            else this._area = new Area(this.children[0].area.start, this.children[this.children.length - 1].area.end);
+            return this._area;
         }
     }
 }
 
 export class ParseTreeTermNode extends ParseTreeNode {
-    private _token: Token;
+    private _token: Token | undefined;
 
-    constructor(symId: number, token?: Token) {
+    constructor(symId: SymbolId, token?: Token) {
         super(symId);
         if (token)
             this.token = token;
     }
 
     public get token(): Token {
+        if (!this._token) throw new Error(`token not initialzed`);
         return this._token;
     }
 
     public set token(t: Token) {
-        if (this._symId !== t.symId) throw new Error(`symbol does not match: ${this._symId}, ${t.symId}`);
+        if (this.symId !== t.symId) throw new Error(`symbol does not match: ${this.symId}, ${t.symId}`);
+        if (this._token) throw new Error(`token has been initialzed`);
         this._token = t;
     }
 
     public get area(): Area {
-        return this._token.area;
+        return this.token.area;
     }
 }
 

@@ -1,79 +1,88 @@
 
-import { IdGen, flatten } from "../../utility";
+import { IdGen, flatten, CharCode, NodeId } from "../../utility";
 import { ASTNode } from "../../compile";
 import { createNFA, NFA, Transition } from "../../automata";
 
-export class ASTNode_OR extends ASTNode {
-    constructor(public children: Array<ASTNode>) { super(); }
-}
-export class ASTNode_Concat extends ASTNode {
-    constructor(public children: Array<ASTNode>) { super(); }
-}
-export class ASTNode_RStar extends ASTNode {
-    constructor(public child: ASTNode) { super(); }
-}
-export class ASTNode_RPlus extends ASTNode {
-    constructor(public child: ASTNode) { super(); }
-}
-export class ASTNode_RQues extends ASTNode {
-    constructor(public child: ASTNode) { super(); }
-}
-export class ASTNode_Range extends ASTNode {
-    constructor(public lower: number, public upper: number) { super(); }
-}
-export class ASTNode_Single extends ASTNode {
-    constructor(public ch: number) { super(); }
-}
-
-function process_OR(node: ASTNode_OR, idgen: IdGen, start: number, terminal: number): Array<Transition> {
-    return flatten(node.children.map(c => processAST(c, idgen, start, terminal)));
-}
-function process_CONCAT(node: ASTNode_Concat, idgen: IdGen, start: number, terminal: number): Array<Transition> {
-    const transarr = new Array<Array<Transition>>(), len = node.children.length, children = node.children;
-    let prevend = start;
-    for (let i = 0; i < len; ++i) {
-        const t = i === (len - 1) ? terminal : idgen.next()
-        transarr.push(processAST(children[i], idgen, prevend, t));
-        prevend = t;
+export abstract class ASTNode_REGEX extends ASTNode {
+    public toNFATransition(idGen: IdGen, start: NodeId, terminal: NodeId): ReadonlyArray<Transition> {
+        throw new Error(`not implemented`)
     }
-    return flatten(transarr);
-}
-function process_RStar(node: ASTNode_RStar, idgen: IdGen, start: number, terminal: number): Array<Transition> {
-    return processAST(node.child, idgen, start, terminal).concat(new Transition(start, terminal, ""), new Transition(terminal, start, ""));
-}
-function process_RPlus(node: ASTNode_RPlus, idgen: IdGen, start: number, terminal: number): Array<Transition> {
-    return processAST(node.child, idgen, start, terminal).concat(new Transition(terminal, start, ""));
-}
-function process_RQues(node: ASTNode_RQues, idgen: IdGen, start: number, terminal: number): Array<Transition> {
-    return processAST(node.child, idgen, start, terminal).concat(new Transition(start, terminal, ""));
-}
-function process_Single(node: ASTNode_Single, idgen: IdGen, start: number, terminal: number): Array<Transition> {
-    return [new Transition(start, terminal, String.fromCharCode(node.ch))];
-}
-function process_Range(node: ASTNode_Range, idgen: IdGen, start: number, terminal: number): Array<Transition> {
-    if (node.lower > node.upper) throw new Error("invalid range expression: " + node.lower + "-" + node.upper);
-    const ch1 = node.lower, ch2 = node.upper;
-    const ret = new Array<Transition>(ch2 - ch1 + 1);
-    for (let i = ch1; i <= ch2; ++i) {
-        ret[i - ch1] = new Transition(start, terminal, String.fromCharCode(i));
+
+    public toNFA(): NFA {
+        const idGen = new IdGen();
+        const start = idGen.next();
+        const end = idGen.next();
+        const trans = this.toNFATransition(idGen, start, end);
+        return createNFA(trans, [start], [end]);
     }
-    return ret;
+};
+
+export class ASTNode_OR extends ASTNode_REGEX {
+    constructor(public readonly children: ReadonlyArray<ASTNode_REGEX>) { super(); }
+
+    public toNFATransition(idGen: IdGen, start: NodeId, terminal: NodeId): ReadonlyArray<Transition> {
+        return flatten(this.children.map(c => c.toNFATransition(idGen, start, terminal)));
+    }
 }
 
-function processAST(node: ASTNode, idgen: IdGen, start: number, terminal: number): Array<Transition> {
-    if (node instanceof ASTNode_OR) return process_OR(node, idgen, start, terminal);
-    else if (node instanceof ASTNode_Concat) return process_CONCAT(node, idgen, start, terminal);
-    else if (node instanceof ASTNode_RStar) return process_RStar(node, idgen, start, terminal);
-    else if (node instanceof ASTNode_RPlus) return process_RPlus(node, idgen, start, terminal);
-    else if (node instanceof ASTNode_RQues) return process_RQues(node, idgen, start, terminal);
-    else if (node instanceof ASTNode_Single) return process_Single(node, idgen, start, terminal);
-    else if (node instanceof ASTNode_Range) return process_Range(node, idgen, start, terminal);
-    else throw new Error("unknown ast type of node");
+export class ASTNode_Concat extends ASTNode_REGEX {
+    constructor(public readonly children: ReadonlyArray<ASTNode_REGEX>) { super(); }
+
+    public toNFATransition(idGen: IdGen, start: NodeId, terminal: NodeId): ReadonlyArray<Transition> {
+        const len = this.children.length;
+        let prevend = start;
+        return flatten(this.children.map((c, idx) => {
+            const t = idx === (len - 1) ? terminal : idGen.next();
+            const ret = c.toNFATransition(idGen, prevend, t);
+            prevend = t;
+            return ret;
+        }));
+    }
 }
 
-export function astToNFA(root: ASTNode): NFA {
-    const idgen = new IdGen();
-    const start = idgen.next(), end = idgen.next();
-    const trans = processAST(root, idgen, start, end);
-    return createNFA(trans, [start], [end]);
+export class ASTNode_RStar extends ASTNode_REGEX {
+    constructor(public readonly child: ASTNode_REGEX) { super(); }
+
+    public toNFATransition(idGen: IdGen, start: NodeId, terminal: NodeId): ReadonlyArray<Transition> {
+        return this.child.toNFATransition(idGen, start, terminal).concat(new Transition(start, terminal, ""), new Transition(terminal, start, ""));
+    }
+}
+
+export class ASTNode_RPlus extends ASTNode_REGEX {
+    constructor(public readonly child: ASTNode_REGEX) { super(); }
+
+    public toNFATransition(idGen: IdGen, start: NodeId, terminal: NodeId): ReadonlyArray<Transition> {
+        return this.child.toNFATransition(idGen, start, terminal).concat(new Transition(terminal, start, ""));
+    }
+}
+
+export class ASTNode_RQues extends ASTNode_REGEX {
+    constructor(public readonly child: ASTNode_REGEX) { super(); }
+
+    public toNFATransition(idGen: IdGen, start: NodeId, terminal: NodeId): ReadonlyArray<Transition> {
+        return this.child.toNFATransition(idGen, start, terminal).concat(new Transition(start, terminal, ""));
+    }
+}
+
+export class ASTNode_Range extends ASTNode_REGEX {
+    constructor(public readonly lower: CharCode, public readonly upper: CharCode) { super(); }
+
+    public toNFATransition(idGen: IdGen, start: NodeId, terminal: NodeId): ReadonlyArray<Transition> {
+        const lower = this.lower;
+        const upper = this.upper;
+        if (lower > upper) throw new Error(`invalid range expression: ${String.fromCharCode(lower)}-${String.fromCharCode(upper)}`);
+        const ret = new Array<Transition>(upper - lower + 1);
+        for (let i = lower; i <= upper; ++i) {
+            ret[i - lower] = new Transition(start, terminal, String.fromCharCode(i));
+        }
+        return ret;
+    }
+}
+
+export class ASTNode_Single extends ASTNode_REGEX {
+    constructor(public readonly ch: CharCode) { super(); }
+
+    public toNFATransition(idGen: IdGen, start: NodeId, terminal: NodeId): ReadonlyArray<Transition> {
+        return [new Transition(start, terminal, String.fromCharCode(this.ch))];
+    }
 }
