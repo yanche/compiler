@@ -3,7 +3,7 @@
   "version": "0.0.3",
   "description": "",
   "scripts": {
-    "test": "mocha **/*.test.js"
+    "test": "node \"node_modules/mocha/bin/mocha\" **/*.test.js"
   },
   "repository": {
     "type": "git",
