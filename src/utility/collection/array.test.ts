@@ -1,6 +1,6 @@
 
 import * as assert from "assert";
-import { flatten, range, initArray, findFirst, selectOne, selectOnes } from "./array";
+import { flatten, range, initArray, findFirst, selectOne, selectOnes, mapProp } from "./array";
 import { arrayEqual } from '../../testutil';
 
 describe("flatten test", () => {
@@ -137,7 +137,7 @@ describe("selectOnes test", () => {
     });
 
     it("empty input", () => {
-        assert.throws(() => selectOnes([], (n1, n2) => Math.max(n1, n2), (n1, n2) => Math.min(n1, n2)));
+        assert.throws(() => selectOnes<number>([], (n1, n2) => Math.max(n1, n2), (n1, n2) => Math.min(n1, n2)));
     });
 
     it("1 input", () => {
@@ -151,5 +151,11 @@ describe("selectOnes test", () => {
         assert.strictEqual(selectResult.length, 2);
         assert.strictEqual(selectResult[0].m, 7);
         assert.strictEqual(selectResult[1].m, 1);
+    });
+});
+
+describe("mapProp test", () => {
+    it("mapProp", () => {
+        assert.strictEqual(arrayEqual(mapProp([{ prop: 9 }, { prop: 1 }], "prop"), [9, 1]), true);
     });
 });

@@ -37,7 +37,7 @@ export function findFirst<T>(arr: Iterable<T>, predicate: (t: T, idx: number) =>
     return def;
 }
 
-export function* arrayIterator<T>(arr: ReadonlyArray<T>) {
+export function* arrayIterator<T>(arr: ArrayLike<T>) {
     return yield* arr;
 }
 
@@ -62,4 +62,8 @@ export function selectOnes<T>(arr: Iterable<T>, ...selectFns: ((item1: T, item2:
     }
     if (!init) throw new Error("input items collection is empty");
     return ret;
+}
+
+export function mapProp<T, K extends keyof T>(arr: ReadonlyArray<T>, prop: K): T[K][] {
+    return arr.map(item => item[prop]);
 }
