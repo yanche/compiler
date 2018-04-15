@@ -1,24 +1,12 @@
 
 
-export * from "./closure/index";
+export * from "./number";
+export * from "./closure";
 export * from "./collectionbuilder";
 export * from "./stack";
+import * as validate from "./validate";
 
-export class IdGen {
-    private _cur: number;
-
-    constructor() {
-        this._cur = 0;
-    }
-
-    public next(): number {
-        return this._cur++;
-    }
-
-    public get cur(): number {
-        return this._cur;
-    }
-}
+export { validate };
 
 export type NodeId = number;
 
