@@ -36,3 +36,45 @@ export class Area {
 }
 
 export const noArea = new Area(new Posi(0, 0), new Posi(0, 0));
+
+export class LexIterator {
+    private _iterator: IterableIterator<Token | LexError>;
+    private _cur: IteratorResult<Token | LexError>;
+    private _curval: Token | LexError | undefined;
+
+    constructor(iterator: IterableIterator<Token | LexError>) {
+        this._iterator = iterator;
+        this._cur = iterator.next();
+        this._curval = this._cur.value;
+        if (this.done && !(this._curval instanceof LexError)) {
+            throw new Error("lex error, empty return is not allowed, should at least return $");
+        }
+    }
+
+    public get done(): boolean {
+        return (this._curval instanceof LexError) || (this._cur.done && this._cur.value === undefined);
+    }
+
+    public get cur(): Token | LexError {
+        return this._curval!;
+    }
+
+    public next(): void {
+        if (this.done) return;
+        this._cur = this._iterator.next();
+        const oldval = this._curval;
+        if (this.done) {
+            if ((oldval instanceof Token) && oldval.rawstr !== "$") {
+                throw new Error(`lex error, last symbol should be $, checkout ${oldval.rawstr} at ${oldval.area}`);
+            }
+            return;
+        }
+
+        if (oldval instanceof Token) {
+            if (oldval.rawstr === "$") {
+                throw new Error(`lex error, no token should be present after $ at: ${oldval.area}, $ is the EOF symbol`);
+            }
+            this._curval = this._cur.value;
+        }
+    }
+}

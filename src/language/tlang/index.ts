@@ -20,8 +20,7 @@ export function compile(input: string, flag: CompileOutputFlag): {
     error?: CompileError;
 } {
     const lexret = lex(input, prodSet);
-    if (!lexret.accept) return { error: lexret.error };
-    const parseret = parser.parse(lexret.tokens);
+    const parseret = parser.parse(lexret);
     if (!parseret.accept) return { error: parseret.error };
     const ast = <ASTNode_globaldefs>astConverter.toAST(parseret.root);
     const gret = buildGlobalTypes(ast);

@@ -5,6 +5,7 @@ import { Token, noArea } from "../../../compile";
 import { createProdSetWithSplitter } from "../../../productions";
 import { ParseTreeNodeLiteral, validateParseTree } from "../../testcommon";
 import { ErrorCode } from "../../error";
+import { makeLexIteratorFromArray } from "../../../testutil";
 
 describe("LL(1) parse", () => {
     it("simple 1", () => {
@@ -15,14 +16,14 @@ describe("LL(1) parse", () => {
             "Y -> | * T"
         ]);
         const ll1parser = createLL1Parser(prodset);
-        const parseret = ll1parser.parse([
+        const parseret = ll1parser.parse(makeLexIteratorFromArray([
             new Token("1", prodset.getSymId("int"), noArea),
             new Token("+", prodset.getSymId("+"), noArea),
             new Token("2", prodset.getSymId("int"), noArea),
             new Token("*", prodset.getSymId("*"), noArea),
             new Token("3", prodset.getSymId("int"), noArea),
             new Token("$", prodset.getSymId("$"), noArea)
-        ]);
+        ]));
         const expectedTree: ParseTreeNodeLiteral = {
             symbol: "E",
             children: [
@@ -99,11 +100,11 @@ describe("LL(1) parse", () => {
             "E -> int"
         ]);
         const ll1parser = createLL1Parser(prodset);
-        const parseret = ll1parser.parse([
+        const parseret = ll1parser.parse(makeLexIteratorFromArray([
             new Token("1", prodset.getSymId("int"), noArea),
             new Token("3", prodset.getSymId("int"), noArea),
             new Token("$", prodset.getSymId("$"), noArea)
-        ]);
+        ]));
         assert.equal(parseret.accept, false);
         assert.equal(parseret.error!.errCode, ErrorCode.TOO_MANY_TOKENS);
     });
@@ -113,10 +114,10 @@ describe("LL(1) parse", () => {
             "E -> int int"
         ]);
         const ll1parser = createLL1Parser(prodset);
-        const parseret = ll1parser.parse([
+        const parseret = ll1parser.parse(makeLexIteratorFromArray([
             new Token("1", prodset.getSymId("int"), noArea),
             new Token("$", prodset.getSymId("$"), noArea)
-        ]);
+        ]));
         assert.equal(parseret.accept, false);
         assert.equal(parseret.error!.errCode, ErrorCode.NEED_MODE_TOKENS);
     });
@@ -126,11 +127,11 @@ describe("LL(1) parse", () => {
             "E -> int double"
         ]);
         const ll1parser = createLL1Parser(prodset);
-        const parseret = ll1parser.parse([
+        const parseret = ll1parser.parse(makeLexIteratorFromArray([
             new Token("1", prodset.getSymId("int"), noArea),
             new Token("2", prodset.getSymId("int"), noArea),
             new Token("$", prodset.getSymId("$"), noArea)
-        ]);
+        ]));
         assert.equal(parseret.accept, false);
         assert.equal(parseret.error!.errCode, ErrorCode.INPUT_NOT_ACCEPTABLE);
     });

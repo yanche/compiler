@@ -1,5 +1,5 @@
 
-import { Area, Token, noArea } from "./lex";
+import { Area, Token, noArea, LexIterator } from "./lex";
 import { ProdSet } from '../productions';
 import { ParseReturn } from './ret';
 import { SymbolId, ProductionId } from "../utility";
@@ -87,7 +87,7 @@ export abstract class Parser {
         this._prodset = prodset;
     }
 
-    abstract parse(tokens: Array<Token>): ParseReturn;
+    abstract parse(tokens: LexIterator): ParseReturn;
 
     abstract get valid(): boolean;
 }

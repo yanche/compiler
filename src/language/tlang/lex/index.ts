@@ -1,13 +1,15 @@
 
 import { ProdSet } from "../../../productions";
-import { LexReturn, Token, noArea, Posi, Area, InvalidTokenError } from "../../../compile";
+import { Token, noArea, Posi, Area, InvalidTokenError, LexError, LexIterator } from "../../../compile";
 
+export default function lex(input: string, prodset: ProdSet): LexIterator {
+    return new LexIterator(lexGenerator(input, prodset));
+}
 
 const tripples = [">>>"];
 const doubles = ["&&", "||", "!=", "==", ">=", "<=", ">>", "<<"];
 const singles = ["(", ")", "{", "}", ",", ":", ";", "+", "-", "*", "/", ".", "~", "[", "]", "&", "|", "!", "=", ">", "<"];
 const keywords = ["void", "class", "constructor", "while", "do", "for", "if", "else", "return", "super", "new", "null", "break", "continue"];
-
 
 // | * + ( ) . char [ ] -
 const chnum_a = "a".charCodeAt(0);
@@ -40,8 +42,8 @@ function areaWithColNext(posi: Posi, strlen: number): Area {
     return new Area(posi, new Posi(posi.row, posi.col + strlen - 1));
 }
 
-export default function lex(input: string, prodset: ProdSet): LexReturn {
-    const len = input.length, tokens = new Array<Token>();
+function* lexGenerator(input: string, prodset: ProdSet): IterableIterator<LexError | Token> {
+    const len = input.length;
     let row = 1, col = 1, commentblock = false, commentline = false;
     let i = 0;
 
@@ -93,15 +95,25 @@ export default function lex(input: string, prodset: ProdSet): LexReturn {
             continue;
         }
 
-        if (tripples.some(c => c === next3)) { tokens.push(new Token(next3, prodset.getSymId(next3), areaWithColNext(posi, 3))); col += 2; i += 2; }
-        else if (doubles.some(c => c === next2)) { tokens.push(new Token(next2, prodset.getSymId(next2), areaWithColNext(posi, 2))); col++; i++; }
-        else if (singles.some(c => c === ch)) tokens.push(new Token(ch, prodset.getSymId(ch), areaWithColNext(posi, 1)));
+        if (tripples.some(c => c === next3)) {
+            yield new Token(next3, prodset.getSymId(next3), areaWithColNext(posi, 3));
+            col += 2;
+            i += 2;
+        }
+        else if (doubles.some(c => c === next2)) {
+            yield new Token(next2, prodset.getSymId(next2), areaWithColNext(posi, 2));
+            col++;
+            i++;
+        }
+        else if (singles.some(c => c === ch)) {
+            yield new Token(ch, prodset.getSymId(ch), areaWithColNext(posi, 1));
+        }
         else if (isDigitChCode(chcode)) {
             const startpos = i;
             ++i;
             while (i < len && isDigitChCode(input.charCodeAt(i)))++i;
             const rawstr = input.slice(startpos, i--);
-            tokens.push(new Token(rawstr, prodset.getSymId("integer"), areaWithColNext(posi, rawstr.length)));
+            yield new Token(rawstr, prodset.getSymId("integer"), areaWithColNext(posi, rawstr.length));
             col += i - startpos;
         }
         else if (isIdStartChCode(chcode)) {
@@ -110,16 +122,17 @@ export default function lex(input: string, prodset: ProdSet): LexReturn {
             while (i < len && isIdChCode(input.charCodeAt(i)))++i;
             const idstr = input.slice(startpos, i--);
             col += i - startpos;
-            if (idstr === "true" || idstr === "false")
-                tokens.push(new Token(idstr, prodset.getSymId("boolean"), areaWithColNext(posi, idstr.length)));
-            else
-                tokens.push(new Token(idstr, keywords.some(c => c === idstr) ? prodset.getSymId(idstr) : prodset.getSymId("id"), areaWithColNext(posi, idstr.length)));
+            if (idstr === "true" || idstr === "false") {
+                yield new Token(idstr, prodset.getSymId("boolean"), areaWithColNext(posi, idstr.length));
+            }
+            else {
+                yield new Token(idstr, keywords.some(c => c === idstr) ? prodset.getSymId(idstr) : prodset.getSymId("id"), areaWithColNext(posi, idstr.length));
+            }
         }
-        else return new LexReturn(null, new InvalidTokenError(ch, posi));
+        else return new InvalidTokenError(ch, posi);
 
         ++i;
         ++col;
     }
-    tokens.push(new Token("", prodset.getSymId("$"), noArea));
-    return new LexReturn(tokens);
+    return new Token("$", prodset.getSymId("$"), noArea);
 }

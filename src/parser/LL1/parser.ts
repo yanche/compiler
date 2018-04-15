@@ -1,8 +1,8 @@
 
 import { ProdSet } from "../../productions";
-import { ParseTreeNode, Token, ParseTreeMidNode, ParseTreeTermNode, ParseReturn, Parser } from "../../compile";
+import { ParseTreeNode, Token, ParseTreeMidNode, ParseTreeTermNode, ParseReturn, Parser, LexError, LexIterator } from "../../compile";
 import { NeedMoreTokensError, TooManyTokensError, NotAcceptableError, createParseErrorReturn } from "../error";
-import { createTableBuilderOfArray, TableBuilder, SymbolId, ProductionId } from "../../utility";
+import { createTableBuilderOfArray, TableBuilder, SymbolId, ProductionId, Stack } from "../../utility";
 
 export default class LL1Parser extends Parser {
     private readonly _table: TableBuilder<SymbolId, SymbolId, ProductionId[]>;
@@ -31,30 +31,30 @@ export default class LL1Parser extends Parser {
 
     public get valid(): boolean { return this._valid; }
 
-    public parse(tokens: ReadonlyArray<Token>): ParseReturn {
-        if (tokens.length === 0 || tokens[tokens.length - 1].symId !== 0) throw new Error("the last token must be '$', stands for the end of tokens");
+    public parse(lexIterator: LexIterator): ParseReturn {
         if (!this.valid) throw new Error("the grammar is not a valid LL(1)");
+        if (lexIterator.cur instanceof LexError) return createParseErrorReturn(lexIterator.cur);
 
         const startsym = this._prodset.startNonTerminalId;
         const root = new ParseTreeMidNode(startsym);
-        const stack: { node: ParseTreeNode, symId: SymbolId }[] = [{ node: root, symId: startsym }];
-        let i = 0;
-        while (stack.length > 0 && i < tokens.length) {
+        const stack = new Stack<{ node: ParseTreeNode, symId: SymbolId }>({ node: root, symId: startsym });
+        while (stack.size > 0 && !lexIterator.done) {
+            const curToken = lexIterator.cur;
+            if (curToken instanceof LexError) return createParseErrorReturn(curToken);
             const stacktop = stack.pop()!;
-            const token = tokens[i];
             const node = stacktop.node;
             const nodeSymStr = this._prodset.getSymInStr(node.symId);
-            const tokenSymStr = this._prodset.getSymInStr(token.symId);
+            const tokenSymStr = this._prodset.getSymInStr(curToken.symId);
             if (node instanceof ParseTreeTermNode) {
-                if (node.symId === token.symId) node.token = token;
-                else if (i === tokens.length - 1) return createParseErrorReturn(new NeedMoreTokensError());
-                else return createParseErrorReturn(new NotAcceptableError(`expecting symbol: ${nodeSymStr} but get: ${tokenSymStr} at ${token.area}`));
-                ++i;
+                if (node.symId === curToken.symId) node.token = curToken;
+                else if (curToken.symId === this._prodset.finSymId) return createParseErrorReturn(new NeedMoreTokensError());
+                else return createParseErrorReturn(new NotAcceptableError(`expecting symbol: ${nodeSymStr} but get: ${tokenSymStr} at ${curToken.area}`));
+                lexIterator.next();
             }
             else if (node instanceof ParseTreeMidNode) {
-                const prods = this._table.getCell(stacktop.symId, token.symId);
-                if (prods.length === 0) return createParseErrorReturn(new NotAcceptableError(`unexpected symbol: ${tokenSymStr} at ${token.area}`));
-                if (prods.length > 1) throw new Error(`defensive code, more than 1 productions are found for: ${node.symId}, ${token.symId}`);
+                const prods = this._table.getCell(stacktop.symId, curToken.symId);
+                if (prods.length === 0) return createParseErrorReturn(new NotAcceptableError(`unexpected symbol: ${tokenSymStr} at ${curToken.area}`));
+                if (prods.length > 1) throw new Error(`defensive code, more than 1 productions are found for: ${node.symId}, ${curToken.symId}`);
                 const prodId = prods[0];
                 const newStackItems = this._prodset.getProdRef(prodId).rhsIds.map(sym => {
                     return { node: this._prodset.isSymIdTerminal(sym) ? new ParseTreeTermNode(sym) : new ParseTreeMidNode(sym), symId: sym };
@@ -65,8 +65,9 @@ export default class LL1Parser extends Parser {
             }
             else throw new Error("node neither a termnode nor a midnode");
         }
-        if (stack.length !== 0) return createParseErrorReturn(new NeedMoreTokensError());
-        else if (i === tokens.length - 1) return new ParseReturn(root);
+        const lastToken = lexIterator.cur;
+        if (stack.size !== 0) return createParseErrorReturn(new NeedMoreTokensError());
+        else if ((lastToken instanceof Token) && lastToken.rawstr === "$") return new ParseReturn(root);
         else return createParseErrorReturn(new TooManyTokensError());
     }
 

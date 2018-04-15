@@ -21,7 +21,7 @@ export class ASTNode_OR extends ASTNode_REGEX {
     constructor(public readonly children: ReadonlyArray<ASTNode_REGEX>) { super(); }
 
     public toNFATransition(idGen: IdGen, start: NodeId, terminal: NodeId): ReadonlyArray<Transition> {
-        return flatten(this.children.map(c => c.toNFATransition(idGen, start, terminal)));
+        return flatten<Transition>(this.children.map(c => c.toNFATransition(idGen, start, terminal)));
     }
 }
 
@@ -31,7 +31,7 @@ export class ASTNode_Concat extends ASTNode_REGEX {
     public toNFATransition(idGen: IdGen, start: NodeId, terminal: NodeId): ReadonlyArray<Transition> {
         const len = this.children.length;
         let prevend = start;
-        return flatten(this.children.map((c, idx) => {
+        return flatten<Transition>(this.children.map((c, idx) => {
             const t = idx === (len - 1) ? terminal : idGen.next();
             const ret = c.toNFATransition(idGen, prevend, t);
             prevend = t;

@@ -2,48 +2,49 @@
 import lex from "../../lex";
 import { prodSet } from "../../syntax";
 import { assert } from "chai";
-import { Area } from "../../../../compile";
+import { Area, Token } from "../../../../compile";
+import { readLexTokens } from "../../../../testutil";
 
 describe("token area test", () => {
     it("happy path", () => {
-        const lexRet = lex("abc", prodSet);
-        assert.ok(lexRet.accept);
-        const tokens = lexRet.tokens;
+        const lexRet = readLexTokens(lex("abc", prodSet));
+        assert.ok(Array.isArray(lexRet));
+        const tokens = <ReadonlyArray<Token>>lexRet;
         assert.strictEqual(tokens.length, 2);
         compareArea(tokens[0].area, { row: 1, col: 1 }, { row: 1, col: 3 });
     });
 
     it("2 tokens", () => {
-        const lexRet = lex("abc abc", prodSet);
-        assert.ok(lexRet.accept);
-        const tokens = lexRet.tokens;
+        const lexRet = readLexTokens(lex("abc abc", prodSet));
+        assert.ok(Array.isArray(lexRet));
+        const tokens = <ReadonlyArray<Token>>lexRet;
         assert.strictEqual(tokens.length, 3);
         compareArea(tokens[0].area, { row: 1, col: 1 }, { row: 1, col: 3 });
         compareArea(tokens[1].area, { row: 1, col: 5 }, { row: 1, col: 7 });
     });
 
     it("leading spaces", () => {
-        const lexRet = lex("     abc", prodSet);
-        assert.ok(lexRet.accept);
-        const tokens = lexRet.tokens;
+        const lexRet = readLexTokens(lex("     abc", prodSet));
+        assert.ok(Array.isArray(lexRet));
+        const tokens = <ReadonlyArray<Token>>lexRet;
         assert.strictEqual(tokens.length, 2);
         compareArea(tokens[0].area, { row: 1, col: 6 }, { row: 1, col: 8 });
     });
 
     it("on second line", () => {
-        const lexRet = lex(`
-  abc`, prodSet);
-        assert.ok(lexRet.accept);
-        const tokens = lexRet.tokens;
+        const lexRet = readLexTokens(lex(`
+  abc`, prodSet));
+        assert.ok(Array.isArray(lexRet));
+        const tokens = <ReadonlyArray<Token>>lexRet;
         assert.strictEqual(tokens.length, 2);
         compareArea(tokens[0].area, { row: 2, col: 3 }, { row: 2, col: 5 });
     });
 
     it("with comments", () => {
-        const lexRet = lex(`// abc
-  abc`, prodSet);
-        assert.ok(lexRet.accept);
-        const tokens = lexRet.tokens;
+        const lexRet = readLexTokens(lex(`// abc
+  abc`, prodSet));
+        assert.ok(Array.isArray(lexRet));
+        const tokens = <ReadonlyArray<Token>>lexRet;
         assert.strictEqual(tokens.length, 2);
         compareArea(tokens[0].area, { row: 2, col: 3 }, { row: 2, col: 5 });
     });

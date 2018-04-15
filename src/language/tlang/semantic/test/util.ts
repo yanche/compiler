@@ -8,8 +8,7 @@ import lex from "../../lex";
 
 export function getSemanticResult(code: string): SemanticCheckReturn {
     const lexRet = lex(code, prodSet);
-    assert.ok(lexRet.accept);
-    const parseRet = parser.parse(lexRet.tokens);
+    const parseRet = parser.parse(lexRet);
     assert.ok(parseRet.accept);
     const ast = <ASTNode_globaldefs>astConverter.toAST(parseRet.root);
     const gRet = buildGlobalTypes(ast);

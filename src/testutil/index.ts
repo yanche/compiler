@@ -1,3 +1,5 @@
+import { LexIterator, Token, LexError } from "../compile";
+import { arrayIterator } from "../utility";
 
 function strictEqual(i1: any, i2: any): boolean {
     return i1 === i2;
@@ -22,3 +24,24 @@ export function arrayEquivalent<T1, T2>(arr1: ReadonlyArray<T1>, arr2: ReadonlyA
     }
     return true;
 };
+
+export function makeLexIteratorFromArray(tokens: ReadonlyArray<Token>): LexIterator {
+    return new LexIterator(arrayIterator(tokens));
+}
+
+export function readLexTokens(lexIterator: LexIterator): ReadonlyArray<Token> | LexError {
+    const ret: Token[] = [];
+    if (lexIterator.cur instanceof LexError) {
+        return lexIterator.cur;
+    }
+    while (!lexIterator.done) {
+        const cur = lexIterator.cur;
+        if (cur instanceof LexError) {
+            return cur;
+        } else {
+            ret.push(cur);
+        }
+        lexIterator.next();
+    }
+    return ret;
+}

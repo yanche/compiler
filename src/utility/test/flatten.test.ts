@@ -24,15 +24,15 @@ describe("flatten test", () => {
     });
 
     it("[[1]]", () => {
-        assert.ok(arrayEqual(flatten([[1]]), [1]));
+        assert.ok(arrayEqual(flatten<number>([[1]]), [1]));
     });
 
     it("[[1],[2]]", () => {
-        assert.ok(arrayEqual(flatten([[1], [2]]), [1, 2]));
+        assert.ok(arrayEqual(flatten<number>([[1], [2]]), [1, 2]));
     });
 
     it("[[1],[2,3,4]]", () => {
-        assert.ok(arrayEqual(flatten([[1], [2, 3, 4]]), [1, 2, 3, 4]));
+        assert.ok(arrayEqual(flatten<number>([[1], [2, 3, 4]]), [1, 2, 3, 4]));
     });
 
     it("[[1],5,6,[2,3,4],7,8]", () => {

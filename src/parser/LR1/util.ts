@@ -1,9 +1,10 @@
 
 import { ProdSet, ProductionRef } from "../../productions";
 import { DFA, createNFA, Transition } from "../../automata";
-import { ParseReturn, ParseTreeMidNode, ParseTreeTermNode, ParseTreeNode, Token, Parser, Area, noArea } from "../../compile";
+import { ParseReturn, ParseTreeMidNode, ParseTreeTermNode, ParseTreeNode, Parser, Area, noArea, LexError } from "../../compile";
 import { range, createTableBuilderOfArray, TableBuilder, MapBuilder, createMapBuilderOfSet, ProductionId, LR0ItemId, SymbolId, StateId, LR1ItemId } from "../../utility";
-import { NeedMoreTokensError, TooManyTokensError, NotAcceptableError, createParseErrorReturn } from "../error";
+import { NeedMoreTokensError, NotAcceptableError, createParseErrorReturn } from "../error";
+import { LexIterator } from "../../compile/lex";
 
 export interface LR0Item {
     readonly prodId: ProductionId;
@@ -79,23 +80,22 @@ export abstract class LRParser extends Parser {
         return this._ambCells.size === 0;
     }
 
-    public parse(tokens: ReadonlyArray<Token>): ParseReturn {
-        if (tokens.length === 0 || tokens[tokens.length - 1].symId !== 0) throw new Error("the last token must be '$', stands for the end of tokens");
+    public parse(lexIterator: LexIterator): ParseReturn {
         if (!this.valid) throw new Error("the grammar is not valid");
         if (this._startState === null || this._startState === undefined) throw new Error("start state is not specified");
+        if (lexIterator.cur instanceof LexError) return createParseErrorReturn(lexIterator.cur);
 
         const stack: { tnode: ParseTreeNode, state: StateId }[] = [{ tnode: undefined!, state: this._startState }];
-        const len = tokens.length;
-        let i = 0;
         let stackTop = 0;
-        while (i < len) {
-            const token = tokens[i];
+        while (!lexIterator.done) {
+            const curToken = lexIterator.cur;
+            if (curToken instanceof LexError) return createParseErrorReturn(curToken);
             const stackItem = stack[stackTop];
-            const { action, errReturn } = this._getSingleAct(stackItem.state, token.symId, token.area);
+            const { action, errReturn } = this._getSingleAct(stackItem.state, curToken.symId, curToken.area);
             if (errReturn) return errReturn;
             if (action instanceof ShiftAction) {
-                stack[++stackTop] = { tnode: new ParseTreeTermNode(token.symId, token), state: action.toStateId };
-                ++i;
+                stack[++stackTop] = { tnode: new ParseTreeTermNode(curToken.symId, curToken), state: action.toStateId };
+                lexIterator.next();
             }
             else if (action instanceof ReduceAction) {
                 let newStackTop = stackTop - action.rhsLen;
@@ -109,8 +109,7 @@ export abstract class LRParser extends Parser {
                 else throw new Error("something wrong with parsing table, by taking a non-terminal symbol state should always shift in");
             }
             else if (action instanceof AcceptAction) {
-                if (i !== len - 1) return createParseErrorReturn(new TooManyTokensError());
-                else if (stackTop !== 1) return createParseErrorReturn(new NeedMoreTokensError());
+                if (stackTop !== 1) return createParseErrorReturn(new NeedMoreTokensError());
                 else return new ParseReturn(<ParseTreeMidNode>stackItem.tnode);
             }
             else throw new Error("impossible code path, 2");
@@ -119,6 +118,9 @@ export abstract class LRParser extends Parser {
     }
 
     protected addAcceptAction(dfaStateId: StateId, symId: SymbolId): this {
+        if (symId !== this._prodset.finSymId) {
+            throw new Error(`LR accept action must be $ as the terminal symbol`);
+        }
         return this._addAction(dfaStateId, symId, new AcceptAction());
     }
 

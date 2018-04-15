@@ -171,7 +171,7 @@ export class FunctionLookup {
     allFn(): Array<FunctionDefinition> {
         const ret = new Array<Array<FunctionDefinition>>();
         for (const x of this._fnMap) ret.push(x[1]);
-        return flatten(ret);
+        return flatten<FunctionDefinition>(ret);
     }
 
     findConstructors(classname: string): Array<FunctionDefinition> {
@@ -183,7 +183,7 @@ export class FunctionLookup {
         const m1 = this._methodMap.get(classname);
         if (m1)
             for (const x of m1) ret.push(x[1]);
-        return flatten(ret);
+        return flatten<FunctionDefinition>(ret);
     }
 
     constructor() {

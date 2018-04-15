@@ -1,9 +1,10 @@
 
- import { assert } from "chai";
+import { assert } from "chai";
 import { createLALR1Parser } from "../index";
 import { validate } from "./util.test";
 import { Token, noArea } from "../../../compile";
 import { createProdSetWithSplitter } from "../../../productions";
+import { makeLexIteratorFromArray } from "../../../testutil";
 
 
 describe("LALR(1) parse", function () {
@@ -42,14 +43,14 @@ describe("LALR(1) parse", function () {
             "T -> int | int * T | ( E )"
         ])
         const lalr1parser = createLALR1Parser(prodset);
-        const parseret = lalr1parser.parse([
+        const parseret = lalr1parser.parse(makeLexIteratorFromArray([
             new Token("1", prodset.getSymId("int"), noArea),
             new Token("+", prodset.getSymId("+"), noArea),
             new Token("2", prodset.getSymId("int"), noArea),
             new Token("*", prodset.getSymId("*"), noArea),
             new Token("3", prodset.getSymId("int"), noArea),
             new Token("$", prodset.getSymId("$"), noArea)
-        ]);
+        ]));
         assert.equal(true, parseret.accept);
         validate(prodset, parseret.root!, {
             symstr: "E",

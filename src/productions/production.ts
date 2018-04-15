@@ -59,6 +59,8 @@ export class ProdSet {
     public readonly terminals: ReadonlyArray<SymbolId>;
     // all non-terminal ids
     public readonly nonTerminals: ReadonlyArray<SymbolId>;
+    // symbol id of $
+    public readonly finSymId: SymbolId;
 
     // integer of non-terminal -> array of id of productions by it as lhs
     private readonly _nonTerminalProdMap: ReadonlyMap<SymbolId, ProductionId[]>;
@@ -101,6 +103,7 @@ export class ProdSet {
         this.prodIds = range(this._prodCount);
         this.nonTerminals = range(this._terminalsCount + 1, this._totalSymbolCount + 1);
         this.terminals = range(1, this._terminalsCount + 1);
+        this.finSymId = this.getSymId("$");
     }
 
     public getSymInStr(symId: SymbolId): string { return this._symbolIdMap.getSymbol(symId); }

@@ -1,9 +1,10 @@
 
- import { assert } from "chai";
+import { assert } from "chai";
 import { createSLR1Parser } from "../index";
 import { validate } from "./util.test";
 import { Token, noArea } from "../../../compile";
 import { createProdSetWithSplitter } from "../../../productions";
+import { makeLexIteratorFromArray } from "../../../testutil";
 
 describe("SLR(1) parse", function () {
     it("invalid LALR(1), valid LR(1)", function () {
@@ -40,14 +41,14 @@ describe("SLR(1) parse", function () {
             "T -> int | int * T | ( E )"
         ]);
         const slr1parser = createSLR1Parser(prodset);
-        const parseret = slr1parser.parse([
+        const parseret = slr1parser.parse(makeLexIteratorFromArray([
             new Token("1", prodset.getSymId("int"), noArea),
             new Token("+", prodset.getSymId("+"), noArea),
             new Token("2", prodset.getSymId("int"), noArea),
             new Token("*", prodset.getSymId("*"), noArea),
             new Token("3", prodset.getSymId("int"), noArea),
             new Token("$", prodset.getSymId("$"), noArea)
-        ]);
+        ]));
         assert.equal(true, parseret.accept);
         validate(prodset, parseret.root!, {
             symstr: "E",

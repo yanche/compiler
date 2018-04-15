@@ -28,7 +28,7 @@ export function equal(v1: ValueInference, v2: ValueInference): boolean {
 }
 
 export function merge(...params: Array<ValueInference | Array<ValueInference>>): ValueInference {
-    return flatten(params).reduce((v1: ValueInference, v2: ValueInference): ValueInference => {
+    return flatten<ValueInference>(params).reduce((v1: ValueInference, v2: ValueInference): ValueInference => {
         if (v1.type === ValueType.ANY || v2.type === ValueType.ANY) return ANY;
         if (v2.type === ValueType.NEVER) return v1;
         if (v1.type === ValueType.NEVER) return v2;

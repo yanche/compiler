@@ -3,7 +3,7 @@ import { createLALR1Parser } from "../../../parser";
 import { defineSyntaxProcessor, ParseTreeMidNode, Token, ParseTreeTermNode, ASTConverter } from "../../../compile";
 import * as a from "../ast";
 
-class TLangASTConverter extends ASTConverter {
+class TLangASTConverter extends ASTConverter<a.ASTNode> {
     constructor(handlermapp: Map<number, (node: ParseTreeMidNode) => a.ASTNode>) {
         super(handlermapp);
     }

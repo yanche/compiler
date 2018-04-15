@@ -21,7 +21,13 @@ export function generateIntermediateCode(classlookup: util.ClassLookup, fnlookup
     const code = new IntermediateCode();
     code.addVtableGData(classlookup);
     const labelIdGen = new IdGen();
-    for (const fndef of flatten([fnlookup.allFn(), flatten(classlookup.getAllClasses().map(c => flatten([fnlookup.findMethods(c), fnlookup.findConstructors(c)])))])) {
+    for (const fndef of flatten<util.FunctionDefinition>([
+        fnlookup.allFn(),
+        flatten<util.FunctionDefinition>(classlookup.getAllClasses().map(c => flatten<util.FunctionDefinition>([
+            fnlookup.findMethods(c),
+            fnlookup.findConstructors(c)
+        ])))
+    ])) {
         if (fndef.predefined) continue;
         const codelines = new Array<CodeLine>();
         fndef.astnode.genIntermediateCode(codelines);

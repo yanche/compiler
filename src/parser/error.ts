@@ -1,5 +1,5 @@
 
-import { SyntaxError, ParseReturn } from "../compile";
+import { SyntaxError, ParseReturn, CompileError } from "../compile";
 
 export enum ErrorCode {
     NEED_MODE_TOKENS = 1000,
@@ -26,6 +26,6 @@ export class TooManyTokensError extends SyntaxError {
     }
 }
 
-export function createParseErrorReturn(error: SyntaxError): ParseReturn {
+export function createParseErrorReturn(error: CompileError): ParseReturn {
     return new ParseReturn(undefined, error);
 }

@@ -13,9 +13,7 @@ export default class RegEx {
     public readonly pattern: string;
 
     constructor(pattern: string) {
-        const lexret = lex(pattern, prodSet);
-        if (!lexret.accept) throw new Error(lexret.error!.toString());
-        const parseret = parser.parse(lexret.tokens!);
+        const parseret = parser.parse(lex(pattern, prodSet));
         if (!parseret.accept) throw new Error(parseret.error!.toString());
         // compile
         this._dfa = astConverter.toAST(parseret.root!).toNFA().toDFA().dfa;
