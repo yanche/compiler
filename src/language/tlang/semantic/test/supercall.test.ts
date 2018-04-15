@@ -1,7 +1,7 @@
 
 import { getSemanticResult } from "./util";
 import { ErrorCode } from "../../error";
- import { assert } from "chai";
+import * as assert from "assert";
 
 describe("call base class constructor test cases", () => {
     it("basic scenario", () => {

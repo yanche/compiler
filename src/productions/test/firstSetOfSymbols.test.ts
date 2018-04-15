@@ -1,5 +1,5 @@
 
-import { assert } from "chai";
+import * as assert from "assert";
 import { arrayEquivalent } from "../../testutil";
 import { createProdSetWithSplitter, ProdSet } from "../index";
 

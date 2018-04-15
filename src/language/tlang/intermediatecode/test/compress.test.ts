@@ -2,7 +2,7 @@
 import { CodeLine } from "../index";
 import * as t from "../../tac";
 import { IdGen } from "../../../../utility";
-import { assert } from "chai";
+import * as assert from "assert";
 import { CodeLabel } from "../../util";
 import { finalizeLabelRef } from "../util";
 import { assignLineNums, genCodeLines } from "./util";

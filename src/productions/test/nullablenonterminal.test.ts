@@ -1,12 +1,12 @@
 
-import { assert } from "chai";
+import * as assert from "assert";
 import { arrayEquivalent } from "../../testutil";
 import { createProdSetWithSplitter } from "../index";
 import { ProdSet } from "../production";
 
 function validate(pset: ProdSet, symarr: string[]) {
     const startsymnum = pset.startNonTerminalId;
-    assert.equal(true, arrayEquivalent([...pset.nullableNonTerminals()].filter(n => n !== startsymnum).map(n => pset.getSymInStr(n)), symarr));
+    assert.strictEqual(true, arrayEquivalent([...pset.nullableNonTerminals()].filter(n => n !== startsymnum).map(n => pset.getSymInStr(n)), symarr));
 }
 
 describe("non terminal able to produce epsilon", function () {

@@ -1,5 +1,5 @@
 
-import { assert } from "chai";
+import * as assert from "assert";
 import { arrayEquivalent } from "../../testutil";
 import { createProdSetWithSplitter } from "../index";
 import * as prod from "../production";
@@ -7,10 +7,10 @@ import * as prod from "../production";
 function validate(pset: prod.ProdSet, expected: Array<{ lhs: string, rhsArr: Array<Array<{ str: string, terminal: boolean }>> }>) {
     const startsymnum = pset.startNonTerminalId;
     const allLHS = [...pset.nonTerminals].filter(n => n != startsymnum).map(n => pset.getSymInStr(n));
-    assert.equal(true, arrayEquivalent([...allLHS], expected.map(e => e.lhs)));
+    assert.strictEqual(true, arrayEquivalent([...allLHS], expected.map(e => e.lhs)));
     for (let i = 0; i < expected.length; ++i) {
         const item = expected[i];
-        assert.equal(true, arrayEquivalent(item.rhsArr, pset.getProds(pset.getSymId(item.lhs)).map(p => pset.getProdRef(p).rhsIds), function (test, real) {
+        assert.strictEqual(true, arrayEquivalent(item.rhsArr, pset.getProds(pset.getSymId(item.lhs)).map(p => pset.getProdRef(p).rhsIds), function (test, real) {
             //test and real are both array
             if (test.length !== real.length) return false;
             for (let q = 0; q < test.length; ++q) {
@@ -80,7 +80,7 @@ describe("production set left factoring", function () {
         const pset = createProdSetWithSplitter([
             "E -> int + int | "
         ]);
-        assert.equal(pset.leftFactoredProdSet(), pset);
+        assert.strictEqual(pset.leftFactoredProdSet(), pset);
     });
 
     it("simple 3: 2 left factor for one non-terminal", function () {

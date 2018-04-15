@@ -1,7 +1,7 @@
 
 import lex from "../../lex";
 import { prodSet } from "../../syntax";
-import { assert } from "chai";
+import * as assert from "assert";
 import { Area, Token } from "../../../../compile";
 import { readLexTokens } from "../../../../testutil";
 

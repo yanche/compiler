@@ -1,5 +1,5 @@
 
-import { assert } from "chai";
+import * as assert from "assert";
 import { createSLR1Parser } from "../index";
 import { validate } from "./util.test";
 import { Token, noArea } from "../../../compile";
@@ -14,7 +14,7 @@ describe("SLR(1) parse", function () {
             "F -> e"
         ]));
         //slr1parser.print();
-        assert.equal(false, slr1parser.valid);
+        assert.strictEqual(false, slr1parser.valid);
     });
 
     it("valid LALR(1), valid SLR(1)", function () {
@@ -23,7 +23,7 @@ describe("SLR(1) parse", function () {
             "T -> int | int * T | ( E )"
         ]));
         //slr1parser.print();
-        assert.equal(true, slr1parser.valid);
+        assert.strictEqual(true, slr1parser.valid);
     });
 
     it("valid LALR(1), invalid SLR(1)", function () {
@@ -32,7 +32,7 @@ describe("SLR(1) parse", function () {
             "A -> d"
         ]));
         // slr1parser.print();
-        assert.equal(false, slr1parser.valid);
+        assert.strictEqual(false, slr1parser.valid);
     });
 
     it("simple 1", function () {
@@ -49,7 +49,7 @@ describe("SLR(1) parse", function () {
             new Token("3", prodset.getSymId("int"), noArea),
             new Token("$", prodset.getSymId("$"), noArea)
         ]));
-        assert.equal(true, parseret.accept);
+        assert.strictEqual(true, parseret.accept);
         validate(prodset, parseret.root!, {
             symstr: "E",
             mid: true,

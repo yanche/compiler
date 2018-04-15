@@ -1,5 +1,5 @@
 
-import { assert } from "chai";
+import * as assert from "assert";
 import { arrayEquivalent } from "../../testutil";
 import { createProdSetWithSplitter, ProdSet } from "../index";
 
@@ -8,7 +8,7 @@ function validate(prodset: ProdSet, expected: Array<{ symbol: string, firsts: Ar
     const finsymnum = prodset.getSymId("$");
     const firstSet = prodset.firstSet();
     const testedset = firstSet.filter((x, idx) => idx !== startsymnum && idx !== finsymnum);
-    assert.equal(true, arrayEquivalent(testedset, expected, function (f, e) {
+    assert.strictEqual(true, arrayEquivalent(testedset, expected, function (f, e) {
         return f === firstSet[prodset.getSymId(e.symbol)] && arrayEquivalent([...f].map(n => prodset.getSymInStr(n)), e.firsts);
     }));
 };

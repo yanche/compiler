@@ -1,5 +1,5 @@
 
-import { assert } from "chai";
+import * as assert from "assert";
 import { arrayEquivalent } from "../../testutil";
 import { createProdSetWithSplitter } from "../index";
 import { ProdSet } from "../production";
@@ -8,10 +8,10 @@ import { ProdSet } from "../production";
 function validate(pset: ProdSet, expected: { lhs: string, rhsArr: { str: string, terminal: boolean }[][] }[]) {
     const startsymnum = pset.startNonTerminalId;
     const allLHS = pset.nonTerminals.filter(n => n !== startsymnum).map(n => pset.getSymInStr(n));
-    assert.equal(true, arrayEquivalent([...allLHS], expected.map(e => e.lhs)));
+    assert.strictEqual(true, arrayEquivalent([...allLHS], expected.map(e => e.lhs)));
     for (let i = 0; i < expected.length; ++i) {
         const item = expected[i];
-        assert.equal(true, arrayEquivalent(item.rhsArr, pset.getProds(pset.getSymId(item.lhs)).map(p => pset.getProdRef(p).rhsIds), function (test, real): boolean {
+        assert.strictEqual(true, arrayEquivalent(item.rhsArr, pset.getProds(pset.getSymId(item.lhs)).map(p => pset.getProdRef(p).rhsIds), function (test, real): boolean {
             //test and real are both array
             if (test.length !== real.length) return false;
             for (let q = 0; q < test.length; ++q) {
@@ -29,7 +29,7 @@ describe("parse string into structured production set", function () {
             "E -> T + E | T",
             "T -> int | int * T | ( E )"
         ]);
-        assert.equal(ProdSet.reservedStartNonTerminal, pset.getSymInStr(pset.startNonTerminalId));
+        assert.strictEqual(ProdSet.reservedStartNonTerminal, pset.getSymInStr(pset.startNonTerminalId));
         validate(pset, [
             {
                 lhs: "E",
@@ -68,7 +68,7 @@ describe("parse string into structured production set", function () {
         const pset = createProdSetWithSplitter([
             "E -> int + int | "
         ]);
-        assert.equal(ProdSet.reservedStartNonTerminal, pset.getSymInStr(pset.startNonTerminalId));
+        assert.strictEqual(ProdSet.reservedStartNonTerminal, pset.getSymInStr(pset.startNonTerminalId));
         validate(pset, [
             {
                 lhs: "E",

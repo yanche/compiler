@@ -2,7 +2,7 @@
 import { livenessProne } from "../livenessprone";
 import * as t from "../../tac";
 import { IdGen } from "../../../../utility";
- import { assert } from "chai";
+import * as assert from "assert";
 import { genCodeLines } from "./util";
 
 describe("live-ness prone test", () => {

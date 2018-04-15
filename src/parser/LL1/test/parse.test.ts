@@ -1,5 +1,5 @@
 
-import { assert } from "chai";
+import * as assert from "assert";
 import { createLL1Parser } from "../index";
 import { Token, noArea } from "../../../compile";
 import { createProdSetWithSplitter } from "../../../productions";
@@ -91,8 +91,8 @@ describe("LL(1) parse", () => {
                 }
             ]
         };
-        assert.equal(parseret.accept, true);
-        assert.equal(validateParseTree(parseret.root!, expectedTree, prodset).result, true);
+        assert.strictEqual(parseret.accept, true);
+        assert.strictEqual(validateParseTree(parseret.root!, expectedTree, prodset).result, true);
     });
 
     it("too many tokens error", () => {
@@ -105,8 +105,8 @@ describe("LL(1) parse", () => {
             new Token("3", prodset.getSymId("int"), noArea),
             new Token("$", prodset.getSymId("$"), noArea)
         ]));
-        assert.equal(parseret.accept, false);
-        assert.equal(parseret.error!.errCode, ErrorCode.TOO_MANY_TOKENS);
+        assert.strictEqual(parseret.accept, false);
+        assert.strictEqual(parseret.error!.errCode, ErrorCode.TOO_MANY_TOKENS);
     });
 
     it("need more tokens error", () => {
@@ -118,8 +118,8 @@ describe("LL(1) parse", () => {
             new Token("1", prodset.getSymId("int"), noArea),
             new Token("$", prodset.getSymId("$"), noArea)
         ]));
-        assert.equal(parseret.accept, false);
-        assert.equal(parseret.error!.errCode, ErrorCode.NEED_MODE_TOKENS);
+        assert.strictEqual(parseret.accept, false);
+        assert.strictEqual(parseret.error!.errCode, ErrorCode.NEED_MODE_TOKENS);
     });
 
     it("input not acceptable error", () => {
@@ -132,7 +132,7 @@ describe("LL(1) parse", () => {
             new Token("2", prodset.getSymId("int"), noArea),
             new Token("$", prodset.getSymId("$"), noArea)
         ]));
-        assert.equal(parseret.accept, false);
-        assert.equal(parseret.error!.errCode, ErrorCode.INPUT_NOT_ACCEPTABLE);
+        assert.strictEqual(parseret.accept, false);
+        assert.strictEqual(parseret.error!.errCode, ErrorCode.INPUT_NOT_ACCEPTABLE);
     });
 });
