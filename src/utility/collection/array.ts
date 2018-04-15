@@ -40,3 +40,25 @@ export function findFirst<T>(arr: Iterable<T>, predicate: (t: T, idx: number) =>
 export function* arrayIterator<T>(arr: ReadonlyArray<T>) {
     return yield* arr;
 }
+
+export function selectOne<T>(arr: Iterable<T>, selectFn: (item1: T, item2: T) => T): T {
+    return selectOnes(arr, selectFn)[0];
+}
+
+export function selectOnes<T>(arr: Iterable<T>, ...selectFns: ((item1: T, item2: T) => T)[]): T[] {
+    const len = selectFns.length;
+    if (len === 0) throw new Error("no select function is not acceptable");
+    let ret: T[];
+    let init = false;
+    for (let item of arr) {
+        if (!init) {
+            init = true;
+            ret = initArray(len, item);
+        } else {
+            for (let i = 0; i < len; ++i) {
+                ret[i] = selectFns[i](ret[i], item);
+            }
+        }
+    }
+    return ret;
+}

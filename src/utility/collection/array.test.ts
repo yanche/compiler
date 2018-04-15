@@ -1,6 +1,6 @@
 
 import * as assert from "assert";
-import { flatten, range, initArray, findFirst } from "./array";
+import { flatten, range, initArray, findFirst, selectOne, selectOnes } from "./array";
 import { arrayEqual } from '../../testutil';
 
 describe("flatten test", () => {
@@ -104,5 +104,48 @@ describe("findFirst test", () => {
 
     it("not match but return default", () => {
         assert.strictEqual(findFirst([5, 7], n => n % 3 === 0, 100), 100);
+    });
+});
+
+describe("selectOne test", () => {
+    it("select max", () => {
+        assert.strictEqual(selectOne([5, 7, 9, 6, 1, 4, 5], (n1, n2) => Math.max(n1, n2)), 9);
+    });
+
+    it("empty input", () => {
+        assert.throws(() => selectOne([], (n1, n2) => Math.max(n1, n2)));
+    });
+
+    it("1 input", () => {
+        assert.strictEqual(selectOne([5], (n1, n2) => Math.max(n1, n2)), 5);
+    });
+
+    it("select nested", () => {
+        assert.strictEqual(selectOne([{ m: 5 }, { m: 1 }, { m: 7 }], (n1, n2) => n1.m > n2.m ? n1 : n2).m, 7);
+    });
+});
+
+describe("selectOnes test", () => {
+    it("select max&min", () => {
+        assert.strictEqual(arrayEqual(selectOnes([5, 7, 9, 6, 1, 4, 5],
+            (n1, n2) => Math.max(n1, n2),
+            (n1, n2) => Math.min(n1, n2)), [9, 1]), true);
+    });
+
+    it("empty input", () => {
+        assert.throws(() => selectOnes([], (n1, n2) => Math.max(n1, n2), (n1, n2) => Math.min(n1, n2)));
+    });
+
+    it("1 input", () => {
+        assert.strictEqual(arrayEqual(selectOnes([5],
+            (n1, n2) => Math.max(n1, n2),
+            (n1, n2) => Math.min(n1, n2)), [5, 5]), true);
+    });
+
+    it("select nested", () => {
+        const selectResult = selectOnes([{ m: 5 }, { m: 1 }, { m: 7 }], (n1, n2) => n1.m > n2.m ? n1 : n2, (n1, n2) => n1.m > n2.m ? n2 : n1);
+        assert.strictEqual(selectResult.length, 2);
+        assert.strictEqual(selectResult[0].m, 7);
+        assert.strictEqual(selectResult[1].m, 1);
     });
 });
