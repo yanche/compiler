@@ -129,10 +129,10 @@ function* lexGenerator(input: string, prodset: ProdSet): IterableIterator<LexErr
                 yield new Token(idstr, keywords.some(c => c === idstr) ? prodset.getSymId(idstr) : prodset.getSymId("id"), areaWithColNext(posi, idstr.length));
             }
         }
-        else return new InvalidTokenError(ch, posi);
+        else return yield new InvalidTokenError(ch, posi);
 
         ++i;
         ++col;
     }
-    return new Token("$", prodset.getSymId("$"), noArea);
+    yield new Token("$", prodset.getSymId("$"), noArea);
 }

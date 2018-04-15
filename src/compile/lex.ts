@@ -52,6 +52,8 @@ export class LexIterator {
     }
 
     public get done(): boolean {
+        // this._cur.done && this._cur.value === undefined
+        // accept last statement is return value; instead of return;
         return (this._curval instanceof LexError) || (this._cur.done && this._cur.value === undefined);
     }
 

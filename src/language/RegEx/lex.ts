@@ -36,13 +36,13 @@ function* lexGenerator(input: string, prodSet: ProdSet): IterableIterator<LexErr
                     else if (chnum >= chnum_0 && chnum <= chnum_9)
                         symId = prodSet.getSymId("digit");
                     else
-                        return new InvalidTokenError(ch, new Posi(1, i + 1));
+                        return yield new InvalidTokenError(ch, new Posi(1, i + 1));
             }
             yield new Token(ch, symId, new Area(new Posi(1, i + 1), new Posi(1, i + 2)));
         }
         ++i;
     }
-    return new Token("$", prodSet.getSymId("$"), noArea);
+    yield new Token("$", prodSet.getSymId("$"), noArea);
 }
 
 // | * + ( ) . char [ ] -
