@@ -11,3 +11,10 @@ export function* where<T>(iter: Iterable<T>, predicate: (item: T, index: number)
         }
     }
 }
+
+export function empty(iter: Iterable<any>): boolean {
+    for (const item of iter) {
+        return false;
+    }
+    return true;
+}

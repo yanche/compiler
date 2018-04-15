@@ -1,6 +1,6 @@
 
 import * as assert from "assert";
-import { where } from "./iterable";
+import { where, empty } from "./iterable";
 import { arrayEqual } from "../../testutil";
 import { initArray } from "./array";
 
@@ -25,5 +25,23 @@ describe("where test", () => {
         assert.strictEqual(n2.value, 4);
         assert.strictEqual(arrayEqual(accessed.slice(0, 4), initArray(4, true)), true);
         assert.strictEqual(arrayEqual(accessed.slice(4), initArray(1, false)), true);
+    });
+});
+
+describe("empty test", () => {
+    it("test case 1", () => {
+        assert.strictEqual(empty([1, 2, 3]), false);
+        assert.strictEqual(empty([]), true);
+    });
+
+    it("only access first item", () => {
+        let accessing2 = false;
+        const iterable = function* () {
+            yield 1;
+            accessing2 = true;
+            yield 2;
+        }();
+        assert.strictEqual(empty(iterable), false);
+        assert.strictEqual(accessing2, false);
     });
 });
