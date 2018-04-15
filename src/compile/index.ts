@@ -4,3 +4,4 @@ export { Token, Posi, Area, noArea, InvalidTokenError, ErrorCode as LexErrorCode
 export { ParseReturn, SemanticCheckReturn, CompileReturn } from "./ret";
 export { ASTNode, defineSyntaxProcessor, ASTConverter, SyntaxProcessor, ParseTreeHandlerItem } from "./ast";
 export { SemanticError, CompileError, LexError, SyntaxError } from "./error";
+export * from "./util";
