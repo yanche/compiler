@@ -62,12 +62,19 @@ export interface Table<ROW, COLUMN, VALUE> {
 export class TableBuilder<ROW, COLUMN, VALUE>{
     // private _init: (row: ROW, column: COLUMN) => VALUE;
     private _map: MapBuilder<ROW, MapBuilder<COLUMN, VALUE>>;
+    private _completed: boolean;
 
     public getCell(row: ROW, column: COLUMN): VALUE {
+        if (this._completed && (!this._map.has(row) || !this._map.get(row).has(column))) {
+            throw new Error(`failed to initialize with unset key after TableBuilder is completed, row: ${row}, column: ${column}`);
+        }
         return this._map.get(row).get(column);
     }
 
     public setCell(row: ROW, column: COLUMN, value: VALUE): this {
+        if (this._completed) {
+            throw new Error(`cannot set after MapBuilder is completed`);
+        }
         this._map.get(row).set(column, value);
         return this;
     }
@@ -77,6 +84,7 @@ export class TableBuilder<ROW, COLUMN, VALUE>{
     }
 
     public complete() {
+        this._completed = true;
         return new TableImpl<ROW, COLUMN, VALUE>(this._map);
     }
 
@@ -87,6 +95,7 @@ export class TableBuilder<ROW, COLUMN, VALUE>{
                 return initializer(row, column);
             });
         });
+        this._completed = false;
     }
 }
 

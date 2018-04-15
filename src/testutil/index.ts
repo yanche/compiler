@@ -45,3 +45,7 @@ export function readLexTokens(lexIterator: LexIterator): ReadonlyArray<Token> | 
     }
     return ret;
 }
+
+export function arrayEqual<T>(arr1: Array<T>, arr2: Array<T>): boolean {
+    return arr1.length === arr2.length && arr1.every((item, idx) => item === arr2[idx]);
+}

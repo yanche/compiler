@@ -2,8 +2,7 @@
 
 export * from "./number";
 export * from "./closure";
-export * from "./collectionbuilder";
-export * from "./stack";
+export * from "./collection";
 import * as validate from "./validate";
 
 export { validate };

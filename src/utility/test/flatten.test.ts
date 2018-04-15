@@ -1,10 +1,7 @@
 
 import { assert } from 'chai';
 import { flatten } from "../index";
-
-function arrayEqual<T>(arr1: Array<T>, arr2: Array<T>): boolean {
-    return arr1.length === arr2.length && arr1.every((item, idx) => item === arr2[idx]);
-}
+import { arrayEqual } from '../../testutil';
 
 describe("flatten test", () => {
     it("[]", () => {
