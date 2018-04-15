@@ -10,6 +10,14 @@ describe("where test", () => {
         assert.ok(arrayEqual(arr, [2, 4]));
     });
 
+    it("iterable from where can be iterated twice", () => {
+        const arr = [1, 2, 3, 4, 5];
+        const iter = where(arr, n => n % 2 === 0);
+        assert.ok(arrayEqual(Array.from(iter), [2, 4]));
+        // iterable from where can be iterated twice
+        assert.ok(arrayEqual(Array.from(iter), [2, 4]));
+    });
+
     it("no access until usage", () => {
         const accessed = initArray(5, false);
         const arr = where([1, 2, 3, 4, 5], (n, i) => {
