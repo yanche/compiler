@@ -48,7 +48,7 @@ export function selectOne<T>(arr: Iterable<T>, selectFn: (item1: T, item2: T) =>
 export function selectOnes<T>(arr: Iterable<T>, ...selectFns: ((item1: T, item2: T) => T)[]): T[] {
     const len = selectFns.length;
     if (len === 0) throw new Error("no select function is not acceptable");
-    let ret: T[];
+    let ret!: T[];
     let init = false;
     for (let item of arr) {
         if (!init) {
@@ -60,5 +60,6 @@ export function selectOnes<T>(arr: Iterable<T>, ...selectFns: ((item1: T, item2:
             }
         }
     }
+    if (!init) throw new Error("input items collection is empty");
     return ret;
 }

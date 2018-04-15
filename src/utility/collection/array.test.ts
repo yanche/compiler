@@ -132,6 +132,10 @@ describe("selectOnes test", () => {
             (n1, n2) => Math.min(n1, n2)), [9, 1]), true);
     });
 
+    it("empty select function input", () => {
+        assert.throws(() => selectOnes([1, 2, 3]));
+    });
+
     it("empty input", () => {
         assert.throws(() => selectOnes([], (n1, n2) => Math.max(n1, n2), (n1, n2) => Math.min(n1, n2)));
     });
