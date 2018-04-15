@@ -6,7 +6,7 @@ import { Area, Posi } from "../lex";
 describe("calcContainingArea", () => {
     it("(1,5)-(1-10), (1,10)-(2,6)", () => {
         const startArea = new Area(new Posi(1, 5), new Posi(1, 10));
-        const endArea = new Area(new Posi(1, 10), new Posi(2, 5));
+        const endArea = new Area(new Posi(1, 10), new Posi(2, 6));
         const containingArea = calcContainingArea([startArea, endArea]);
         assert.strictEqual(containingArea.start.row, 1);
         assert.strictEqual(containingArea.start.col, 5);
@@ -14,9 +14,9 @@ describe("calcContainingArea", () => {
         assert.strictEqual(containingArea.end.col, 6);
     });
     
-    it("(1,5)-(1-10), (1,4)-(1,12), same row", () => {
+    it("(1,5)-(1-10), (1,6)-(1,12), same row", () => {
         const startArea = new Area(new Posi(1, 5), new Posi(1, 10));
-        const endArea = new Area(new Posi(1, 4), new Posi(1, 12));
+        const endArea = new Area(new Posi(1, 6), new Posi(1, 12));
         const containingArea = calcContainingArea([startArea, endArea]);
         assert.strictEqual(containingArea.start.row, 1);
         assert.strictEqual(containingArea.start.col, 5);

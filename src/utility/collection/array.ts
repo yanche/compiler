@@ -37,10 +37,6 @@ export function findFirst<T>(arr: Iterable<T>, predicate: (t: T, idx: number) =>
     return def;
 }
 
-export function* arrayIterator<T>(arr: ArrayLike<T>) {
-    return yield* arr;
-}
-
 export function selectOne<T>(arr: Iterable<T>, selectFn: (item1: T, item2: T) => T): T {
     return selectOnes(arr, selectFn)[0];
 }
