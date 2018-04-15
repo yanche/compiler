@@ -1,6 +1,6 @@
 
-import { Edge, NodeId, Stack } from "./index";
-import { createMapBuilderOfSet, MapBuilder } from "./collectionbuilder";
+import { Edge, NodeId, Stack } from "../index";
+import { createMapBuilderOfSet, MapBuilder } from "../collectionbuilder";
 
 export interface Closure {
     getNodes(): Set<NodeId>;

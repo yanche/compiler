@@ -1,6 +1,6 @@
 
 
-export * from "./closure";
+export * from "./closure/index";
 export * from "./collectionbuilder";
 export * from "./stack";
 
